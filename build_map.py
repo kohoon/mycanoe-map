@@ -111,6 +111,7 @@ __GTAG__
   .pm-form input{flex:1;min-width:0;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:14px}
   .pm-form button{background:#1565c0;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
   #pmMsg{font-size:12px;color:#888;margin-top:6px;min-height:14px}
+  /* TRIPCSS */
   #tripbar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;z-index:1200;display:flex;gap:8px}
   .tb-start{background:#ff3d00;color:#fff;border:0;border-radius:24px;padding:13px 20px;font:800 15px sans-serif;box-shadow:0 4px 14px rgba(255,61,0,.45);cursor:pointer;white-space:nowrap}
   #tripbar.rec .tb-start{background:#d32f2f;animation:recpulse 1.4s ease-in-out infinite}
@@ -137,6 +138,7 @@ __GTAG__
   .tm-rank{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0}
   .tm-rank .rk{width:22px;text-align:center;font-weight:800;color:#1565c0}
   .tm-empty{color:#999;font-size:13px;padding:14px 0;text-align:center}
+  /* /TRIPCSS */
   .authbox{font:600 13px sans-serif}
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
   .authbox .who{display:inline-block;background:#fff;border-radius:6px;padding:7px 10px;box-shadow:0 1px 4px rgba(0,0,0,.3);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -200,11 +202,13 @@ __GTAG__
     <div id="pmMsg"></div>
   </div>
 </div>
+<!-- TRIPHTML -->
 <div id="tripbar"><button id="tripStart" class="tb-start">▶ 카누잉 시작</button><button id="tripLog" class="tb-log">📋 기록</button></div>
 <div id="tmodal" class="pmodal-wrap">
   <div class="pmodal-bg" onclick="closeTModal()"></div>
   <div class="pmodal"><button class="pmodal-x" onclick="closeTModal()">✕</button><div id="tmBody"></div></div>
 </div>
+<!-- /TRIPHTML -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const POINTS = __POINTS__;
@@ -675,6 +679,7 @@ map.on('locationerror', function(){
   L.popup().setLatLng(map.getCenter()).setContent('위치를 가져올 수 없습니다.<br><small>브라우저 위치 권한을 허용해 주세요</small>').openOn(map);
 });
 
+/* TRIPJS */
 // ====== 카누잉 트립 기록 ======
 function wapi(p){ return WORKER_URL.replace(/\/+$/,'')+p; }
 function toastMsg(m){ const h=document.getElementById('hint'); if(!h) return; h.textContent=m; h.style.opacity='1'; clearTimeout(window._htid); window._htid=setTimeout(function(){h.style.opacity='0';},3800); }
@@ -778,6 +783,7 @@ async function deleteTrip(id){ if(!confirm('이 기록을 삭제할까요?')) re
     else openTripSummary(bk.track, bk.startMs, L.polyline(bk.track.map(function(p){return [p[0],p[1]];}),{color:'#ff3d00',weight:5,opacity:.9}).addTo(map));
   },1200); } })();
 document.addEventListener('visibilitychange',function(){ if(_trk&&document.visibilityState==='visible'&&'wakeLock' in navigator){ navigator.wakeLock.request('screen').then(function(w){ _trk.wakeLock=w; }).catch(function(){}); } });
+/* /TRIPJS */
 
 // ---- 범례 ----
 const legend = L.control({position:'bottomright'});
@@ -805,6 +811,23 @@ html = (HTML
         .replace("__WORKER__", WORKER_URL)
         .replace("__GA_ID__", GA_ID)
         .replace("__ADMIN__", ADMIN_ID))
-out = BASE / "map.html"
-out.write_text(html, encoding="utf-8")
-print(f"생성: map.html ({out.stat().st_size/1024:.0f} KB) — VKEY {'포함(공개)' if VKEY else '없음'}")
+
+# 카누잉 기록(트립) 기능: 기본 빌드는 제외(운영), `python build_map.py test` 만 포함(테스트 페이지)
+import re as _re, sys as _sys
+_TEST = len(_sys.argv) > 1 and _sys.argv[1] == "test"
+
+def _strip_trip(h):
+    h = _re.sub(r"/\* TRIPCSS \*/.*?/\* /TRIPCSS \*/", "", h, flags=_re.S)
+    h = _re.sub(r"<!-- TRIPHTML -->.*?<!-- /TRIPHTML -->", "", h, flags=_re.S)
+    h = _re.sub(r"/\* TRIPJS \*/.*?/\* /TRIPJS \*/", "", h, flags=_re.S)
+    return h
+
+if _TEST:
+    out = BASE / "test.html"               # 테스트 페이지: 트립 포함
+    out.write_text(html, encoding="utf-8")
+    print(f"생성: test.html ({out.stat().st_size/1024:.0f} KB) — 카누잉 기록 포함(테스트)")
+else:
+    prod = _strip_trip(html)               # 운영: 트립 제외
+    (BASE / "map.html").write_text(prod, encoding="utf-8")
+    (BASE / "index.html").write_text(prod, encoding="utf-8")
+    print(f"생성: map.html + index.html ({len(prod)/1024:.0f} KB) — 카누잉 기록 제외(운영)")
