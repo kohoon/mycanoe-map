@@ -15,7 +15,7 @@
  * 카카오 개발자센터 Redirect URI 에 "이 Worker 의 URL" 을 등록.
  */
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const REDIRECT = url.origin + url.pathname;   // = 카카오에 등록할 Redirect URI
     const code = url.searchParams.get("code");
@@ -55,6 +55,17 @@ export default {
     const nick =
       (me.kakao_account && me.kakao_account.profile && me.kakao_account.profile.nickname) ||
       (me.properties && me.properties.nickname) || "";
+
+    // 로그인 기록 → Google Sheet(Apps Script 웹앱). LOG_WEBHOOK 은 대시보드 Secret 으로 설정.
+    if (env.LOG_WEBHOOK) {
+      ctx.waitUntil(
+        fetch(env.LOG_WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: id, nick: nick }),
+        }).catch(() => {})
+      );
+    }
 
     const site = env.SITE_URL || "https://kohoon.github.io/mycanoe-map/";
     const back = site + "#login=" + encodeURIComponent(id) + "&nick=" + encodeURIComponent(nick);
