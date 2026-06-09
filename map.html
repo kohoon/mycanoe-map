@@ -612,27 +612,32 @@ function updateMeasBtn(){
   const c=document.getElementById('measCancel');
   if(c) L.DomEvent.on(c,'click',function(e){ L.DomEvent.stop(e); cancelMeasure(); });
 }
-function startMeasure(){ measureMode=true; measPts=[]; measSegs=[]; measDraft.clearLayers(); map.getContainer().style.cursor='crosshair'; updateMeasBtn(); }
-function cancelMeasure(){ measureMode=false; measPts=[]; measSegs=[]; measDraft.clearLayers(); map.getContainer().style.cursor=''; updateMeasBtn(); }
-map.on('click', async function(e){
+function startMeasure(){ measureMode=true; measPts=[]; measSegs=[]; _measQueue=[]; measDraft.clearLayers(); map.getContainer().style.cursor='crosshair'; updateMeasBtn(); }
+function cancelMeasure(){ measureMode=false; measPts=[]; measSegs=[]; _measQueue=[]; measDraft.clearLayers(); map.getContainer().style.cursor=''; updateMeasBtn(); }
+let _measQueue=[], _measRunning=false;
+map.on('click', function(e){
   if(!measureMode) return;
   const pt=e.latlng;
-  if(measPts.length===0){
-    measPts.push(pt);
-    L.circleMarker(pt,{radius:5,color:'#bf360c',fillColor:'#ff7043',fillOpacity:1}).addTo(measDraft);
-    updateMeasBtn(); return;
-  }
-  const tmp=L.circleMarker(pt,{radius:4,color:'#bf360c',fillColor:'#ffab91',fillOpacity:1}).addTo(measDraft);
-  const b=document.getElementById('measBtnBox'); if(b) b.innerHTML='⏳ 물길 계산 중…';
-  let seg=null; try{ seg=await waterRoute(measPts[measPts.length-1], pt); }catch(err){ seg={err:'overpass'}; }
-  if(!seg || seg.err){
-    measDraft.removeLayer(tmp);
-    L.popup({closeButton:false}).setLatLng(pt).setContent(seg&&seg.err==='overpass'?'서버 혼잡 — 잠시 후 다시 클릭':'이 구간 물길 못 찾음<br><small>더 가까운 점/경유지를 찍어보세요</small>').openOn(map);
-    updateMeasBtn(); return;
-  }
-  L.polyline(seg.coords,{color:'#ff7043',weight:4,opacity:.85,dashArray:seg.straight?'6,8':null}).addTo(measDraft);
-  measSegs.push(seg); measPts.push(pt); updateMeasBtn();
+  L.circleMarker(pt,{radius:5,color:'#bf360c',fillColor:'#ff7043',fillOpacity:1}).addTo(measDraft);
+  _measQueue.push(pt);     // 클릭 순서 보존(즉시 점 표시)
+  _runMeasQueue();
 });
+async function _runMeasQueue(){
+  if(_measRunning) return; _measRunning=true;
+  while(_measQueue.length){
+    const pt=_measQueue.shift();
+    if(measPts.length===0){ measPts.push(pt); updateMeasBtn(); continue; }
+    const b=document.getElementById('measBtnBox'); if(b) b.innerHTML='⏳ 물길 계산 중…';
+    let seg=null; try{ seg=await waterRoute(measPts[measPts.length-1], pt); }catch(err){ seg={err:'overpass'}; }
+    if(!seg || seg.err){
+      L.popup({closeButton:false}).setLatLng(pt).setContent(seg&&seg.err==='overpass'?'서버 혼잡 — 잠시 후 다시 클릭':'이 구간 물길 못 찾음<br><small>더 가까운 점/경유지를 찍어보세요</small>').openOn(map);
+      updateMeasBtn(); continue;   // 이 점은 건너뛰고 다음 점은 마지막 성공점에서 이어감
+    }
+    L.polyline(seg.coords,{color:'#ff7043',weight:4,opacity:.85,dashArray:seg.straight?'6,8':null}).addTo(measDraft);
+    measSegs.push(seg); measPts.push(pt); updateMeasBtn();
+  }
+  _measRunning=false;
+}
 function finishMeasure(){
   if(measPts.length<2){ cancelMeasure(); return; }
   const km=measSegs.reduce(function(s,x){return s+x.km;},0);
