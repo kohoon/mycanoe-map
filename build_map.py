@@ -73,11 +73,28 @@ __GTAG__
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
   .authbox .who{display:inline-block;background:#fff;border-radius:6px;padding:7px 10px;box-shadow:0 1px 4px rgba(0,0,0,.3);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .authbox .who a{color:#1565c0;margin-left:8px;text-decoration:none;cursor:pointer}
+  #gate{position:fixed;inset:0;z-index:3000;background:linear-gradient(160deg,#e3f2fd,#f1f8e9);display:flex;align-items:center;justify-content:center}
+  .gate-card{background:#fff;border-radius:16px;padding:34px 26px;max-width:340px;width:84%;text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.18)}
+  .gate-logo{font-size:46px;line-height:1}
+  .gate-card h1{margin:10px 0 6px;font:700 22px sans-serif;color:#1b3a2b}
+  .gate-card p{color:#5a6b62;font:13px/1.6 sans-serif;margin:0 0 22px}
+  #gateLogin{background:#FEE500;color:#191600;border:0;border-radius:9px;padding:14px 18px;font:700 15px sans-serif;width:100%;cursor:pointer}
+  #gateLogin:active{transform:translateY(1px)}
+  .gate-card small{display:block;margin-top:13px;color:#9aa6a0;font-size:11px}
 </style>
 </head>
 <body>
 <div id="map"></div>
 <div id="hint"></div>
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">🛶</div>
+    <h1>마이카누 지도</h1>
+    <p>상수원보호구역 · 카누 런칭/랜딩 장소 · 카누잉 코스 · 물길 거리측정</p>
+    <button id="gateLogin">카카오로 시작하기</button>
+    <small>로그인 후 이용할 수 있어요</small>
+  </div>
+</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const POINTS = __POINTS__;
@@ -107,12 +124,20 @@ function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Wor
     gaEvent('login',{method:'kakao'});
   } else { const u=getUser(); if(u&&u.uid){ if(window.gtag) gtag('set',{user_id:u.uid}); logVisit(); } }
 })();
+// 로그인 관문: 미로그인 시 지도 차단(로그인 화면 표시)
+function showGate(){ const g=document.getElementById('gate'); if(g) g.style.display='flex'; }
+function hideGate(){ const g=document.getElementById('gate'); if(g) g.style.display='none'; }
+(function(){
+  const gb=document.getElementById('gateLogin');
+  if(gb) gb.onclick=function(){ gaEvent('login_start'); location.href=WORKER_URL; };
+  const u=getUser(); (u&&u.uid)?hideGate():showGate();
+})();
 function renderAuth(){
   const d=document.getElementById('authbox'); if(!d) return;
   const u=getUser();
   if(u&&u.uid){
     d.innerHTML='<span class="who">👤 '+(u.nick||'사용자').replace(/[<>]/g,'')+' <a id="logoutA">로그아웃</a></span>';
-    const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); gaEvent('logout'); renderAuth(); });
+    const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); gaEvent('logout'); renderAuth(); showGate(); });
   } else {
     d.innerHTML='<button id="loginA">카카오 로그인</button>';
     const lb=document.getElementById('loginA'); if(lb) L.DomEvent.on(lb,'click',function(e){ L.DomEvent.stop(e); gaEvent('login_start'); location.href=WORKER_URL; });
