@@ -50,7 +50,18 @@ HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>카누 지도 — 상수원보호구역 / 즐겨찾기</title>
+<title>마이카누 지도 — 카누 명소·코스·물길 거리측정</title>
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kohoon.github.io/mycanoe-map/">
+<meta property="og:title" content="마이카누 지도">
+<meta property="og:description" content="전국 카누 명소·런칭/랜딩·카누잉 코스·물길 거리측정. 카누 타는 곳을 한눈에.">
+<meta property="og:image" content="https://kohoon.github.io/mycanoe-map/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="마이카누 지도">
+<meta name="twitter:description" content="전국 카누 명소·코스·물길 거리측정">
+<meta name="twitter:image" content="https://kohoon.github.io/mycanoe-map/og.png">
 __GTAG__
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -169,6 +180,9 @@ __GTAG__
   .kakao-btn:active{transform:translateY(1px)}
   .kakao-ico{width:20px;height:20px;fill:#191600}
   .gate-card small{display:block;margin-top:14px;color:#9aa6a0;font-size:11.5px}
+  .beta-tag{display:inline-block;background:#ff7043;color:#fff;font:700 10px sans-serif;padding:2px 7px;border-radius:8px;vertical-align:middle;margin-left:7px}
+  .gate-warn{display:flex;gap:8px;text-align:left;background:#fff8e1;border:1px solid #ffe082;border-left:4px solid #ffb300;border-radius:9px;padding:9px 11px;margin:0 0 16px;font:12px/1.5 sans-serif;color:#6d4c00}
+  .gate-warn span:first-child{flex:none}
   @media(max-width:520px){
     .measbtn{padding:8px 11px;font-size:12px}
     .search input{max-width:150px;font-size:12px}
@@ -194,7 +208,7 @@ __GTAG__
       <path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#dfeefb"/>
       <path d="M23 15.2V24.8M41 15.2V24.8" stroke="#bcd6ea" stroke-width="1.5" stroke-linecap="round"/>
     </svg></div>
-    <h1>마이카누 지도</h1>
+    <h1>마이카누 지도<span class="beta-tag">BETA</span></h1>
     <p class="gate-sub">전국 카누 명소를 한눈에</p>
     <ul class="gate-feats">
       <li><span>💧</span><span>상수원보호구역 안내</span></li>
@@ -202,6 +216,7 @@ __GTAG__
       <li><span>🛶</span><span>카누잉 추천 코스</span></li>
       <li><span>📏</span><span>물길 거리 측정</span></li>
     </ul>
+    <div class="gate-warn"><span>⚠️</span><span>베타 서비스입니다. 접속·속도가 불안정할 수 있고, 남긴 코멘트가 사라질 수 있어요.</span></div>
     <button id="gateLogin" class="kakao-btn"><svg class="kakao-ico" viewBox="0 0 24 24"><path d="M12 3.4C6.7 3.4 2.4 6.9 2.4 11.1c0 2.7 1.8 5.1 4.5 6.5-.2.7-.7 2.5-.8 2.9-.1.5.2.5.4.4.2-.1 2.5-1.7 3.5-2.4.5.1 1 .2 1.5.2 5.3 0 9.6-3.4 9.6-7.6S17.3 3.4 12 3.4z"/></svg>카카오로 시작하기</button>
     <small>로그인 후 바로 이용할 수 있어요</small>
   </div>
@@ -377,20 +392,17 @@ async function showAddress(lat,lng){
 function suggestPlace(){
   const a=window._curAddr; if(!a) return; const u=getUser(); if(!u||!u.uid) return;
   const html='<div class="addform"><b>장소 제안</b>'
-    +'<div class="aprow"><label><input type="radio" name="sgc" value="런칭지" checked> 런칭지</label>'
-    +'<label><input type="radio" name="sgc" value="랜딩지"> 랜딩지</label>'
-    +'<label><input type="radio" name="sgc" value="기타"> 기타</label></div>'
-    +'<input id="sgText" placeholder="설명/코멘트 (선택)" maxlength="200">'
+    +'<div style="font-size:12px;color:#667;margin:5px 0">이 위치를 카누 장소로 제안합니다</div>'
+    +'<input id="sgText" placeholder="설명/코멘트 (예: 진입로·주차 정보)" maxlength="200">'
     +'<button id="sgSave">제안 보내기</button> <span id="sgMsg"></span></div>';
   L.popup({minWidth:240}).setLatLng([a.lat,a.lng]).setContent(html).openOn(map);
   setTimeout(function(){ const sv=document.getElementById('sgSave'); if(!sv) return;
     sv.onclick=async function(){
-      const cc=document.querySelector('input[name=sgc]:checked'); const cat=cc?cc.value:'기타';
       const text=(document.getElementById('sgText').value||'').trim().slice(0,200);
       const msg=document.getElementById('sgMsg'); msg.textContent='보내는 중…';
       try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/suggest',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({id:u.uid,nick:u.nick||'',cat:cat,text:text,addr:a.name||'',lat:a.lat,lng:a.lng})});
-        if(r.ok){ msg.textContent='감사합니다! 제안이 접수됐어요'; gaEvent('place_suggest',{cat:cat}); setTimeout(function(){map.closePopup();},900); }
+        body:JSON.stringify({id:u.uid,nick:u.nick||'',cat:'제안',text:text,addr:a.name||'',lat:a.lat,lng:a.lng})});
+        if(r.ok){ msg.textContent='감사합니다! 제안이 접수됐어요'; gaEvent('place_suggest'); setTimeout(function(){map.closePopup();},900); }
         else msg.textContent='전송 실패'; }
       catch(e){ msg.textContent='오류'; } };
   },0);
