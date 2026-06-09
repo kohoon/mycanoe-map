@@ -52,7 +52,7 @@ def build_graph(ways, river_name=None):
     adj = {}
     nodes = {}      # key -> (lat,lng)
     named = set()   # 본류(river_name) 위 노드
-    MULT = 0.3      # 본류 엣지 라우팅 가중치(작을수록 본류 선호)
+    MULT = 0.04     # 본류 엣지 라우팅 가중치(작을수록 본류 강하게 선호, 곡류 질러가기 방지)
 
     def key(lat, lng):
         k = (round(lat, 5), round(lng, 5))
@@ -62,9 +62,15 @@ def build_graph(ways, river_name=None):
 
     for wy in ways:
         nm = (wy.get("tags") or {}).get("name", "") or ""
-        is_main = bool(river_name) and river_name in nm
-        mult = MULT if is_main else 1.0
         geom = wy.get("geometry") or []
+        is_main = bool(river_name) and river_name in nm
+        # 본류라도 '긴 way'(실제 강 본류)만 강하게 선호. 짧은 동명 way(가로지름/지선)는 약하게.
+        if is_main and len(geom) >= 80:
+            mult = MULT
+        elif is_main:
+            mult = 0.6
+        else:
+            mult = 1.0
         prev = None
         for p in geom:
             k = key(p["lat"], p["lon"])
@@ -149,6 +155,12 @@ def trace_course(course):
             continue
         alld[sn], allp[sn] = dijkstra_all(adj, sn)
     n = len(pts)
+
+    def true_dist(i, j):   # 정렬용 실거리(본류 가중치 아님)
+        a, b = snapped[i], snapped[j]
+        p = reconstruct(allp.get(a, {}), a, b)
+        return path_meters(nodes, p) if p else None
+
     if n <= 2:
         order = list(range(n))
     else:
@@ -158,11 +170,10 @@ def trace_course(course):
                 continue
             tot, ok = 0.0, True
             for i in range(n - 1):
-                a, b = snapped[perm[i]], snapped[perm[i + 1]]
-                dd = alld.get(a, {}).get(b)
-                if dd is None:
+                d = true_dist(perm[i], perm[i + 1])
+                if d is None:
                     ok = False; break
-                tot += dd
+                tot += d
             if ok and tot < blen:
                 blen, best = tot, perm
         order = list(best) if best else list(range(n))
