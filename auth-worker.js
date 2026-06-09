@@ -49,7 +49,17 @@ export default {
       return new Response("ok", { headers: cors });
     }
 
-    // 0-2) 등록 장소 저장/조회 (Cloudflare KV: env.PLACES, 어드민: env.ADMIN_ID)
+    // 0-1b) 관리자 키 검증(백도어). 키는 Cloudflare Secret(env.ADMIN_KEY)에만 존재
+    if (url.pathname.endsWith("/admincheck")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      let b = {}; try { b = await req.json(); } catch (e) {}
+      const ok = !!env.ADMIN_KEY && String(b.key) === String(env.ADMIN_KEY);
+      return new Response(JSON.stringify({ ok: ok }), { headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // 0-2) 등록 장소 저장/조회 (Cloudflare KV: env.PLACES, 어드민: env.ADMIN_KEY)
     if (url.pathname.endsWith("/places")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = {
@@ -66,7 +76,7 @@ export default {
       if (req.method === "POST") {
         let b = {};
         try { b = await req.json(); } catch (e) {}
-        if (!env.ADMIN_ID || String(b.id) !== String(env.ADMIN_ID))
+        if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY))
           return new Response("forbidden", { status: 403, headers: cors });
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
         const lat = Number(b.lat), lng = Number(b.lng);
@@ -103,7 +113,7 @@ export default {
         let b = {};
         try { b = await req.json(); } catch (e) {}
         if (b.action === "export") {   // 어드민: 기존 KV 코멘트 전체를 시트로 백필
-          if (String(b.id) !== String(env.ADMIN_ID)) return new Response("forbidden", { status: 403, headers: cors });
+          if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
           if (!KV || !env.LOG_WEBHOOK) return new Response("no-store", { status: 500, headers: cors });
           let cursor, n = 0;
           do {
@@ -127,7 +137,7 @@ export default {
         let obj = { admin: "", list: [] };
         try { obj = JSON.parse((await KV.get("cmt:" + slug)) || EMPTY); } catch (e) {}
         if (b.admin) {
-          if (String(b.id) !== String(env.ADMIN_ID)) return new Response("forbidden", { status: 403, headers: cors });
+          if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
           obj.admin = String(b.text || "").slice(0, 300);
         } else {
           if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
@@ -212,7 +222,7 @@ export default {
           const t = KV ? await KV.get("trip:" + id) : null;
           if (!t) return TXT("not found", 404);
           const trip = JSON.parse(t);
-          if (!trip.shared && String(viewer) !== String(trip.uid) && String(viewer) !== String(env.ADMIN_ID))
+          if (!trip.shared && String(viewer) !== String(trip.uid))
             return TXT("forbidden", 403);
           return J(t);
         }
@@ -272,7 +282,7 @@ export default {
             const id = String(b.tripId || "");
             const t = await KV.get("trip:" + id); if (!t) return TXT("bad", 400);
             const trip = JSON.parse(t);
-            const isOwner = String(trip.uid) === String(b.id), isAdmin = String(b.id) === String(env.ADMIN_ID);
+            const isOwner = String(trip.uid) === String(b.id), isAdmin = !!env.ADMIN_KEY && String(b.adminKey) === String(env.ADMIN_KEY);
             if (!isOwner && !isAdmin) return TXT("forbidden", 403);
             await KV.delete("trip:" + id);
             let ut = []; try { ut = JSON.parse((await KV.get("utrips:" + trip.uid)) || "[]"); } catch (e) {}
