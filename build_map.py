@@ -40,10 +40,17 @@ HTML = """<!DOCTYPE html>
   .legend b{display:block;margin-bottom:4px}
   .sw{display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:5px;border-radius:2px}
   .leaflet-popup-content{font:13px/1.5 sans-serif}
+  .search input{padding:3px 5px;border:1px solid #bbb;border-radius:3px;width:150px;font-size:12px}
+  .search button{padding:3px 8px;margin-left:3px;cursor:pointer;font-size:12px}
+  .sr-item{margin-top:4px;font-size:12px}
+  .sr-item a{color:#1565c0;text-decoration:none}
+  .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;z-index:1000;
+        background:rgba(0,0,0,.6);color:#fff;padding:3px 10px;border-radius:12px;font:12px sans-serif}
 </style>
 </head>
 <body>
 <div id="map"></div>
+<div class="hint">지도를 <b>우클릭</b>하면 주소가 표시됩니다</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const POINTS = __POINTS__;
@@ -51,6 +58,14 @@ const POLYS = __POLYS__;
 
 const map = L.map('map', {preferCanvas:true}).setView([36.3, 127.8], 7);
 window.map = map;
+
+// 외부 지도(카카오/네이버) 열기 링크
+function extLinks(lat,lng,label){
+  const L1='https://map.kakao.com/link/map/'+encodeURIComponent((label||'위치').slice(0,30))+','+lat+','+lng;
+  const L2='https://map.naver.com/p/search/'+lat+','+lng;
+  return '<br><a href="'+L1+'" target="_blank" rel="noopener">카카오맵</a> · '+
+         '<a href="'+L2+'" target="_blank" rel="noopener">네이버맵</a>';
+}
 
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
@@ -64,12 +79,55 @@ const protect = L.geoJSON(POLYS, {
 // 카누 즐겨찾기 점
 const canoe = L.geoJSON(POINTS, {
   pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:5,color:'#1565c0',weight:1,fillColor:'#2196f3',fillOpacity:0.9}),
-  onEachFeature:(f,l)=>{ const p=f.properties; let h='<b>'+(p.name||'(이름없음)')+'</b>'; if(p.memo) h+='<br>'+p.memo; l.bindPopup(h); }
+  onEachFeature:(f,l)=>{ const p=f.properties; const c=f.geometry.coordinates;
+    let h='<b>'+(p.name||'(이름없음)')+'</b>'; if(p.memo) h+='<br>'+p.memo;
+    h+=extLinks(c[1],c[0],p.name); l.bindPopup(h); }
 }).addTo(map);
 
 const overlays = {'상수원보호구역(면)':protect};
 overlays['카누 즐겨찾기('+POINTS.features.length+'곳)'] = canoe;
 L.control.layers({'OpenStreetMap':osm}, overlays, {collapsed:false}).addTo(map);
+
+// 우클릭 → 역지오코딩(주소보기)  [OSM Nominatim, 키 불필요]
+map.on('contextmenu', async (e)=>{
+  const lat=e.latlng.lat, lng=e.latlng.lng;
+  const pop=L.popup().setLatLng(e.latlng).setContent('주소 조회 중…').openOn(map);
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&accept-language=ko&lat='+lat+'&lon='+lng);
+    const d=await r.json();
+    const addr=(d&&d.display_name)?d.display_name:'주소를 찾지 못함';
+    pop.setContent('<b>'+addr+'</b><br><small>'+lat.toFixed(5)+', '+lng.toFixed(5)+'</small>'+extLinks(lat,lng,addr));
+  }catch(err){ pop.setContent('주소 조회 실패'); }
+});
+
+// 장소 검색 박스 (좌상단)  [Nominatim, 한국 지명/랜드마크]
+const SearchCtl = L.Control.extend({ options:{position:'topleft'},
+  onAdd:function(){
+    const d=L.DomUtil.create('div','legend search');
+    d.innerHTML='<form id="srchForm"><input id="srchQ" placeholder="장소 검색(강·유원지 등)" autocomplete="off">'+
+      '<button type="submit">검색</button></form><div id="srchRes"></div>';
+    L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+    return d;
+  }
+});
+map.addControl(new SearchCtl());
+let _res=[];
+document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  const q=document.getElementById('srchQ').value.trim(); const box=document.getElementById('srchRes');
+  if(!q){ return; } box.textContent='검색 중…';
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=kr&accept-language=ko&limit=6&q='+encodeURIComponent(q));
+    _res=await r.json();
+    if(!_res.length){ box.textContent='결과 없음'; return; }
+    box.innerHTML=_res.map((x,i)=>'<div class="sr-item"><a href="#" data-i="'+i+'">'+x.display_name.slice(0,38)+'</a></div>').join('');
+    box.querySelectorAll('a').forEach(a=>a.addEventListener('click',(ze)=>{
+      ze.preventDefault(); const x=_res[a.dataset.i]; const lat=+x.lat, lng=+x.lon;
+      map.setView([lat,lng],14);
+      L.popup().setLatLng([lat,lng]).setContent('<b>'+x.display_name.slice(0,50)+'</b>'+extLinks(lat,lng,q)).openOn(map);
+    }));
+  }catch(err){ box.textContent='검색 실패'; }
+});
 
 const legend = L.control({position:'bottomright'});
 legend.onAdd = function(){
