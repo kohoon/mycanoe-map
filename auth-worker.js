@@ -75,6 +75,46 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
+    // 0-3) 장소별 코멘트 (관리자 코멘트 + 사용자 코멘트). KV key = "cmt:<slug>"
+    if (url.pathname.endsWith("/comments")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const EMPTY = '{"admin":"","list":[]}';
+      if (req.method === "GET") {
+        const slug = (url.searchParams.get("place") || "").slice(0, 40);
+        const data = KV && slug ? await KV.get("cmt:" + slug) : null;
+        return new Response(data || EMPTY, { headers: { ...cors, "Content-Type": "application/json" } });
+      }
+      if (req.method === "POST") {
+        let b = {};
+        try { b = await req.json(); } catch (e) {}
+        const slug = String(b.place || "").slice(0, 40);
+        if (!slug) return new Response("bad", { status: 400, headers: cors });
+        if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        let obj = { admin: "", list: [] };
+        try { obj = JSON.parse((await KV.get("cmt:" + slug)) || EMPTY); } catch (e) {}
+        if (b.admin) {
+          if (String(b.id) !== String(env.ADMIN_ID)) return new Response("forbidden", { status: 403, headers: cors });
+          obj.admin = String(b.text || "").slice(0, 300);
+        } else {
+          if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
+          const text = String(b.text || "").trim().slice(0, 100);
+          if (!text) return new Response("bad", { status: 400, headers: cors });
+          obj.list.push({ nick: String(b.nick || "익명").slice(0, 20), text: text, t: Date.now() });
+          if (obj.list.length > 500) obj.list = obj.list.slice(-500);
+        }
+        await KV.put("cmt:" + slug, JSON.stringify(obj));
+        return new Response("ok", { headers: cors });
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
     // 1) 로그인 시작
     if (!code) {
       const auth = "https://kauth.kakao.com/oauth/authorize?response_type=code"

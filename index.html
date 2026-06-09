@@ -35,6 +35,28 @@
   .addform #apMsg{font-size:12px;color:#666;margin-left:6px}
   .canoe-pin-in{width:26px;height:26px;border-radius:50%;background:#2196f3;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
   .canoe-pin-in svg{width:17px;height:auto}
+  .pmodal-wrap{position:fixed;inset:0;z-index:3500;display:none;align-items:flex-end;justify-content:center}
+  .pmodal-wrap.open{display:flex}
+  .pmodal-bg{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+  .pmodal{position:relative;background:#fff;width:100%;max-width:460px;max-height:82vh;overflow:auto;border-radius:16px 16px 0 0;padding:20px 18px 24px;box-shadow:0 -6px 30px rgba(0,0,0,.25);animation:pmUp .25s ease}
+  @keyframes pmUp{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+  @media(min-width:520px){.pmodal-wrap{align-items:center}.pmodal{border-radius:16px}}
+  .pmodal-x{position:absolute;top:12px;right:12px;border:0;background:#eee;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer}
+  .pmodal h3{margin:0 30px 8px 0;font-size:18px;color:#1b3a2b}
+  #pmLinks{font-size:13px;margin-bottom:10px}
+  .pm-memo{color:#556;font-size:13px;margin-top:6px}
+  .pm-adminbox{background:#e8f7f1;border-left:3px solid #00b894;border-radius:6px;padding:8px 10px;margin:8px 0;font-size:13px;white-space:pre-wrap;word-break:break-word}
+  .pm-admedit{background:#00b894;color:#fff;border:0;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;margin:4px 0 8px}
+  .pm-cmts-h{font-weight:700;font-size:14px;border-top:1px solid #eee;padding-top:12px;margin-top:8px}
+  .pm-cmts{margin:8px 0}
+  .pm-cmt{padding:7px 0;border-bottom:1px solid #f0f0f0}
+  .pm-cmt-h b{font-size:12.5px;color:#1565c0}
+  .pm-cmt-b{font-size:13.5px;color:#222;margin-top:2px;word-break:break-word}
+  .pm-empty{color:#999;font-size:13px;padding:10px 0}
+  .pm-form{display:flex;gap:6px;margin-top:8px}
+  .pm-form input{flex:1;min-width:0;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:14px}
+  .pm-form button{background:#1565c0;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
+  #pmMsg{font-size:12px;color:#888;margin-top:6px;min-height:14px}
   .authbox{font:600 13px sans-serif}
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
   .authbox .who{display:inline-block;background:#fff;border-radius:6px;padding:7px 10px;box-shadow:0 1px 4px rgba(0,0,0,.3);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -83,6 +105,19 @@
     </ul>
     <button id="gateLogin" class="kakao-btn"><svg class="kakao-ico" viewBox="0 0 24 24"><path d="M12 3.4C6.7 3.4 2.4 6.9 2.4 11.1c0 2.7 1.8 5.1 4.5 6.5-.2.7-.7 2.5-.8 2.9-.1.5.2.5.4.4.2-.1 2.5-1.7 3.5-2.4.5.1 1 .2 1.5.2 5.3 0 9.6-3.4 9.6-7.6S17.3 3.4 12 3.4z"/></svg>카카오로 시작하기</button>
     <small>로그인 후 바로 이용할 수 있어요</small>
+  </div>
+</div>
+<div id="pmodal" class="pmodal-wrap">
+  <div class="pmodal-bg" onclick="closePlaceModal()"></div>
+  <div class="pmodal">
+    <button class="pmodal-x" onclick="closePlaceModal()">✕</button>
+    <h3 id="pmTitle"></h3>
+    <div id="pmLinks"></div>
+    <div id="pmAdmin"></div>
+    <div class="pm-cmts-h">코멘트 <span id="pmCnt"></span></div>
+    <div id="pmCmts" class="pm-cmts"></div>
+    <div class="pm-form"><input id="pmInput" maxlength="100" placeholder="한줄 코멘트 (최대 100자)"><button id="pmSend">등록</button></div>
+    <div id="pmMsg"></div>
   </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -228,7 +263,7 @@ const regLayer=L.layerGroup().addTo(map);
 function placeColors(cat){ const pink=(cat==='명소'); return {pink:pink,r:pink?7:5,line:pink?'#ad1457':'#1565c0',fill:pink?'#ec407a':'#2196f3'}; }
 function addPlaceMarker(pl){ const c=placeColors(pl.cat);
   L.circleMarker([pl.lat,pl.lng],{radius:c.r,color:c.line,weight:1,fillColor:c.fill,fillOpacity:.95}).addTo(regLayer)
-   .bindPopup('<b>'+(pl.name||'')+'</b>'+extLinks(pl.lat,pl.lng,pl.name||'위치')); }
+   .on('click',function(){ openPlaceModal(pl); }); }
 function loadPlaces(){ if(!WORKER_URL) return;
   fetch(WORKER_URL.replace(/\/+$/,'')+'/places').then(function(r){return r.json();})
     .then(function(list){ (list||[]).forEach(addPlaceMarker); }).catch(function(){}); }
@@ -305,6 +340,50 @@ Object.keys(_courseGroups).forEach(function(sc){
   courseLayers[sc]=L.layerGroup([casing,line]).addTo(map);
 });
 
+// ---- 장소 상세 모달 + 코멘트 ----
+function placeSlug(lat,lng){ return lat.toFixed(5)+'_'+lng.toFixed(5); }
+function pmEsc(s){ return (s||'').replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}); }
+function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return {name:p.name||'',lat:c[1],lng:c[0],memo:p.memo||'',cat:isSpot(p.name)?'명소':'런칭랜딩'}; }
+let _pmPlace=null,_pmSlug=null;
+function openPlaceModal(pl){
+  _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
+  document.getElementById('pmTitle').textContent=pl.name||'장소';
+  document.getElementById('pmLinks').innerHTML=extLinks(pl.lat,pl.lng,pl.name||'위치')+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
+  document.getElementById('pmAdmin').innerHTML='';
+  document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
+  document.getElementById('pmCnt').textContent=''; document.getElementById('pmInput').value=''; document.getElementById('pmMsg').textContent='';
+  document.getElementById('pmodal').classList.add('open');
+  gaEvent('place_open',{name:pl.name||''}); loadComments();
+}
+function closePlaceModal(){ document.getElementById('pmodal').classList.remove('open'); }
+async function loadComments(){ if(!WORKER_URL||!_pmSlug) return;
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments?place='+encodeURIComponent(_pmSlug)); renderComments(await r.json()); }
+  catch(e){ renderComments({}); document.getElementById('pmCmts').innerHTML='<div class="pm-empty">코멘트를 불러오지 못했어요(잠시 후 다시)</div>'; } }
+function renderComments(d){ d=d||{}; let ah='';
+  if(d.admin) ah+='<div class="pm-adminbox"><b>📌 관리자</b><div>'+pmEsc(d.admin)+'</div></div>';
+  if(isAdmin()) ah+='<button class="pm-admedit" onclick="editAdminComment()">관리자 코멘트 '+(d.admin?'수정':'작성')+'</button>';
+  document.getElementById('pmAdmin').innerHTML=ah; window._pmAdminCur=d.admin||'';
+  const list=d.list||[]; document.getElementById('pmCnt').textContent='('+list.length+')';
+  document.getElementById('pmCmts').innerHTML = list.length? list.slice().reverse().map(function(c){
+    return '<div class="pm-cmt"><div class="pm-cmt-h"><b>'+pmEsc(c.nick||'익명')+'</b></div><div class="pm-cmt-b">'+pmEsc(c.text)+'</div></div>';
+  }).join('') : '<div class="pm-empty">첫 코멘트를 남겨보세요</div>';
+}
+async function submitComment(){ const u=getUser(); if(!u||!u.uid) return;
+  const inp=document.getElementById('pmInput'); const t=(inp.value||'').trim().slice(0,100); if(!t) return;
+  document.getElementById('pmMsg').textContent='등록 중…';
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,nick:u.nick||'',text:t})});
+    if(r.ok){ inp.value=''; document.getElementById('pmMsg').textContent=''; gaEvent('comment_add'); loadComments(); }
+    else document.getElementById('pmMsg').textContent='등록 실패'; }
+  catch(e){ document.getElementById('pmMsg').textContent='오류'; } }
+function editAdminComment(){ if(!isAdmin()) return; const u=getUser();
+  const t=prompt('관리자 코멘트 (이 장소 설명)', window._pmAdminCur||''); if(t===null) return;
+  fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,nick:u.nick||'',admin:true,text:t.slice(0,300)})})
+    .then(function(r){ if(r.ok) loadComments(); }).catch(function(){}); }
+(function(){ const s=document.getElementById('pmSend'); if(s) s.onclick=submitComment;
+  const i=document.getElementById('pmInput'); if(i) i.addEventListener('keydown',function(e){ if(e.key==='Enter') submitComment(); }); })();
+
 // ---- 카누 점: 명소(핑크) vs 런칭/랜딩(파랑) ----
 const SPOTS=['마이카누','라온카누','캐나디언카누클럽','장자늪카누체험장','올리버보트'];
 function isSpot(nm){ nm=(nm||'').replace(/\s/g,''); return SPOTS.some(function(s){ return nm.indexOf(s.replace(/\s/g,''))>=0; }); }
@@ -317,11 +396,11 @@ const CANOE_SVG='<svg viewBox="0 0 64 40"><path d="M2 20C2 13 16 10 32 10C48 10 
 function canoeIcon(){ return L.divIcon({className:'canoe-pin',html:'<span class="canoe-pin-in">'+CANOE_SVG+'</span>',iconSize:[26,26],iconAnchor:[13,13]}); }
 const famousLayer = L.geoJSON(spotFeats, {
   pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:7,color:'#ad1457',weight:1,fillColor:'#ec407a',fillOpacity:0.95}),
-  onEachFeature:(f,l)=>l.bindPopup(ptPopup(f))
+  onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
 }).addTo(map);
 const canoeLayer = L.geoJSON(landFeats, {
   pointToLayer:(f,ll)=>L.marker(ll,{icon:canoeIcon()}),
-  onEachFeature:(f,l)=>l.bindPopup(ptPopup(f))
+  onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
 }).addTo(map);
 
 // ---- 레이어 토글 ----
