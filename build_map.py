@@ -46,15 +46,15 @@ HTML = r"""<!DOCTYPE html>
   .search button{padding:5px 9px;margin-left:3px;cursor:pointer;font-size:13px}
   .sr-item{margin-top:5px;font-size:12px}
   .sr-item a{color:#1565c0;text-decoration:none}
-  .addrbtn a{font:600 14px/34px sans-serif;padding:0 12px;display:block;white-space:nowrap}
-  #xhair{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:600;
-         pointer-events:none;color:#d32f2f;font-size:26px;text-shadow:0 0 2px #fff;opacity:.85}
+  #hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:1000;
+        background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
+        font:12px sans-serif;transition:opacity .6s;pointer-events:none}
   .leaflet-control-zoom a{width:40px;height:40px;line-height:40px;font-size:22px}
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div id="xhair">✛</div>
+<div id="hint"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const POINTS = __POINTS__;
@@ -114,7 +114,9 @@ async function nominatimReverse(lat,lng){
     return d&&d.display_name ? d.display_name.split(',').reverse().map(s=>s.trim()).join(' ') : '';
   }catch(e){ return ''; }
 }
+let _lastAddr=0;
 async function showAddress(lat,lng){
+  const now=Date.now(); if(now-_lastAddr<800) return; _lastAddr=now;   // 중복 호출 방지
   const pop=L.popup().setLatLng([lat,lng]).setContent('주소 조회 중…').openOn(map);
   let r=await proxyReverse(lat,lng);
   let main='', sub='';
@@ -127,17 +129,35 @@ async function showAddress(lat,lng){
 }
 map.on('contextmenu', e=>showAddress(e.latlng.lat, e.latlng.lng));   // 데스크톱 우클릭
 
-// ---- 모바일 대체: 중앙 십자선 + '주소' 버튼 (지도 중앙 주소) ----
-const AddrCtl = L.Control.extend({ options:{position:'bottomleft'},
-  onAdd:function(){
-    const d=L.DomUtil.create('div','leaflet-bar addrbtn');
-    d.innerHTML='<a href="#" title="지도 중앙(✛) 주소 보기">📍 주소</a>';
-    L.DomEvent.disableClickPropagation(d);
-    L.DomEvent.on(d.querySelector('a'),'click',function(e){ L.DomEvent.preventDefault(e); const c=map.getCenter(); showAddress(c.lat,c.lng); });
-    return d;
-  }
-});
-map.addControl(new AddrCtl());
+// ---- 모바일: 길게 누르기(롱프레스) → 우클릭과 동일하게 주소 표시 ----
+(function(){
+  const el=map.getContainer(); let timer=null, sx=0, sy=0, px=0, py=0;
+  function clear(){ if(timer){ clearTimeout(timer); timer=null; } }
+  el.addEventListener('touchstart', function(e){
+    if(e.touches.length!==1){ clear(); return; }
+    const t=e.touches[0], r=el.getBoundingClientRect();
+    sx=t.clientX; sy=t.clientY; px=t.clientX-r.left; py=t.clientY-r.top;
+    clear();
+    timer=setTimeout(function(){ timer=null;
+      const ll=map.containerPointToLatLng(L.point(px,py));
+      showAddress(ll.lat, ll.lng);
+    }, 550);
+  }, {passive:true});
+  el.addEventListener('touchmove', function(e){
+    const t=e.touches[0]; if(!t) return;
+    if(Math.abs(t.clientX-sx)>12 || Math.abs(t.clientY-sy)>12) clear();
+  }, {passive:true});
+  el.addEventListener('touchend', clear, {passive:true});
+  el.addEventListener('touchcancel', clear, {passive:true});
+})();
+
+// 안내 토스트 (잠깐 표시 후 사라짐)
+(function(){
+  const h=document.getElementById('hint');
+  const touch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+  h.textContent = touch ? '지도를 길게 눌러 주소 보기' : '지도를 우클릭해 주소 보기';
+  setTimeout(function(){ h.style.opacity='0'; }, 4500);
+})();
 
 // ---- 상수원보호구역 면 ----
 L.geoJSON(POLYS, {
