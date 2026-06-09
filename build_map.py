@@ -75,6 +75,7 @@ __GTAG__
   .locbtn.loading{opacity:.45}
   .loc-dot{filter:drop-shadow(0 0 3px rgba(25,118,210,.6))}
   .addplace-btn{margin-top:7px;background:#00b894;color:#fff;border:0;border-radius:6px;padding:6px 11px;font:600 12px sans-serif;cursor:pointer}
+  .addplace-btn.sugg{background:#1565c0}
   .addform #apName{width:100%;box-sizing:border-box;padding:6px;margin:6px 0;border:1px solid #bbb;border-radius:4px;font-size:13px}
   .addform .aprow{font:12px sans-serif;margin-bottom:8px;display:flex;flex-direction:column;gap:3px}
   .addform #apSave{background:#00b894;color:#fff;border:0;border-radius:5px;padding:6px 13px;font:600 13px sans-serif;cursor:pointer}
@@ -88,6 +89,8 @@ __GTAG__
   .legend-c{width:150px;box-sizing:border-box}
   .spot-pin-in{width:30px;height:30px;border-radius:50%;background:#ec407a;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
   .spot-pin-in svg{width:19px;height:auto}
+  .wreck-in{width:34px;height:34px;border-radius:50%;background:#c62828;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .wreck-in svg{width:30px;height:30px}
   .locbtn svg{width:22px;height:22px;display:block;margin:auto}
   .pmodal-wrap{position:fixed;inset:0;z-index:3500;display:none;align-items:flex-end;justify-content:center}
   .pmodal-wrap.open{display:flex}
@@ -366,9 +369,32 @@ async function showAddress(lat,lng){
   h+='<br><small>'+lat.toFixed(5)+', '+lng.toFixed(5)+'</small>'+extLinks(lat,lng,main||'위치');
   window._curAddr={lat:lat, lng:lng, name:main||''};
   if(isAdmin()) h+='<br><button class="addplace-btn" onclick="addPlace()">📌 장소 등록</button>';
+  else if(getUser()&&getUser().uid) h+='<br><button class="addplace-btn sugg" onclick="suggestPlace()">💡 장소 제안</button>';
   pop.setContent(h);
 }
 // ---- 어드민: 장소 등록 ----
+// 일반 사용자: 장소 제안(런칭지/랜딩지/기타 + 코멘트) → 시트
+function suggestPlace(){
+  const a=window._curAddr; if(!a) return; const u=getUser(); if(!u||!u.uid) return;
+  const html='<div class="addform"><b>장소 제안</b>'
+    +'<div class="aprow"><label><input type="radio" name="sgc" value="런칭지" checked> 런칭지</label>'
+    +'<label><input type="radio" name="sgc" value="랜딩지"> 랜딩지</label>'
+    +'<label><input type="radio" name="sgc" value="기타"> 기타</label></div>'
+    +'<input id="sgText" placeholder="설명/코멘트 (선택)" maxlength="200">'
+    +'<button id="sgSave">제안 보내기</button> <span id="sgMsg"></span></div>';
+  L.popup({minWidth:240}).setLatLng([a.lat,a.lng]).setContent(html).openOn(map);
+  setTimeout(function(){ const sv=document.getElementById('sgSave'); if(!sv) return;
+    sv.onclick=async function(){
+      const cc=document.querySelector('input[name=sgc]:checked'); const cat=cc?cc.value:'기타';
+      const text=(document.getElementById('sgText').value||'').trim().slice(0,200);
+      const msg=document.getElementById('sgMsg'); msg.textContent='보내는 중…';
+      try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/suggest',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:u.uid,nick:u.nick||'',cat:cat,text:text,addr:a.name||'',lat:a.lat,lng:a.lng})});
+        if(r.ok){ msg.textContent='감사합니다! 제안이 접수됐어요'; gaEvent('place_suggest',{cat:cat}); setTimeout(function(){map.closePopup();},900); }
+        else msg.textContent='전송 실패'; }
+      catch(e){ msg.textContent='오류'; } };
+  },0);
+}
 // 등록장소는 별도 레이어 없이 카테고리(명소/런칭·랜딩) 레이어에 합쳐 표시
 function addPlaceMarker(pl){ const spot=(pl.cat==='명소');
   const m=L.marker([pl.lat,pl.lng],{icon:spot?boathouseIcon():canoeIcon()});
@@ -505,6 +531,9 @@ const spotFeats={type:'FeatureCollection',features:POINTS.features.filter(functi
 const landFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return !isSpot(f.properties.name);})};
 const CANOE_SVG='<svg viewBox="0 0 64 40"><path d="M2 20C2 13 16 10 32 10C48 10 62 13 62 20C62 27 48 30 32 30C16 30 2 27 2 20Z" fill="#fff"/><path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#cfe3f5"/><path d="M23 15.5V24.5M41 15.5V24.5" stroke="#5a9bd4" stroke-width="2.2" stroke-linecap="round"/></svg>';
 function canoeIcon(){ return L.divIcon({className:'canoe-pin',html:'<span class="canoe-pin-in">'+CANOE_SVG+'</span>',iconSize:[26,26],iconAnchor:[13,13]}); }
+const WRECK_SVG='<svg viewBox="0 0 48 48"><path d="M0 27q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#4aa3e0"/><circle cx="11" cy="19" r="3.7" fill="#ffd2a6"/><path d="M7.5 23 L4 18 M14.5 23 L18 18" stroke="#ffd2a6" stroke-width="2.6" stroke-linecap="round"/><g transform="rotate(-20 30 27)"><path d="M16 25Q31 17 44 25Q41 31 30 32Q19 31 16 25Z" fill="#fff"/><path d="M20 25Q31 20 40 25" fill="none" stroke="#bcd6ea" stroke-width="1.4"/></g><path d="M0 31q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#2f80c9"/></svg>';
+function wreckIcon(){ return L.divIcon({className:'wreck-pin',html:'<span class="wreck-in">'+WRECK_SVG+'</span>',iconSize:[34,34],iconAnchor:[17,17]}); }
+function isWreck(nm){ return (nm||'').replace(/\s/g,'').indexOf('번버리')>=0; }
 const BOATHOUSE_SVG='<svg viewBox="0 0 32 28"><path d="M16 2L30 13H27V26H5V13H2Z" fill="#fff"/><path d="M11 26V18.5a5 5 0 0 1 10 0V26Z" fill="#c2185b"/></svg>';
 function boathouseIcon(){ return L.divIcon({className:'spot-pin',html:'<span class="spot-pin-in">'+BOATHOUSE_SVG+'</span>',iconSize:[30,30],iconAnchor:[15,15]}); }
 const famousLayer = L.geoJSON(spotFeats, {
@@ -512,7 +541,7 @@ const famousLayer = L.geoJSON(spotFeats, {
   onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
 }).addTo(map);
 const canoeLayer = L.geoJSON(landFeats, {
-  pointToLayer:(f,ll)=>L.marker(ll,{icon:canoeIcon()}),
+  pointToLayer:(f,ll)=>L.marker(ll,{icon:isWreck((f.properties||{}).name)?wreckIcon():canoeIcon()}),
   onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
 }).addTo(map);
 
