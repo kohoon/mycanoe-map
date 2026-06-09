@@ -149,6 +149,32 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
+    // 0-3b) 일반 사용자 장소 제안 → Google Sheet(suggestions 탭)
+    if (url.pathname.endsWith("/suggest")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (req.method === "POST") {
+        let b = {};
+        try { b = await req.json(); } catch (e) {}
+        if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
+        if (env.LOG_WEBHOOK) ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "suggest", cat: String(b.cat || "기타").slice(0, 10),
+            place: String(b.addr || "").slice(0, 80), nick: String(b.nick || "").slice(0, 20),
+            text: String(b.text || "").slice(0, 200), lat: Number(b.lat) || "", lng: Number(b.lng) || "",
+          }),
+        }).catch(function () {}));
+        return new Response("ok", { headers: cors });
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
     // 0-4) 카누잉 트립 기록 (KV: trip:<id>, utrips:<uid>, feed, board)
     {
       const tp = url.pathname;
