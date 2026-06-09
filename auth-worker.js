@@ -20,6 +20,27 @@ export default {
     const REDIRECT = url.origin + url.pathname;   // = 카카오에 등록할 Redirect URI
     const code = url.searchParams.get("code");
 
+    // 0) 활동 로그(자동로그인 재접속 등) → 브라우저가 호출, Worker가 Sheet 로 전달
+    if (url.pathname.endsWith("/log")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (req.method === "POST" && env.LOG_WEBHOOK) {
+        let b = {};
+        try { b = await req.json(); } catch (e) {}
+        ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: b.id || "", nick: b.nick || "", type: b.type || "visit" }),
+        }).catch(() => {}));
+      }
+      return new Response("ok", { headers: cors });
+    }
+
     // 1) 로그인 시작
     if (!code) {
       const auth = "https://kauth.kakao.com/oauth/authorize?response_type=code"
@@ -62,7 +83,7 @@ export default {
         fetch(env.LOG_WEBHOOK, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: id, nick: nick }),
+          body: JSON.stringify({ id: id, nick: nick, type: "login" }),
         }).catch(() => {})
       );
     }
