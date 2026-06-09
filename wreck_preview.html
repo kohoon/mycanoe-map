@@ -1,0 +1,33 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>침몰선 아이콘 시안 (번버리 포인트)</title>
+<style>
+  body{margin:0;font-family:'Malgun Gothic',sans-serif;background:#eef3ef;padding:10px 0 40px}
+  h1{font-size:16px;color:#234;margin:18px 14px 2px}
+  p.d{font-size:12.5px;color:#678;margin:0 14px 10px}
+  .row{display:flex;align-items:center;gap:24px;margin:0 14px}
+  .big{width:90px;height:90px;border-radius:16px;background:repeating-linear-gradient(45deg,#dbeede,#dbeede 12px,#d2e8da 12px,#d2e8da 24px);display:flex;align-items:center;justify-content:center}
+  .big svg{width:64px;height:64px}
+  .pin{width:34px;height:34px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+  .pin svg{width:24px;height:24px}
+  .lbl{font-size:12px;color:#556}
+  .b-red{background:#b71c1c}.b-navy{background:#1b3a5c}.b-sea{background:#1565c0}
+</style></head><body>
+<script>
+// V1: 기울어 반쯤 잠긴 배(돛 포함)
+var V1='<svg viewBox="0 0 48 48"><g transform="rotate(-20 24 24)"><path d="M9 22H39L33.5 31H14.5Z" fill="#fff"/><rect x="22" y="8" width="3" height="14" rx="1" fill="#fff"/><path d="M25 9L34 19H25Z" fill="#ffd24d"/></g><path d="M0 29q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#2f80c9"/><path d="M0 33q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#5aa9e6" opacity=".85"/></svg>';
+// V2: 뱃머리부터 수직 침몰(고물 들림) + 거품
+var V2='<svg viewBox="0 0 48 48"><g transform="rotate(38 24 28)"><path d="M14 18H34L30 30H18Z" fill="#fff"/><rect x="22.5" y="5" width="3" height="13" rx="1" fill="#fff"/></g><circle cx="13" cy="22" r="2.2" fill="#bfe2ff"/><circle cx="9" cy="27" r="1.6" fill="#bfe2ff"/><path d="M0 30q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#2f80c9"/><path d="M0 34q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#5aa9e6" opacity=".85"/></svg>';
+// V3: 단순 — 물결에 잠기는 보트(돛 없음)
+var V3='<svg viewBox="0 0 48 48"><g transform="rotate(-14 24 24)"><path d="M8 23H40L34 32H14Z" fill="#fff"/><path d="M21 23V13H23V23M23 16L31 16" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><path d="M0 28q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#2f80c9"/><path d="M0 32q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#5aa9e6" opacity=".85"/></svg>';
+function row(title,desc,svg){
+  document.write('<h1>'+title+'</h1><p class="d">'+desc+'</p><div class="row"><div class="big">'+svg+'</div>'
+    +'<div class="pin b-red">'+svg+'</div><span class="lbl">빨강</span>'
+    +'<div class="pin b-navy">'+svg+'</div><span class="lbl">남색</span>'
+    +'<div class="pin b-sea">'+svg+'</div><span class="lbl">바다색</span></div>');
+}
+row('시안 1 — 기울어 반쯤 잠긴 배(돛)','옆으로 기운 배가 물에 잠기는 모습. 돛으로 배임을 강조.',V1);
+row('시안 2 — 뱃머리부터 수직 침몰(거품)','앞부분이 먼저 가라앉고 고물이 들린 전형적 침몰. 거품 방울.',V2);
+row('시안 3 — 단순(돛대만)','군더더기 없는 침몰 보트. 작은 마커에서도 잘 보임.',V3);
+</script>
+<p class="d" style="margin-top:20px">※ 마커는 원형 뱃지(빨강/남색/바다색) 위 흰 배. 시안 번호 + 뱃지색을 골라주세요.</p>
+</body></html>
