@@ -86,11 +86,11 @@ __GTAG__
   .addform #apMsg{font-size:12px;color:#666;margin-left:6px}
   .canoe-pin-in{width:26px;height:26px;border-radius:50%;background:#2196f3;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
   .canoe-pin-in svg{width:17px;height:auto}
-  .cafecard{display:flex;align-items:center;gap:10px;background:#fff;padding:8px 13px 8px 8px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);text-decoration:none;cursor:pointer}
-  .cafecard .nb{width:34px;height:34px;border-radius:9px;background:#03C75A;color:#fff;display:flex;align-items:center;justify-content:center;font:900 19px sans-serif;flex:none}
-  .cafecard .txt{display:flex;flex-direction:column;line-height:1.25}
-  .cafecard .t1{font:800 13.5px sans-serif;color:#1f2d25}
-  .cafecard .t2{font:11px sans-serif;color:#7b8a82}
+  .cafecard{display:flex;align-items:center;gap:8px;width:150px;box-sizing:border-box;background:#fff;padding:7px 12px 7px 7px;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.2);text-decoration:none;cursor:pointer}
+  .cafecard .cf-badge{width:30px;height:30px;flex:none;border-radius:8px;background:#03C75A;display:flex;align-items:center;justify-content:center}
+  .cafecard .cf-badge svg{width:20px;height:auto}
+  .cafecard .cf-t{font:800 13px sans-serif;color:#1f2d25;white-space:nowrap}
+  .legend-c{width:150px;box-sizing:border-box}
   .spot-pin-in{width:30px;height:30px;border-radius:50%;background:#ec407a;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
   .spot-pin-in svg{width:19px;height:auto}
   .locbtn svg{width:22px;height:22px;display:block;margin:auto}
@@ -171,6 +171,19 @@ __GTAG__
   .kakao-btn:active{transform:translateY(1px)}
   .kakao-ico{width:20px;height:20px;fill:#191600}
   .gate-card small{display:block;margin-top:14px;color:#9aa6a0;font-size:11.5px}
+  @media(max-width:520px){
+    .measbtn{padding:8px 11px;font-size:12px}
+    .search input{max-width:150px;font-size:12px}
+    .search button{padding:5px 8px;font-size:12px}
+    .leaflet-popup-content{font-size:12px;line-height:1.5}
+    .authbox button{padding:7px 11px;font-size:12.5px}
+    .authbox .who{font-size:12.5px;padding:6px 9px}
+    .cafecard{width:138px;padding:6px 10px 6px 6px}
+    .cafecard .cf-badge{width:27px;height:27px}
+    .cafecard .cf-t{font-size:12px}
+    .legend-c{width:138px;font-size:12px}
+    .pmodal{padding:16px 14px 20px}
+  }
 </style>
 </head>
 <body>
@@ -275,11 +288,12 @@ const isAndroid = /android/i.test(ua);
 const map = L.map('map', {preferCanvas:true, zoomControl:false}).setView([36.3, 127.8], 7);
 window.map = map;
 let measureMode = false;   // 물길 거리측정 모드
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;   // 모바일/터치 여부
 L.control.zoom({position:'bottomleft'}).addTo(map);
 map.addControl(new AuthCtl());   // 카카오 로그인 박스(우상단)
 const CafeCtl=L.Control.extend({ options:{position:'bottomright'},
   onAdd:function(){ const d=L.DomUtil.create('a','cafecard'); d.href='https://cafe.naver.com/mytalon'; d.target='_blank'; d.rel='noopener';
-    d.innerHTML='<span class="nb">N</span><span class="txt"><span class="t1">마이카누 마니아</span><span class="t2">네이버 카페 바로가기 ›</span></span>';
+    d.innerHTML='<span class="cf-badge">'+CANOE_SVG+'</span><span class="cf-t">마이카누 카페</span>';
     L.DomEvent.disableClickPropagation(d);
     L.DomEvent.on(d,'click',function(){ gaEvent('cafe_click'); });
     return d; } });
@@ -393,7 +407,6 @@ function addPlace(){
 map.on('contextmenu', e=>showAddress(e.latlng.lat, e.latlng.lng));   // 데스크톱 우클릭
 
 // ---- 모바일: 더블탭 → 우클릭과 동일하게 주소 표시 (롱프레스는 기본기능과 충돌) ----
-const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 if(isTouch){
   map.doubleClickZoom.disable();   // 더블탭 줌 끄고 주소 보기로 사용(줌은 좌하단 버튼)
   const el=map.getContainer(); let lastTap=0, lx=0, ly=0;
@@ -438,7 +451,7 @@ Object.keys(_courseGroups).forEach(function(sc){
   const hit=L.geoJSON(fc,{style:{color:'#000',weight:22,opacity:0},
     onEachFeature:(f,l)=>{ const p=f.properties||{};
       const html='<b>'+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'');
-      l.bindPopup(html); l.bindTooltip(html,{sticky:true,direction:'top',opacity:0.95}); }
+      l.bindPopup(html); if(!isTouch) l.bindTooltip(html,{sticky:true,direction:'top',opacity:0.95}); }
   });
   courseLayers[sc]=L.layerGroup([casing,line,hit]).addTo(map);
 });
