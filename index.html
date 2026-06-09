@@ -29,14 +29,27 @@
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
   .authbox .who{display:inline-block;background:#fff;border-radius:6px;padding:7px 10px;box-shadow:0 1px 4px rgba(0,0,0,.3);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .authbox .who a{color:#1565c0;margin-left:8px;text-decoration:none;cursor:pointer}
-  #gate{position:fixed;inset:0;z-index:3000;background:linear-gradient(160deg,#e3f2fd,#f1f8e9);display:flex;align-items:center;justify-content:center}
-  .gate-card{background:#fff;border-radius:16px;padding:34px 26px;max-width:340px;width:84%;text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.18)}
-  .gate-logo{font-size:46px;line-height:1}
-  .gate-card h1{margin:10px 0 6px;font:700 22px sans-serif;color:#1b3a2b}
-  .gate-card p{color:#5a6b62;font:13px/1.6 sans-serif;margin:0 0 22px}
-  #gateLogin{background:#FEE500;color:#191600;border:0;border-radius:9px;padding:14px 18px;font:700 15px sans-serif;width:100%;cursor:pointer}
-  #gateLogin:active{transform:translateY(1px)}
-  .gate-card small{display:block;margin-top:13px;color:#9aa6a0;font-size:11px}
+  #gate{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;overflow:hidden;
+    background:radial-gradient(125% 90% at 50% 0%,#bfe3ff 0%,#dff1e6 55%,#eef7f0 100%)}
+  #gate::before,#gate::after{content:"";position:absolute;border-radius:50%;filter:blur(10px);opacity:.45;pointer-events:none}
+  #gate::before{width:260px;height:260px;background:#9ad0ff;top:-70px;left:-60px}
+  #gate::after{width:300px;height:300px;background:#bfe6c4;bottom:-90px;right:-70px}
+  .gate-card{position:relative;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-radius:22px;
+    padding:34px 26px 28px;max-width:352px;width:86%;text-align:center;box-shadow:0 18px 50px rgba(20,60,90,.22);animation:gateIn .5s ease}
+  @keyframes gateIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .gate-logo{width:74px;height:74px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:38px;background:linear-gradient(150deg,#2196f3,#00b894);box-shadow:0 8px 20px rgba(0,150,180,.35);animation:floaty 3s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .gate-card h1{margin:16px 0 4px;font:800 23px sans-serif;color:#13312a;letter-spacing:-.3px}
+  .gate-sub{color:#5a6b62;font:14px sans-serif;margin:0 0 18px}
+  .gate-feats{list-style:none;margin:0 0 22px;padding:0;text-align:left;display:inline-block}
+  .gate-feats li{display:flex;align-items:center;gap:10px;margin:9px 0;font:13.5px sans-serif;color:#33473e}
+  .gate-feats li span:first-child{width:26px;height:26px;flex:none;border-radius:8px;background:#eef5f1;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .kakao-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#FEE500;color:#191600;border:0;
+    border-radius:12px;padding:14px 18px;font:700 15.5px sans-serif;cursor:pointer;box-shadow:0 6px 16px rgba(254,229,0,.5);transition:transform .08s}
+  .kakao-btn:active{transform:translateY(1px)}
+  .kakao-ico{width:20px;height:20px;fill:#191600}
+  .gate-card small{display:block;margin-top:14px;color:#9aa6a0;font-size:11.5px}
 </style>
 </head>
 <body>
@@ -46,9 +59,15 @@
   <div class="gate-card">
     <div class="gate-logo">🛶</div>
     <h1>마이카누 지도</h1>
-    <p>상수원보호구역 · 카누 런칭/랜딩 장소 · 카누잉 코스 · 물길 거리측정</p>
-    <button id="gateLogin">카카오로 시작하기</button>
-    <small>로그인 후 이용할 수 있어요</small>
+    <p class="gate-sub">전국 카누 명소를 한눈에</p>
+    <ul class="gate-feats">
+      <li><span>💧</span><span>상수원보호구역 안내</span></li>
+      <li><span>📍</span><span>카누 런칭·랜딩 장소</span></li>
+      <li><span>🛶</span><span>카누잉 추천 코스</span></li>
+      <li><span>📏</span><span>물길 거리 측정</span></li>
+    </ul>
+    <button id="gateLogin" class="kakao-btn"><svg class="kakao-ico" viewBox="0 0 24 24"><path d="M12 3.4C6.7 3.4 2.4 6.9 2.4 11.1c0 2.7 1.8 5.1 4.5 6.5-.2.7-.7 2.5-.8 2.9-.1.5.2.5.4.4.2-.1 2.5-1.7 3.5-2.4.5.1 1 .2 1.5.2 5.3 0 9.6-3.4 9.6-7.6S17.3 3.4 12 3.4z"/></svg>카카오로 시작하기</button>
+    <small>로그인 후 바로 이용할 수 있어요</small>
   </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
