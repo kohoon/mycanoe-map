@@ -53,6 +53,8 @@ HTML = r"""<!DOCTYPE html>
         background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
         font:12px sans-serif;transition:opacity .6s;pointer-events:none}
   .leaflet-control-zoom a{width:40px;height:40px;line-height:40px;font-size:22px}
+  .measbtn{cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none}
+  .measbtn.on{background:#ff7043;color:#fff}
 </style>
 </head>
 <body>
@@ -238,15 +240,15 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
 let measurePts=[]; const measureLayer=L.layerGroup().addTo(map);
 const MeasureCtl = L.Control.extend({ options:{position:'topleft'},
   onAdd:function(){
-    const d=L.DomUtil.create('div','leaflet-bar addrbtn');
-    d.innerHTML='<a href="#" id="measBtn" title="물길 거리 측정">📏 거리측정</a>';
+    const d=L.DomUtil.create('div','measbtn'); d.id='measBtnBox';
+    d.title='물길 거리 측정'; d.textContent='📏 거리측정';
     L.DomEvent.disableClickPropagation(d);
-    L.DomEvent.on(d.querySelector('a'),'click',function(e){ L.DomEvent.preventDefault(e); toggleMeasure(); });
+    L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); toggleMeasure(); });
     return d;
   }
 });
 map.addControl(new MeasureCtl());
-function setMeasBtn(on){ const b=document.getElementById('measBtn'); if(b) b.style.background=on?'#ffe0b2':''; map.getContainer().style.cursor=on?'crosshair':''; }
+function setMeasBtn(on){ const b=document.getElementById('measBtnBox'); if(b) b.classList.toggle('on', on); map.getContainer().style.cursor=on?'crosshair':''; }
 function toggleMeasure(){
   measureMode=!measureMode; measurePts=[]; measureLayer.clearLayers(); setMeasBtn(measureMode);
   if(measureMode) L.popup().setLatLng(map.getCenter()).setContent('출발점 → 도착점을 차례로 클릭(탭)하세요').openOn(map);
@@ -286,7 +288,10 @@ async function waterRoute(p1,p2){
     for(const vw of (adj[u]||[])){ const v=vw[0], nd=d+vw[1]; if(nd<(dist[v]===undefined?1e18:dist[v])){ dist[v]=nd; prev[v]=u; heap.push(nd,v); } } }
   if(dist[s2]===undefined) return null;
   const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return null; path.push(pp); } path.reverse();
-  return {coords: path.map(k=>nodes[k]), km: dist[s2]/1000};
+  // 클릭한 실제 점까지 연결 + 그 거리 포함(점-to-점)
+  const d1=hav([p1.lat,p1.lng],nodes[s1]), d2=hav([p2.lat,p2.lng],nodes[s2]);
+  const coords=[[p1.lat,p1.lng]].concat(path.map(k=>nodes[k])).concat([[p2.lat,p2.lng]]);
+  return {coords, km:(dist[s2]+d1+d2)/1000};
 }
 function MinHeap(){ this.a=[]; }
 MinHeap.prototype.size=function(){ return this.a.length; };

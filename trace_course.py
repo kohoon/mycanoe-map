@@ -47,10 +47,12 @@ def fetch_waterways(bbox):
     raise RuntimeError(f"overpass 실패: {last}")
 
 
-def build_graph(ways):
-    """좌표를 5자리로 합쳐 노드화, 인접 꼭짓점끼리 엣지."""
+def build_graph(ways, river_name=None):
+    """좌표를 5자리로 합쳐 노드화. river_name 본류는 엣지 가중치 할인(경로 우선) + named 집합."""
     adj = {}
-    nodes = {}  # key -> (lat,lng)
+    nodes = {}      # key -> (lat,lng)
+    named = set()   # 본류(river_name) 위 노드
+    MULT = 0.3      # 본류 엣지 라우팅 가중치(작을수록 본류 선호)
 
     def key(lat, lng):
         k = (round(lat, 5), round(lng, 5))
@@ -59,25 +61,35 @@ def build_graph(ways):
         return k
 
     for wy in ways:
+        nm = (wy.get("tags") or {}).get("name", "") or ""
+        is_main = bool(river_name) and river_name in nm
+        mult = MULT if is_main else 1.0
         geom = wy.get("geometry") or []
         prev = None
         for p in geom:
             k = key(p["lat"], p["lon"])
+            if is_main:
+                named.add(k)
             if prev is not None and prev != k:
-                d = haversine(nodes[prev], nodes[k])
+                d = haversine(nodes[prev], nodes[k]) * mult
                 adj.setdefault(prev, []).append((k, d))
                 adj.setdefault(k, []).append((prev, d))
             prev = k
-    return nodes, adj
+    return nodes, adj, named
 
 
-def nearest_node(nodes, pt):
+def nearest_node(nodes, pt, restrict=None):
     best, bd = None, 1e18
-    for k, c in nodes.items():
-        d = haversine(c, pt)
+    pool = restrict if restrict else nodes.keys()
+    for k in pool:
+        d = haversine(nodes[k], pt)
         if d < bd:
             bd, best = d, k
     return best, bd
+
+
+def path_meters(nodes, path):
+    return sum(haversine(nodes[path[i]], nodes[path[i + 1]]) for i in range(len(path) - 1))
 
 
 def dijkstra_all(adj, src):
@@ -114,27 +126,36 @@ def course_bbox(points, pad=0.05):
 
 
 def trace_course(course):
-    import itertools
+    import re, itertools
     pts = course["points"]
+    m = re.search(r'\((.+?)\)', course["name"])
+    river = m.group(1) if m else None     # 코스명 괄호 안 강 이름(본류)
     bbox = course_bbox(pts)
     ways = fetch_waterways(bbox)
-    nodes, adj = build_graph(ways)
-    snapped = [nearest_node(nodes, p)[0] for p in pts]
-    # 각 지점에서 다익스트라(전체)
+    nodes, adj, named = build_graph(ways, river)
+    def smart_snap(p):
+        """본류가 충분히 가까우면 본류, 아니면(이름전환 구간 등) 가장 가까운 물길."""
+        n_all, d_all = nearest_node(nodes, p)
+        if named:
+            n_nm, d_nm = nearest_node(nodes, p, named)
+            if n_nm is not None and d_nm <= d_all + 300:
+                return n_nm, d_nm
+        return n_all, d_all
+    snaps = [smart_snap(p) for p in pts]   # [(node, 스냅거리m), ...]
+    snapped = [s[0] for s in snaps]
     alld, allp = {}, {}
     for sn in set(snapped):
         if sn is None:
             continue
         alld[sn], allp[sn] = dijkstra_all(adj, sn)
     n = len(pts)
-    # 다지점이면 강 따라 최적 순서(열린경로 최소합) 자동 결정
     if n <= 2:
         order = list(range(n))
     else:
         best, blen = None, 1e18
         for perm in itertools.permutations(range(n)):
             if perm[0] > perm[-1]:
-                continue  # 역순 중복 제거
+                continue
             tot, ok = 0.0, True
             for i in range(n - 1):
                 a, b = snapped[perm[i]], snapped[perm[i + 1]]
@@ -150,12 +171,18 @@ def trace_course(course):
         a, b = snapped[order[i]], snapped[order[i + 1]]
         path = reconstruct(allp.get(a, {}), a, b)
         if not path:
-            print(f"    구간 못 찾음")
+            print("    구간 못 찾음")
             continue
         coords = [[nodes[k][1], nodes[k][0]] for k in path]
-        total += alld[a].get(b, 0.0)
+        total += path_meters(nodes, path)   # 실거리(라우팅 가중치 아님)
         full += coords[1:] if full else coords
-    print(f"  [{course['name']}] 노드 {len(nodes)} / 순서 {order} / {total/1000:.1f}km")
+    # 추적선을 실제 시작/끝 지점까지 연결하고 그 거리도 포함(점-to-점)
+    if full:
+        sp, ep = pts[order[0]], pts[order[-1]]
+        full = [[sp[1], sp[0]]] + full + [[ep[1], ep[0]]]
+        total += snaps[order[0]][1] + snaps[order[-1]][1]
+    print(f"  [{course['name']}] 강='{river}' 본류노드 {len(named)}/{len(nodes)} / 순서 {order} / "
+          f"{total/1000:.1f}km (스냅 {snaps[order[0]][1]:.0f}m/{snaps[order[-1]][1]:.0f}m)")
     return full, total
 
 
