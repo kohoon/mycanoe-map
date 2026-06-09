@@ -91,9 +91,8 @@ const GA_ID = "__GA_ID__";        // GA4 측정 ID(비면 추적 off)
 function gaEvent(name, params){ try{ if(window.gtag) gtag('event', name, params||{}); }catch(e){} }
 function getUser(){ try{ return JSON.parse(localStorage.getItem('mc_user')||'null'); }catch(e){ return null; } }
 function setUser(u){ try{ u?localStorage.setItem('mc_user',JSON.stringify(u)):localStorage.removeItem('mc_user'); }catch(e){} }
-function logVisit(){   // 자동로그인 재접속 기록(세션당 1회) → Worker → 시트
+function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Worker → 시트
   try{ const u=getUser(); if(!u||!u.uid) return;
-    if(sessionStorage.getItem('mc_logged')) return; sessionStorage.setItem('mc_logged','1');
     fetch(WORKER_URL.replace(/\/+$/,'')+'/log',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({id:u.uid, nick:u.nick||'', type:'visit'})}).catch(function(){});
   }catch(e){}
@@ -104,7 +103,6 @@ function logVisit(){   // 자동로그인 재접속 기록(세션당 1회) → W
     const uid=decodeURIComponent(m[1]), nick=nk?decodeURIComponent(nk[1]):'';
     setUser({uid:uid, nick:nick, t:Date.now()});
     history.replaceState(null,'',location.pathname+location.search);
-    try{ sessionStorage.setItem('mc_logged','1'); }catch(e){}  // 방금 서버가 login 기록함 → 중복 방지
     if(window.gtag) gtag('set',{user_id:uid});
     gaEvent('login',{method:'kakao'});
   } else { const u=getUser(); if(u&&u.uid){ if(window.gtag) gtag('set',{user_id:u.uid}); logVisit(); } }
