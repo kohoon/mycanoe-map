@@ -21,6 +21,17 @@ BASE = Path(__file__).resolve().parent
 _kf = BASE / "vworld_key.txt"
 VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
 
+# 카카오 로그인 OAuth Worker (Redirect URI 와 동일, 끝 슬래시 포함)
+WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/"
+# GA4 측정 ID (G-XXXXXXXXXX). 받으면 채움. 비면 추적 비활성(no-op).
+GA_ID = ""
+if GA_ID.startswith("G-"):
+    GTAG = ('<script async src="https://www.googletagmanager.com/gtag/js?id=' + GA_ID + '"></script>\n'
+            '<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}'
+            'gtag("js",new Date());gtag("config","' + GA_ID + '");</script>')
+else:
+    GTAG = '<script>function gtag(){}</script>'
+
 items = json.loads((BASE / "synced_seqs.json").read_text(encoding="utf-8"))["items"]
 pfeats = [{"type": "Feature",
            "geometry": {"type": "Point", "coordinates": [v["lng"], v["lat"]]},
@@ -38,6 +49,7 @@ HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>카누 지도 — 상수원보호구역 / 즐겨찾기</title>
+__GTAG__
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   html,body,#map{height:100%;margin:0}
@@ -57,6 +69,10 @@ HTML = r"""<!DOCTYPE html>
   .measbtn.on{background:#ff7043;color:#fff}
   .measbtn .mx{margin-left:8px;background:rgba(255,255,255,.35);border-radius:8px;padding:1px 7px;cursor:pointer}
   .meas-pill{background:#ff7043;color:#fff;border-radius:11px;padding:2px 8px;font:700 12px sans-serif;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;text-align:center}
+  .authbox{font:600 13px sans-serif}
+  .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .authbox .who{display:inline-block;background:#fff;border-radius:6px;padding:7px 10px;box-shadow:0 1px 4px rgba(0,0,0,.3);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .authbox .who a{color:#1565c0;margin-left:8px;text-decoration:none;cursor:pointer}
 </style>
 </head>
 <body>
@@ -68,6 +84,36 @@ const POINTS = __POINTS__;
 const POLYS = __POLYS__;
 const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
+const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
+const GA_ID = "__GA_ID__";        // GA4 측정 ID(비면 추적 off)
+
+// ---- 사용량 추적 + 카카오 로그인 세션 ----
+function gaEvent(name, params){ try{ if(window.gtag) gtag('event', name, params||{}); }catch(e){} }
+function getUser(){ try{ return JSON.parse(localStorage.getItem('mc_user')||'null'); }catch(e){ return null; } }
+function setUser(u){ try{ u?localStorage.setItem('mc_user',JSON.stringify(u)):localStorage.removeItem('mc_user'); }catch(e){} }
+(function(){   // 로그인 콜백(#login=ID&nick=NICK) 처리 + 세션 복원
+  const h=location.hash||'', m=h.match(/login=([^&]+)/), nk=h.match(/nick=([^&]*)/);
+  if(m){
+    const uid=decodeURIComponent(m[1]), nick=nk?decodeURIComponent(nk[1]):'';
+    setUser({uid:uid, nick:nick, t:Date.now()});
+    history.replaceState(null,'',location.pathname+location.search);
+    if(window.gtag) gtag('set',{user_id:uid});
+    gaEvent('login',{method:'kakao'});
+  } else { const u=getUser(); if(u&&u.uid&&window.gtag) gtag('set',{user_id:u.uid}); }
+})();
+function renderAuth(){
+  const d=document.getElementById('authbox'); if(!d) return;
+  const u=getUser();
+  if(u&&u.uid){
+    d.innerHTML='<span class="who">👤 '+(u.nick||'사용자').replace(/[<>]/g,'')+' <a id="logoutA">로그아웃</a></span>';
+    const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); gaEvent('logout'); renderAuth(); });
+  } else {
+    d.innerHTML='<button id="loginA">카카오 로그인</button>';
+    const lb=document.getElementById('loginA'); if(lb) L.DomEvent.on(lb,'click',function(e){ L.DomEvent.stop(e); gaEvent('login_start'); location.href=WORKER_URL; });
+  }
+}
+const AuthCtl=L.Control.extend({ options:{position:'topright'},
+  onAdd:function(){ const d=L.DomUtil.create('div','authbox'); d.id='authbox'; L.DomEvent.disableClickPropagation(d); setTimeout(renderAuth,0); return d; } });
 
 const ua = navigator.userAgent;
 const isiOS = /iphone|ipad|ipod/i.test(ua);
@@ -77,6 +123,7 @@ const map = L.map('map', {preferCanvas:true, zoomControl:false}).setView([36.3, 
 window.map = map;
 let measureMode = false;   // 물길 거리측정 모드
 L.control.zoom({position:'bottomleft'}).addTo(map);
+map.addControl(new AuthCtl());   // 카카오 로그인 박스(우상단)
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
@@ -224,7 +271,7 @@ let _res=[];
 document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   ev.preventDefault();
   const q=document.getElementById('srchQ').value.trim(); const box=document.getElementById('srchRes');
-  if(!q) return; box.textContent='검색 중…';
+  if(!q) return; box.textContent='검색 중…'; gaEvent('search',{q:q.slice(0,40)});
   try{
     const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=kr&accept-language=ko&limit=6&q='+encodeURIComponent(q));
     _res=await r.json();
@@ -297,6 +344,7 @@ function finishMeasure(){
   const pill=L.marker(end,{icon:L.divIcon({className:'meas-pill',html:km.toFixed(1)+'km&nbsp;✕',iconSize:[64,22],iconAnchor:[32,30]}),riseOnHover:true}).addTo(grp);
   pill.on('click', function(){ measDone.removeLayer(grp); });
   pill.bindTooltip('클릭하면 이 측정 삭제',{direction:'top'});
+  gaEvent('measure_done',{km:Math.round(km*10)/10, points:measPts.length});
   measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn();
 }
 // Overpass 미러 + 재시도 (서버 혼잡 대응)
@@ -371,7 +419,10 @@ html = (HTML
         .replace("__POINTS__", json.dumps(points, ensure_ascii=False, separators=(",", ":")))
         .replace("__POLYS__", json.dumps(polygons, ensure_ascii=False, separators=(",", ":")))
         .replace("__COURSES__", json.dumps(courses, ensure_ascii=False, separators=(",", ":")))
-        .replace("__VKEY__", VKEY))
+        .replace("__VKEY__", VKEY)
+        .replace("__GTAG__", GTAG)
+        .replace("__WORKER__", WORKER_URL)
+        .replace("__GA_ID__", GA_ID))
 out = BASE / "map.html"
 out.write_text(html, encoding="utf-8")
 print(f"생성: map.html ({out.stat().st_size/1024:.0f} KB) — VKEY {'포함(공개)' if VKEY else '없음'}")
