@@ -260,20 +260,39 @@ map.on('click', function(e){
   if(measurePts.length>=2) doMeasure(measurePts[0], measurePts[1]);
 });
 async function doMeasure(p1,p2){
-  const pop=L.popup().setLatLng(p2).setContent('물길 계산 중…').openOn(map);
-  let res=null; try{ res=await waterRoute(p1,p2); }catch(e){}
+  const pop=L.popup().setLatLng(p2).setContent('물길 계산 중… (서버 혼잡 시 몇 초 걸림)').openOn(map);
+  let res=null; try{ res=await waterRoute(p1,p2); }catch(e){ res={err:'overpass'}; }
   setMeasBtn(false); measureMode=false;
-  if(!res){ pop.setContent('물길을 찾지 못했습니다<br><small>두 점 근처에 연결된 강이 없을 수 있어요</small>'); return; }
+  if(!res || res.err){
+    pop.setContent(res && res.err==='overpass'
+      ? '지도 데이터 서버(Overpass)가 혼잡합니다.<br><small>잠시 후 📏로 다시 시도하세요</small>'
+      : '두 점을 잇는 물길을 못 찾았습니다<br><small>강에서 먼 지점이거나 구간이 끊겨 있어요</small>');
+    return;
+  }
   L.polyline(res.coords,{color:'#ff7043',weight:5,opacity:0.95,lineCap:'round'}).addTo(measureLayer);
   const straight=(map.distance(p1,p2)/1000).toFixed(1);
   pop.setContent('<b>물길 거리: 약 '+res.km.toFixed(1)+' km</b><br><small>직선거리 '+straight+' km · 다시 측정하려면 📏</small>');
 }
+// Overpass 미러 + 재시도 (서버 혼잡 대응)
+async function overpassFetch(q){
+  const mirrors=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+  for(let i=0;i<6;i++){
+    try{
+      const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(), 18000);
+      const r=await fetch(mirrors[i%mirrors.length],{method:'POST',signal:ctrl.signal,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
+      clearTimeout(tid);
+      if(r.ok){ const t=await r.text(); try{ return JSON.parse(t); }catch(e){} }
+    }catch(e){}
+    await new Promise(res=>setTimeout(res, 1000+i*500));
+  }
+  return null;
+}
 async function waterRoute(p1,p2){
-  const pad=0.05;
+  const pad=Math.max(0.05, Math.abs(p1.lat-p2.lat)*0.4, Math.abs(p1.lng-p2.lng)*0.4);  // 멀수록 넓게(굽이 포함)
   const s=Math.min(p1.lat,p2.lat)-pad, w=Math.min(p1.lng,p2.lng)-pad, n=Math.max(p1.lat,p2.lat)+pad, e=Math.max(p1.lng,p2.lng)+pad;
   const q='[out:json][timeout:60];(way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+'););out geom;';
-  const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
-  const j=await r.json();
+  const j=await overpassFetch(q);
+  if(!j) return {err:'overpass'};
   const nodes={}, adj={}, toR=Math.PI/180;
   function key(la,ln){ const k=la.toFixed(5)+','+ln.toFixed(5); if(!(k in nodes)) nodes[k]=[la,ln]; return k; }
   function hav(a,b){ const R=6371000, dla=(b[0]-a[0])*toR, dlo=(b[1]-a[1])*toR, la1=a[0]*toR, la2=b[0]*toR;
@@ -282,12 +301,12 @@ async function waterRoute(p1,p2){
     for(const p of el.geometry){ const k=key(p.lat,p.lon); if(prev&&prev!==k){ const d=hav(nodes[prev],nodes[k]);
       (adj[prev]=adj[prev]||[]).push([k,d]); (adj[k]=adj[k]||[]).push([prev,d]); } prev=k; } }
   function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return best; }
-  const s1=nearest(p1), s2=nearest(p2); if(!s1||!s2) return null;
+  const s1=nearest(p1), s2=nearest(p2); if(!s1||!s2) return {err:'noroute'};
   const dist={}, prev={}; dist[s1]=0; const heap=new MinHeap(); heap.push(0,s1);
   while(heap.size()){ const top=heap.pop(); const d=top[0], u=top[1]; if(u===s2) break; if(d>(dist[u]===undefined?1e18:dist[u])) continue;
     for(const vw of (adj[u]||[])){ const v=vw[0], nd=d+vw[1]; if(nd<(dist[v]===undefined?1e18:dist[v])){ dist[v]=nd; prev[v]=u; heap.push(nd,v); } } }
-  if(dist[s2]===undefined) return null;
-  const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return null; path.push(pp); } path.reverse();
+  if(dist[s2]===undefined) return {err:'noroute'};
+  const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return {err:'noroute'}; path.push(pp); } path.reverse();
   // 클릭한 실제 점까지 연결 + 그 거리 포함(점-to-점)
   const d1=hav([p1.lat,p1.lng],nodes[s1]), d2=hav([p2.lat,p2.lng],nodes[s2]);
   const coords=[[p1.lat,p1.lng]].concat(path.map(k=>nodes[k])).concat([[p2.lat,p2.lng]]);
