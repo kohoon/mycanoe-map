@@ -11,3 +11,10 @@ synced_seqs.backup.json
 __pycache__/
 *.log
 *.output
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
