@@ -193,12 +193,18 @@ __GTAG__
   .kakao-ico{width:20px;height:20px;fill:#191600}
   .gate-card small{display:block;margin-top:14px;color:#9aa6a0;font-size:11.5px}
   .beta-tag{display:inline-block;background:#ff7043;color:#fff;font:700 10px sans-serif;padding:2px 7px;border-radius:8px;vertical-align:middle;margin-left:7px}
-  #welcomeBanner{position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:1500;display:none;align-items:center;gap:10px;max-width:min(90vw,400px);background:rgba(18,40,54,.93);color:#fff;padding:10px 15px;border-radius:18px;box-shadow:0 5px 18px rgba(0,0,0,.32);font:600 13px/1.45 'Malgun Gothic',sans-serif;backdrop-filter:blur(5px);transition:opacity .4s}
-  #welcomeBanner.show{display:flex}
-  #wbText{flex:1}
-  #wbText b{color:#7fe3c0}
-  #wbX{cursor:pointer;color:#9fd8ff;flex:none;font-size:14px;text-decoration:none}
-  @media(max-width:520px){ #welcomeBanner{font-size:12px;top:58px;padding:9px 13px} }
+  #welcomeBanner{position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:1500;display:none;align-items:center;gap:11px;max-width:min(92vw,420px);
+    background:linear-gradient(135deg,rgba(13,74,71,.95),rgba(16,96,99,.93));color:#fff;padding:10px 14px 10px 11px;border-radius:16px;
+    box-shadow:0 10px 28px rgba(6,40,50,.42);border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(8px);font:600 13px/1.5 'Malgun Gothic',sans-serif}
+  #welcomeBanner.show{display:flex;animation:wbIn .45s cubic-bezier(.2,.9,.3,1)}
+  @keyframes wbIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+  .wb-ic{width:30px;height:30px;flex:none;border-radius:50%;background:linear-gradient(150deg,#2196f3,#00d39a);display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 3px 9px rgba(0,150,140,.45);transition:opacity .28s}
+  #wbText{flex:1;transition:opacity .28s}
+  .wb-ic.fade,#wbText.fade{opacity:0}
+  #wbText b{color:#86f0cf;font-weight:800}
+  #wbX{cursor:pointer;color:rgba(255,255,255,.55);flex:none;font-size:14px;text-decoration:none;align-self:flex-start}
+  #wbX:hover{color:#fff}
+  @media(max-width:520px){ #welcomeBanner{font-size:12px;top:58px} }
   .gate-warn{display:flex;gap:8px;text-align:left;background:#fff8e1;border:1px solid #ffe082;border-left:4px solid #ffb300;border-radius:9px;padding:9px 11px;margin:0 0 16px;font:12px/1.5 sans-serif;color:#6d4c00}
   .gate-warn span:first-child{flex:none}
   .admin-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3100;display:flex;align-items:center;gap:9px;background:#263238;color:#fff;padding:8px 14px;border-radius:22px;font:700 13px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
@@ -222,7 +228,7 @@ __GTAG__
 <body>
 <div id="map"></div>
 <div id="hint"></div>
-<div id="welcomeBanner"><span id="wbText"></span><a id="wbX">✕</a></div>
+<div id="welcomeBanner"><span class="wb-ic">🛶</span><span id="wbText"></span><a id="wbX">✕</a></div>
 <div id="gate">
   <div class="gate-card">
     <div class="gate-logo"><svg class="canoe-ico" viewBox="0 0 64 40" aria-hidden="true">
@@ -323,11 +329,14 @@ const WB_CTA='🛶 <b>나만 아는 카누잉 장소</b>를 지도에 우클릭(
 const WB_QUOTES=['"강은 서두르지 않아도 언젠가 바다에 닿는다."','"노를 젓는 만큼 물길이 열린다."','"급할수록, 강물처럼 흘러라."','"물결을 거스르지 말고, 물결을 읽어라."','"카누는 자연으로 들어가는 가장 조용한 문이다."','"한 번의 패들이 하루를 바꾼다."','"고요한 수면 아래 가장 깊은 평온이 있다."','"오늘 젓지 않으면 그 물길은 영원히 모른다."','"바람은 방향을, 노는 의지를 정한다."','"젖는 걸 두려워하면 강을 건널 수 없다."'];
 function showWelcome(){
   try{ if(sessionStorage.getItem('mc_wb')) return; }catch(e){}
-  const el=document.getElementById('welcomeBanner'), tx=document.getElementById('wbText'); if(!el||!tx) return;
-  const q=WB_QUOTES.slice().sort(function(){return Math.random()-0.5;});
-  const msgs=[WB_CTA].concat(q); let i=0;
-  tx.innerHTML=msgs[0]; el.classList.add('show');
-  const tid=setInterval(function(){ i=(i+1)%msgs.length; tx.innerHTML=msgs[i]; }, 6000);
+  const el=document.getElementById('welcomeBanner'), tx=document.getElementById('wbText'), ie=el?el.querySelector('.wb-ic'):null; if(!el||!tx) return;
+  const q=WB_QUOTES.slice().sort(function(){return Math.random()-0.5;}).map(function(s){return {t:s,ic:'💬'};});
+  const msgs=[{t:WB_CTA,ic:'🛶'}].concat(q); let i=0;
+  tx.innerHTML=msgs[0].t; if(ie) ie.textContent=msgs[0].ic; el.classList.add('show');
+  const tid=setInterval(function(){ i=(i+1)%msgs.length;
+    tx.classList.add('fade'); if(ie) ie.classList.add('fade');
+    setTimeout(function(){ tx.innerHTML=msgs[i].t; if(ie){ ie.textContent=msgs[i].ic; ie.classList.remove('fade'); } tx.classList.remove('fade'); }, 280);
+  }, 6000);
   function closeWB(){ el.classList.remove('show'); clearInterval(tid); }
   const x=document.getElementById('wbX'); if(x) x.onclick=function(){ closeWB(); try{sessionStorage.setItem('mc_wb','1');}catch(e){} };
   setTimeout(closeWB, 32000);
