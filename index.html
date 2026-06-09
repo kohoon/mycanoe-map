@@ -11,11 +11,6 @@
   html,body,#map{height:100%;margin:0}
   .legend{background:#fff;padding:8px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);font:13px/1.5 sans-serif}
   .legend b{display:block;margin-bottom:4px}
-  .legend-c .lg-h{cursor:pointer;font-weight:700;white-space:nowrap;user-select:none}
-  .legend-c .lg-ar{display:inline-block;transition:transform .2s}
-  .legend-c.open .lg-ar{transform:rotate(180deg)}
-  .legend-c .lg-b{display:none;margin-top:6px}
-  .legend-c.open .lg-b{display:block}
   .sw{display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:5px;border-radius:2px}
   .leaflet-popup-content{font:13px/1.55 sans-serif}
   .search input{padding:5px 6px;border:1px solid #bbb;border-radius:3px;width:44vw;max-width:200px;font-size:13px}
@@ -541,23 +536,33 @@ function finishMeasure(){
   measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn();
 }
 // Overpass 미러 + 재시도 (서버 혼잡 대응)
+function overpassOne(url,q,ms){
+  return new Promise(function(resolve){
+    const ctrl=new AbortController(); const tid=setTimeout(function(){ctrl.abort();}, ms);
+    fetch(url,{method:'POST',signal:ctrl.signal,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)})
+      .then(function(r){ clearTimeout(tid); if(!r.ok) return null; return r.text(); })
+      .then(function(t){ if(t==null){ resolve(null); return; } try{ resolve(JSON.parse(t)); }catch(e){ resolve(null); } })
+      .catch(function(){ clearTimeout(tid); resolve(null); });
+  });
+}
 async function overpassFetch(q){
-  const mirrors=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
-  for(let i=0;i<6;i++){
-    try{
-      const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(), 18000);
-      const r=await fetch(mirrors[i%mirrors.length],{method:'POST',signal:ctrl.signal,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
-      clearTimeout(tid);
-      if(r.ok){ const t=await r.text(); try{ return JSON.parse(t); }catch(e){} }
-    }catch(e){}
-    await new Promise(res=>setTimeout(res, 1000+i*500));
+  // 미러 동시 요청 → 가장 먼저 응답하는 것 채택(속도)
+  const mirrors=['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+  for(let round=0; round<2; round++){
+    const got=await new Promise(function(resolve){
+      let pending=mirrors.length, settled=false;
+      mirrors.forEach(function(m){ overpassOne(m,q,11000).then(function(j){
+        if(settled) return; if(j){ settled=true; resolve(j); } else if(--pending===0) resolve(null); }); });
+    });
+    if(got) return got;
+    await new Promise(function(res){ setTimeout(res,400); });
   }
   return null;
 }
 async function waterRoute(p1,p2){
-  const pad=Math.max(0.05, Math.abs(p1.lat-p2.lat)*0.4, Math.abs(p1.lng-p2.lng)*0.4);  // 멀수록 넓게(굽이 포함)
+  const pad=Math.max(0.02, Math.abs(p1.lat-p2.lat)*0.3, Math.abs(p1.lng-p2.lng)*0.3);  // 작게(빠름) + 멀면 적응 확대
   const s=Math.min(p1.lat,p2.lat)-pad, w=Math.min(p1.lng,p2.lng)-pad, n=Math.max(p1.lat,p2.lat)+pad, e=Math.max(p1.lng,p2.lng)+pad;
-  const q='[out:json][timeout:60];(way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+'););out geom;';
+  const q='[out:json][timeout:25];(way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+'););out geom;';
   const j=await overpassFetch(q);
   if(!j) return {err:'overpass'};
   const nodes={}, adj={}, toR=Math.PI/180;
@@ -625,14 +630,11 @@ map.on('locationerror', function(){
 // ---- 범례 ----
 const legend = L.control({position:'bottomright'});
 legend.onAdd=function(){ const d=L.DomUtil.create('div','legend legend-c');
-  d.innerHTML='<div class="lg-h">범례 <span class="lg-ar">▾</span></div><div class="lg-b">'+
+  d.innerHTML='<b>범례</b>'+
     '<span class="sw" style="background:#ec407a"></span>명소<br>'+
     '<span class="sw" style="background:#2196f3"></span>런칭/랜딩<br>'+
     '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호'+
-    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#7c4dff"></span>코스':'')+
-    '</div>';
-  L.DomEvent.disableClickPropagation(d);
-  const h=d.querySelector('.lg-h'); L.DomEvent.on(h,'click',function(){ d.classList.toggle('open'); });
+    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#7c4dff"></span>코스':'');
   return d; };
 legend.addTo(map);
 map.addControl(new CafeCtl());   // 카페 카드: 범례 위(우하단)에 표시
