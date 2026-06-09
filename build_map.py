@@ -28,7 +28,9 @@ pfeats = [{"type": "Feature",
           for v in items.values() if v.get("lat") is not None]
 points = {"type": "FeatureCollection", "features": pfeats}
 polygons = json.loads((BASE / "protect_polygons.geojson").read_text(encoding="utf-8"))
-print(f"점 {len(pfeats)} / 면 {len(polygons['features'])} / VKEY {'있음' if VKEY else '없음(Nominatim 폴백)'}")
+_cf = BASE / "courses.geojson"
+courses = json.loads(_cf.read_text(encoding="utf-8")) if _cf.exists() else {"type": "FeatureCollection", "features": []}
+print(f"점 {len(pfeats)} / 면 {len(polygons['features'])} / 코스 {len(courses['features'])} / VKEY {'있음' if VKEY else '없음'}")
 
 HTML = r"""<!DOCTYPE html>
 <html lang="ko">
@@ -60,6 +62,7 @@ HTML = r"""<!DOCTYPE html>
 <script>
 const POINTS = __POINTS__;
 const POLYS = __POLYS__;
+const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
 
 const ua = navigator.userAgent;
@@ -168,18 +171,32 @@ if(isTouch){
 })();
 
 // ---- 상수원보호구역 면 ----
-L.geoJSON(POLYS, {
+const protectLayer = L.geoJSON(POLYS, {
   style:{color:'#c62828', weight:1, fillColor:'#e53935', fillOpacity:0.25},
   onEachFeature:(f,l)=>{ if(f.properties&&f.properties.s) l.bindPopup('<b>상수원보호구역</b><br>'+f.properties.s); }
 }).addTo(map);
 
+// ---- 엑스페디션 코스 (물길 따라) ----
+const courseLayer = L.geoJSON(COURSES, {
+  style:(f)=>({color:(f.properties&&f.properties.color)||'#00897b', weight:4, opacity:0.85}),
+  onEachFeature:(f,l)=>{ const p=f.properties||{};
+    l.bindPopup('<b>'+(p.name||'엑스페디션 코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'')); }
+}).addTo(map);
+
 // ---- 카누 즐겨찾기 점 ----
-L.geoJSON(POINTS, {
+const canoeLayer = L.geoJSON(POINTS, {
   pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:5,color:'#1565c0',weight:1,fillColor:'#2196f3',fillOpacity:0.9}),
   onEachFeature:(f,l)=>{ const p=f.properties; const c=f.geometry.coordinates;
     let h='<b>'+(p.name||'(이름없음)')+'</b>'; if(p.memo) h+='<br>'+p.memo;
     h+=extLinks(c[1],c[0],p.name); l.bindPopup(h); }
 }).addTo(map);
+
+// ---- 레이어 토글 ----
+const _ov = {};
+_ov['상수원보호구역(면)'] = protectLayer;
+if(COURSES.features.length) _ov['엑스페디션 코스('+COURSES.features.length+')'] = courseLayer;
+_ov['카누 런칭/랜딩('+POINTS.features.length+'곳)'] = canoeLayer;
+L.control.layers(null, _ov, {collapsed:true, position:'topright'}).addTo(map);
 
 // ---- 장소 검색 (Nominatim) ----
 const SearchCtl = L.Control.extend({ options:{position:'topleft'},
@@ -214,7 +231,8 @@ const legend = L.control({position:'bottomright'});
 legend.onAdd=function(){ const d=L.DomUtil.create('div','legend');
   d.innerHTML='<b>범례</b>'+
     '<span class="sw" style="background:#2196f3"></span>카누 런칭/랜딩 장소<br>'+
-    '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호구역(진입금지)';
+    '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호구역(진입금지)'+
+    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:3px;background:#00897b"></span>엑스페디션 코스':'');
   return d; };
 legend.addTo(map);
 </script>
@@ -225,6 +243,7 @@ legend.addTo(map);
 html = (HTML
         .replace("__POINTS__", json.dumps(points, ensure_ascii=False, separators=(",", ":")))
         .replace("__POLYS__", json.dumps(polygons, ensure_ascii=False, separators=(",", ":")))
+        .replace("__COURSES__", json.dumps(courses, ensure_ascii=False, separators=(",", ":")))
         .replace("__VKEY__", VKEY))
 out = BASE / "map.html"
 out.write_text(html, encoding="utf-8")
