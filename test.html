@@ -83,6 +83,16 @@
   .pm-form input{flex:1;min-width:0;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:14px}
   .pm-form button{background:#1565c0;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
   #pmMsg{font-size:12px;color:#888;margin-top:6px;min-height:14px}
+  #sgBody h3{margin:0 30px 8px 0;font-size:18px;color:#1b3a2b}
+  .sg-addr{font-size:13px;color:#445;background:#f3f7f4;border-radius:9px;padding:9px 12px;margin:4px 0 14px;word-break:break-all}
+  .sg-label{font-size:12.5px;color:#778;font-weight:700;margin-bottom:6px}
+  .seg{display:flex;gap:8px;margin-bottom:14px}
+  .seg-b{flex:1;padding:12px;border:1.5px solid #d6dee2;background:#fff;border-radius:11px;font:600 14px sans-serif;cursor:pointer;color:#456}
+  .seg-b.on{border-color:#1565c0;background:#e8f1fc;color:#0d47a1}
+  #sgText{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccd;border-radius:11px;font-size:14px;resize:vertical;font-family:inherit}
+  .sg-submit{width:100%;margin-top:13px;background:#1565c0;color:#fff;border:0;border-radius:11px;padding:14px;font:700 15px sans-serif;cursor:pointer}
+  .sg-submit:active{transform:translateY(1px)}
+  #sgMsg{font-size:13px;color:#1b8a5a;margin-top:9px;min-height:18px;text-align:center}
   /* TRIPCSS */
   #tripbar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;z-index:1200;display:flex;gap:8px}
   .tb-start{background:#ff3d00;color:#fff;border:0;border-radius:24px;padding:13px 20px;font:800 15px sans-serif;box-shadow:0 4px 14px rgba(255,61,0,.45);cursor:pointer;white-space:nowrap}
@@ -194,6 +204,10 @@
     <div class="pm-form"><input id="pmInput" maxlength="100" placeholder="한줄 코멘트 (최대 100자)"><button id="pmSend">등록</button></div>
     <div id="pmMsg"></div>
   </div>
+</div>
+<div id="sgmodal" class="pmodal-wrap">
+  <div class="pmodal-bg" onclick="closeSg()"></div>
+  <div class="pmodal"><button class="pmodal-x" onclick="closeSg()">✕</button><div id="sgBody"></div></div>
 </div>
 <!-- TRIPHTML -->
 <div id="tripbar"><button id="tripStart" class="tb-start">▶ 카누잉 시작</button><button id="tripLog" class="tb-log">📋 기록</button></div>
@@ -367,23 +381,30 @@ async function showAddress(lat,lng){
 }
 // ---- 어드민: 장소 등록 ----
 // 일반 사용자: 장소 제안(런칭지/랜딩지/기타 + 코멘트) → 시트
+function closeSg(){ document.getElementById('sgmodal').classList.remove('open'); }
 function suggestPlace(){
   const a=window._curAddr; if(!a) return; const u=getUser(); if(!u||!u.uid) return;
-  const html='<div class="addform"><b>장소 제안</b>'
-    +'<div style="font-size:12px;color:#667;margin:5px 0">이 위치를 카누 장소로 제안합니다</div>'
-    +'<input id="sgText" placeholder="설명/코멘트 (예: 진입로·주차 정보)" maxlength="200">'
-    +'<button id="sgSave">제안 보내기</button> <span id="sgMsg"></span></div>';
-  L.popup({minWidth:240}).setLatLng([a.lat,a.lng]).setContent(html).openOn(map);
-  setTimeout(function(){ const sv=document.getElementById('sgSave'); if(!sv) return;
-    sv.onclick=async function(){
-      const text=(document.getElementById('sgText').value||'').trim().slice(0,200);
-      const msg=document.getElementById('sgMsg'); msg.textContent='보내는 중…';
-      try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/suggest',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({id:u.uid,nick:u.nick||'',cat:'제안',text:text,addr:a.name||'',lat:a.lat,lng:a.lng})});
-        if(r.ok){ msg.textContent='감사합니다! 제안이 접수됐어요'; gaEvent('place_suggest'); setTimeout(function(){map.closePopup();},900); }
-        else msg.textContent='전송 실패'; }
-      catch(e){ msg.textContent='오류'; } };
-  },0);
+  map.closePopup();
+  document.getElementById('sgBody').innerHTML=
+    '<h3>장소 제안</h3>'
+    +'<div class="sg-addr">📍 '+pmEsc(a.name||'선택한 위치')+'</div>'
+    +'<div class="sg-label">유형 선택</div>'
+    +'<div class="seg" id="sgSeg"><button type="button" class="seg-b on" data-v="런칭/랜딩">🛶 런칭/랜딩</button><button type="button" class="seg-b" data-v="기타">📍 기타</button></div>'
+    +'<textarea id="sgText" rows="3" maxlength="200" placeholder="설명/코멘트 (예: 진입로·주차 정보)"></textarea>'
+    +'<button class="sg-submit" id="sgSave">제안 보내기</button><div id="sgMsg"></div>';
+  document.getElementById('sgmodal').classList.add('open');
+  const seg=document.getElementById('sgSeg');
+  seg.onclick=function(e){ const t=e.target.closest('.seg-b'); if(!t) return;
+    Array.prototype.forEach.call(seg.children,function(c){c.classList.remove('on');}); t.classList.add('on'); };
+  document.getElementById('sgSave').onclick=async function(){
+    const on=seg.querySelector('.seg-b.on'); const cat=on?on.getAttribute('data-v'):'런칭/랜딩';
+    const text=(document.getElementById('sgText').value||'').trim().slice(0,200);
+    const msg=document.getElementById('sgMsg'); msg.textContent='보내는 중…';
+    try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/suggest',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:u.uid,nick:u.nick||'',cat:cat,text:text,addr:a.name||'',lat:a.lat,lng:a.lng})});
+      if(r.ok){ msg.textContent='✅ 감사합니다! 제안이 접수됐어요'; gaEvent('place_suggest',{cat:cat}); setTimeout(closeSg,1100); }
+      else msg.textContent='전송 실패'; }
+    catch(e){ msg.textContent='오류'; } };
 }
 // 등록장소는 별도 레이어 없이 카테고리(명소/런칭·랜딩) 레이어에 합쳐 표시
 function addPlaceMarker(pl){ const k=(pl.cat==='명소')?'spot':'canoe';
