@@ -24,7 +24,7 @@ VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
 # 카카오 로그인 OAuth Worker (Redirect URI 와 동일, 끝 슬래시 포함)
 WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/"
 # GA4 측정 ID (G-XXXXXXXXXX). 받으면 채움. 비면 추적 비활성(no-op).
-GA_ID = ""
+GA_ID = "G-W75JHWTDYS"
 if GA_ID.startswith("G-"):
     GTAG = ('<script async src="https://www.googletagmanager.com/gtag/js?id=' + GA_ID + '"></script>\n'
             '<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}'
