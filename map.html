@@ -293,6 +293,9 @@ async function waterRoute(p1,p2){
       (adj[prev]=adj[prev]||[]).push([k,d]); (adj[k]=adj[k]||[]).push([prev,d]); } prev=k; } }
   function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return best; }
   const s1=nearest(p1), s2=nearest(p2); if(!s1||!s2) return {err:'noroute'};
+  // 두 점이 강에서 멀면(호수/열린수면) 강 중심선 추적 대신 직선으로
+  const od1=hav([p1.lat,p1.lng],nodes[s1]), od2=hav([p2.lat,p2.lng],nodes[s2]);
+  if(od1>150 || od2>150){ return {coords:[[p1.lat,p1.lng],[p2.lat,p2.lng]], km: hav([p1.lat,p1.lng],[p2.lat,p2.lng])/1000, straight:true}; }
   const dist={}, prev={}; dist[s1]=0; const heap=new MinHeap(); heap.push(0,s1);
   while(heap.size()){ const top=heap.pop(); const d=top[0], u=top[1]; if(u===s2) break; if(d>(dist[u]===undefined?1e18:dist[u])) continue;
     for(const vw of (adj[u]||[])){ const v=vw[0], nd=d+vw[1]; if(nd<(dist[v]===undefined?1e18:dist[v])){ dist[v]=nd; prev[v]=u; heap.push(nd,v); } } }
