@@ -71,6 +71,7 @@ const isAndroid = /android/i.test(ua);
 
 const map = L.map('map', {preferCanvas:true, zoomControl:false}).setView([36.3, 127.8], 7);
 window.map = map;
+let measureMode = false;   // 물길 거리측정 모드
 L.control.zoom({position:'bottomleft'}).addTo(map);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -152,6 +153,7 @@ if(isTouch){
   map.doubleClickZoom.disable();   // 더블탭 줌 끄고 주소 보기로 사용(줌은 좌하단 버튼)
   const el=map.getContainer(); let lastTap=0, lx=0, ly=0;
   el.addEventListener('touchend', function(e){
+    if(measureMode) return;
     if(e.changedTouches.length!==1) return;
     const t=e.changedTouches[0], now=Date.now();
     if(now-lastTap<320 && Math.abs(t.clientX-lx)<24 && Math.abs(t.clientY-ly)<24){
@@ -176,12 +178,18 @@ const protectLayer = L.geoJSON(POLYS, {
   onEachFeature:(f,l)=>{ if(f.properties&&f.properties.s) l.bindPopup('<b>상수원보호구역</b><br>'+f.properties.s); }
 }).addTo(map);
 
-// ---- 엑스페디션 코스 (물길 따라) ----
-const courseLayer = L.geoJSON(COURSES, {
-  style:(f)=>({color:(f.properties&&f.properties.color)||'#00897b', weight:4, opacity:0.85}),
+// ---- 카누잉코스 (물길 따라, 에메랄드 단일색 + 외곽선) ----
+const EMERALD = '#00b894';
+const courseCasing = L.geoJSON(COURSES, {style:{color:'#05382f', weight:8, opacity:0.5}});
+const courseLine = L.geoJSON(COURSES, {
+  style:{color:EMERALD, weight:5, opacity:0.95},
   onEachFeature:(f,l)=>{ const p=f.properties||{};
-    l.bindPopup('<b>'+(p.name||'엑스페디션 코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'')); }
-}).addTo(map);
+    const html='<b>'+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'');
+    l.bindPopup(html);
+    l.bindTooltip(html, {sticky:true, direction:'top', opacity:0.95});  // 호버 시 표시
+  }
+});
+const courseLayer = L.layerGroup([courseCasing, courseLine]).addTo(map);
 
 // ---- 카누 즐겨찾기 점 ----
 const canoeLayer = L.geoJSON(POINTS, {
@@ -194,7 +202,7 @@ const canoeLayer = L.geoJSON(POINTS, {
 // ---- 레이어 토글 ----
 const _ov = {};
 _ov['상수원보호구역(면)'] = protectLayer;
-if(COURSES.features.length) _ov['엑스페디션 코스('+COURSES.features.length+')'] = courseLayer;
+if(COURSES.features.length) _ov['카누잉코스('+COURSES.features.length+')'] = courseLayer;
 _ov['카누 런칭/랜딩('+POINTS.features.length+'곳)'] = canoeLayer;
 L.control.layers(null, _ov, {collapsed:true, position:'topright'}).addTo(map);
 
@@ -226,13 +234,77 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   }catch(err){ box.textContent='검색 실패'; }
 });
 
+// ---- 물길 거리측정 (두 점 클릭 → 강 따라 거리) ----
+let measurePts=[]; const measureLayer=L.layerGroup().addTo(map);
+const MeasureCtl = L.Control.extend({ options:{position:'topleft'},
+  onAdd:function(){
+    const d=L.DomUtil.create('div','leaflet-bar addrbtn');
+    d.innerHTML='<a href="#" id="measBtn" title="물길 거리 측정">📏 거리측정</a>';
+    L.DomEvent.disableClickPropagation(d);
+    L.DomEvent.on(d.querySelector('a'),'click',function(e){ L.DomEvent.preventDefault(e); toggleMeasure(); });
+    return d;
+  }
+});
+map.addControl(new MeasureCtl());
+function setMeasBtn(on){ const b=document.getElementById('measBtn'); if(b) b.style.background=on?'#ffe0b2':''; map.getContainer().style.cursor=on?'crosshair':''; }
+function toggleMeasure(){
+  measureMode=!measureMode; measurePts=[]; measureLayer.clearLayers(); setMeasBtn(measureMode);
+  if(measureMode) L.popup().setLatLng(map.getCenter()).setContent('출발점 → 도착점을 차례로 클릭(탭)하세요').openOn(map);
+}
+map.on('click', function(e){
+  if(!measureMode) return;
+  measurePts.push(e.latlng);
+  L.circleMarker(e.latlng,{radius:6,color:'#bf360c',fillColor:'#ff7043',fillOpacity:1}).addTo(measureLayer);
+  if(measurePts.length>=2) doMeasure(measurePts[0], measurePts[1]);
+});
+async function doMeasure(p1,p2){
+  const pop=L.popup().setLatLng(p2).setContent('물길 계산 중…').openOn(map);
+  let res=null; try{ res=await waterRoute(p1,p2); }catch(e){}
+  setMeasBtn(false); measureMode=false;
+  if(!res){ pop.setContent('물길을 찾지 못했습니다<br><small>두 점 근처에 연결된 강이 없을 수 있어요</small>'); return; }
+  L.polyline(res.coords,{color:'#ff7043',weight:5,opacity:0.95,lineCap:'round'}).addTo(measureLayer);
+  const straight=(map.distance(p1,p2)/1000).toFixed(1);
+  pop.setContent('<b>물길 거리: 약 '+res.km.toFixed(1)+' km</b><br><small>직선거리 '+straight+' km · 다시 측정하려면 📏</small>');
+}
+async function waterRoute(p1,p2){
+  const pad=0.05;
+  const s=Math.min(p1.lat,p2.lat)-pad, w=Math.min(p1.lng,p2.lng)-pad, n=Math.max(p1.lat,p2.lat)+pad, e=Math.max(p1.lng,p2.lng)+pad;
+  const q='[out:json][timeout:60];(way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+'););out geom;';
+  const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
+  const j=await r.json();
+  const nodes={}, adj={}, toR=Math.PI/180;
+  function key(la,ln){ const k=la.toFixed(5)+','+ln.toFixed(5); if(!(k in nodes)) nodes[k]=[la,ln]; return k; }
+  function hav(a,b){ const R=6371000, dla=(b[0]-a[0])*toR, dlo=(b[1]-a[1])*toR, la1=a[0]*toR, la2=b[0]*toR;
+    const h=Math.sin(dla/2)*Math.sin(dla/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dlo/2)*Math.sin(dlo/2); return 2*R*Math.asin(Math.sqrt(h)); }
+  for(const el of (j.elements||[])){ if(el.type!=='way'||!el.geometry) continue; let prev=null;
+    for(const p of el.geometry){ const k=key(p.lat,p.lon); if(prev&&prev!==k){ const d=hav(nodes[prev],nodes[k]);
+      (adj[prev]=adj[prev]||[]).push([k,d]); (adj[k]=adj[k]||[]).push([prev,d]); } prev=k; } }
+  function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return best; }
+  const s1=nearest(p1), s2=nearest(p2); if(!s1||!s2) return null;
+  const dist={}, prev={}; dist[s1]=0; const heap=new MinHeap(); heap.push(0,s1);
+  while(heap.size()){ const top=heap.pop(); const d=top[0], u=top[1]; if(u===s2) break; if(d>(dist[u]===undefined?1e18:dist[u])) continue;
+    for(const vw of (adj[u]||[])){ const v=vw[0], nd=d+vw[1]; if(nd<(dist[v]===undefined?1e18:dist[v])){ dist[v]=nd; prev[v]=u; heap.push(nd,v); } } }
+  if(dist[s2]===undefined) return null;
+  const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return null; path.push(pp); } path.reverse();
+  return {coords: path.map(k=>nodes[k]), km: dist[s2]/1000};
+}
+function MinHeap(){ this.a=[]; }
+MinHeap.prototype.size=function(){ return this.a.length; };
+MinHeap.prototype.push=function(p,v){ const a=this.a; a.push([p,v]); let i=a.length-1;
+  while(i>0){ const par=(i-1)>>1; if(a[par][0]<=a[i][0]) break; const t=a[par]; a[par]=a[i]; a[i]=t; i=par; } };
+MinHeap.prototype.pop=function(){ const a=this.a, top=a[0], last=a.pop();
+  if(a.length){ a[0]=last; let i=0; const n=a.length;
+    while(true){ let l=2*i+1, r=2*i+2, m=i; if(l<n&&a[l][0]<a[m][0])m=l; if(r<n&&a[r][0]<a[m][0])m=r; if(m===i)break; const t=a[m]; a[m]=a[i]; a[i]=t; i=m; } }
+  return top; };
+
 // ---- 범례 ----
 const legend = L.control({position:'bottomright'});
 legend.onAdd=function(){ const d=L.DomUtil.create('div','legend');
   d.innerHTML='<b>범례</b>'+
     '<span class="sw" style="background:#2196f3"></span>카누 런칭/랜딩 장소<br>'+
     '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호구역(진입금지)'+
-    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:3px;background:#00897b"></span>엑스페디션 코스':'');
+    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#00b894"></span>카누잉코스':'')+
+    '<br><span class="sw" style="width:16px;height:4px;background:#ff7043"></span>거리측정(물길)';
   return d; };
 legend.addTo(map);
 </script>
