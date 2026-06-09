@@ -1,0 +1,35 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>카페 버튼 시안</title>
+<style>
+  body{margin:0;font-family:'Malgun Gothic',sans-serif;background:#eef3ef;padding-bottom:40px}
+  h1{font-size:18px;color:#234;margin:18px 14px 4px}
+  p.desc{font-size:13px;color:#567;margin:0 14px 8px}
+  .stage{position:relative;height:200px;margin:0 10px 6px;border-radius:10px;overflow:hidden;
+    background:repeating-linear-gradient(45deg,#dbeede,#dbeede 18px,#d2e8da 18px,#d2e8da 36px)}
+  .label{position:absolute;top:8px;left:12px;font:700 12px sans-serif;color:#2b5e3f;background:#fff;padding:3px 9px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .cafeBtn{position:absolute;display:flex;align-items:center;text-decoration:none;cursor:pointer}
+  .cA{top:14px;left:50%;transform:translateX(-50%);gap:8px;background:#03C75A;color:#fff;padding:9px 15px 9px 10px;border-radius:24px;box-shadow:0 4px 14px rgba(3,199,90,.45);font:700 14px sans-serif}
+  .cA .nb{width:24px;height:24px;border-radius:7px;background:#fff;color:#03C75A;display:flex;align-items:center;justify-content:center;font:900 15px sans-serif}
+  .cB{right:16px;bottom:16px;gap:9px;background:#03C75A;color:#fff;padding:11px 16px;border-radius:30px;box-shadow:0 6px 18px rgba(3,199,90,.5);font:700 14px sans-serif}
+  .cB .ic{font-size:17px}
+  .cC{right:16px;top:16px;gap:11px;background:#fff;padding:9px 14px 9px 9px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+  .cC .nb{width:36px;height:36px;border-radius:9px;background:#03C75A;color:#fff;display:flex;align-items:center;justify-content:center;font:900 20px sans-serif;flex:none}
+  .cC .txt{display:flex;flex-direction:column;line-height:1.25}
+  .cC .t1{font:800 14px sans-serif;color:#1f2d25}.cC .t2{font:11px sans-serif;color:#7b8a82}
+</style></head><body>
+<h1>시안 A — 상단 중앙 그린 필</h1>
+<p class="desc">심플·깔끔. 지도 컨트롤과 안 겹침.</p>
+<div class="stage"><span class="label">지도</span>
+  <a class="cafeBtn cA"><span class="nb">N</span>마이카누 마니아 ›</a></div>
+
+<h1>시안 B — 우하단 둥근 버튼</h1>
+<p class="desc">떠있는 FAB 느낌.</p>
+<div class="stage"><span class="label">지도</span>
+  <a class="cafeBtn cB"><span class="ic">☕</span>마이카누 마니아 카페</a></div>
+
+<h1>시안 C — 우상단 카드형</h1>
+<p class="desc">제목+부제. 정보 풍부.</p>
+<div class="stage"><span class="label">지도</span>
+  <a class="cafeBtn cC"><span class="nb">N</span><span class="txt"><span class="t1">마이카누 마니아</span><span class="t2">네이버 카페 바로가기 ›</span></span></a></div>
+</body></html>
