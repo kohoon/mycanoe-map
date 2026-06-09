@@ -17,8 +17,9 @@ except Exception:
     pass
 
 BASE = Path(__file__).resolve().parent
-_pf = BASE / "proxy_url.txt"
-PROXY = (_pf.read_text(encoding="utf-8").strip() if _pf.exists() else "")
+# 브라우저가 V-World를 직접 호출(JSONP). 키는 도메인잠금 상태로 공개됨(사용자 승인).
+_kf = BASE / "vworld_key.txt"
+VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
 
 items = json.loads((BASE / "synced_seqs.json").read_text(encoding="utf-8"))["items"]
 pfeats = [{"type": "Feature",
@@ -27,7 +28,7 @@ pfeats = [{"type": "Feature",
           for v in items.values() if v.get("lat") is not None]
 points = {"type": "FeatureCollection", "features": pfeats}
 polygons = json.loads((BASE / "protect_polygons.geojson").read_text(encoding="utf-8"))
-print(f"점 {len(pfeats)} / 면 {len(polygons['features'])} / 프록시 {'설정됨' if PROXY else '없음(Nominatim 폴백)'}")
+print(f"점 {len(pfeats)} / 면 {len(polygons['features'])} / VKEY {'있음' if VKEY else '없음(Nominatim 폴백)'}")
 
 HTML = r"""<!DOCTYPE html>
 <html lang="ko">
@@ -59,7 +60,7 @@ HTML = r"""<!DOCTYPE html>
 <script>
 const POINTS = __POINTS__;
 const POLYS = __POLYS__;
-const PROXY = "__PROXY__";   // 역지오코딩 프록시(Cloudflare Worker). 비어있으면 Nominatim 사용
+const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
 
 const ua = navigator.userAgent;
 const isiOS = /iphone|ipad|ipod/i.test(ua);
@@ -91,16 +92,29 @@ function extLinks(lat,lng,label){
   return '<br><a href="'+k+'"'+tgt+'>카카오맵</a> &middot; <a href="'+n+'"'+tgt+'>네이버맵</a>';
 }
 
-// ---- 역지오코딩: 프록시(V-World 지번) → 실패시 Nominatim ----
-async function proxyReverse(lat,lng){
-  if(!PROXY) return null;
-  try{
-    const r=await fetch(PROXY+'?lat='+lat+'&lng='+lng);
-    if(!r.ok) return null;
-    const d=await r.json();
-    if(d && (d.parcel||d.road)) return {parcel:d.parcel||'', road:d.road||''};
-    return null;
-  }catch(e){ return null; }
+// ---- 역지오코딩: V-World 직접 호출(JSONP, 지번) → 실패시 Nominatim ----
+let _jpId=0;
+function vworldReverse(lat,lng){
+  return new Promise(function(resolve){
+    if(!VKEY){ resolve(null); return; }
+    const name='__vw'+(_jpId++); let done=false;
+    const s=document.createElement('script');
+    function cleanup(){ try{ delete window[name]; }catch(e){} if(s.parentNode) s.parentNode.removeChild(s); }
+    const timer=setTimeout(function(){ if(!done){ done=true; cleanup(); resolve(null);} }, 6000);
+    window[name]=function(d){ if(done) return; done=true; clearTimeout(timer);
+      try{ const r=d.response;
+        if(r&&r.status==='OK'&&r.result&&r.result.length){
+          const par=r.result.find(function(x){return x.type==='parcel';});
+          const road=r.result.find(function(x){return x.type==='road';});
+          resolve({parcel:par?par.text:'', road:road?road.text:''});
+        } else resolve(null);
+      }catch(e){ resolve(null); } cleanup();
+    };
+    s.onerror=function(){ if(!done){ done=true; clearTimeout(timer); cleanup(); resolve(null);} };
+    s.src='https://api.vworld.kr/req/address?service=address&request=getAddress&version=2.0&crs=EPSG:4326'+
+          '&type=both&format=json&point='+lng+','+lat+'&key='+VKEY+'&callback='+name;
+    document.body.appendChild(s);
+  });
 }
 async function nominatimReverse(lat,lng){
   try{
@@ -118,7 +132,7 @@ let _lastAddr=0;
 async function showAddress(lat,lng){
   const now=Date.now(); if(now-_lastAddr<800) return; _lastAddr=now;   // 중복 호출 방지
   const pop=L.popup().setLatLng([lat,lng]).setContent('주소 조회 중…').openOn(map);
-  let r=await proxyReverse(lat,lng);
+  let r=await vworldReverse(lat,lng);
   let main='', sub='';
   if(r&&(r.parcel||r.road)){ main=r.parcel||r.road; if(r.road&&r.parcel) sub='도로명: '+r.road; }
   else { main=await nominatimReverse(lat,lng); }
@@ -217,7 +231,7 @@ legend.addTo(map);
 html = (HTML
         .replace("__POINTS__", json.dumps(points, ensure_ascii=False, separators=(",", ":")))
         .replace("__POLYS__", json.dumps(polygons, ensure_ascii=False, separators=(",", ":")))
-        .replace("__PROXY__", PROXY))
+        .replace("__VKEY__", VKEY))
 out = BASE / "map.html"
 out.write_text(html, encoding="utf-8")
-print(f"생성: map.html ({out.stat().st_size/1024:.0f} KB) — 키 없음")
+print(f"생성: map.html ({out.stat().st_size/1024:.0f} KB) — VKEY {'포함(공개)' if VKEY else '없음'}")
