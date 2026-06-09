@@ -236,13 +236,12 @@ window.map = map;
 let measureMode = false;   // 물길 거리측정 모드
 L.control.zoom({position:'bottomleft'}).addTo(map);
 map.addControl(new AuthCtl());   // 카카오 로그인 박스(우상단)
-const CafeCtl=L.Control.extend({ options:{position:'topright'},
+const CafeCtl=L.Control.extend({ options:{position:'bottomright'},
   onAdd:function(){ const d=L.DomUtil.create('a','cafecard'); d.href='https://cafe.naver.com/mytalon'; d.target='_blank'; d.rel='noopener';
     d.innerHTML='<span class="nb">N</span><span class="txt"><span class="t1">마이카누 마니아</span><span class="t2">네이버 카페 바로가기 ›</span></span>';
     L.DomEvent.disableClickPropagation(d);
     L.DomEvent.on(d,'click',function(){ gaEvent('cafe_click'); });
     return d; } });
-map.addControl(new CafeCtl());   // 네이버 카페 바로가기
 
 const baseOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
@@ -656,6 +655,7 @@ legend.onAdd=function(){ const d=L.DomUtil.create('div','legend');
     '<br><span class="sw" style="width:16px;height:4px;background:#ff7043"></span>거리측정(물길)';
   return d; };
 legend.addTo(map);
+map.addControl(new CafeCtl());   // 카페 카드: 범례 위(우하단)에 표시
 </script>
 </body>
 </html>
