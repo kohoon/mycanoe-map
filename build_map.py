@@ -210,6 +210,18 @@ __GTAG__
   .admin-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3100;display:flex;align-items:center;gap:9px;background:#263238;color:#fff;padding:8px 14px;border-radius:22px;font:700 13px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
   .admin-badge .ab-dot{width:8px;height:8px;border-radius:50%;background:#69f0ae;box-shadow:0 0 6px #69f0ae}
   .admin-badge a{color:#80d8ff;text-decoration:none;cursor:pointer;margin-left:4px}
+  #authModal{position:fixed;inset:0;z-index:3600;display:none;align-items:center;justify-content:center}
+  #authModal.open{display:flex}
+  .auth-card{position:relative;background:#fff;border-radius:18px;padding:24px 22px;width:280px;max-width:86vw;text-align:center;box-shadow:0 18px 44px rgba(0,0,0,.34);animation:pmUp .25s ease}
+  .auth-lock{width:56px;height:56px;border-radius:50%;background:#263238;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px}
+  .auth-card h3{margin:2px 0 4px;font-size:18px;color:#1b2a33}
+  .auth-card p{font-size:12.5px;color:#7a8a93;margin:0 0 16px}
+  #authKey{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccd;border-radius:10px;font-size:15px;text-align:center;letter-spacing:2px}
+  .auth-row{display:flex;gap:9px;margin-top:14px}
+  .auth-row button{flex:1;border:0;border-radius:10px;padding:12px;font:700 14px sans-serif;cursor:pointer}
+  .auth-ok{background:#263238;color:#fff}
+  .auth-cancel{background:#eef1f3;color:#456}
+  #authMsg{font-size:12.5px;color:#e53935;margin-top:9px;min-height:16px}
   @media(max-width:520px){
     .measbtn{padding:8px 11px;font-size:12px}
     .search input{max-width:150px;font-size:12px}
@@ -266,6 +278,17 @@ __GTAG__
   <div class="pmodal-bg" onclick="closeSg()"></div>
   <div class="pmodal"><button class="pmodal-x" onclick="closeSg()">✕</button><div id="sgBody"></div></div>
 </div>
+<div id="authModal">
+  <div class="pmodal-bg" onclick="closeAuthModal()"></div>
+  <div class="auth-card">
+    <div class="auth-lock">🔒</div>
+    <h3>관리자 인증</h3>
+    <p>관리자 키를 입력하세요</p>
+    <input id="authKey" type="password" autocomplete="off" placeholder="관리자 키">
+    <div class="auth-row"><button class="auth-cancel" onclick="closeAuthModal()">취소</button><button class="auth-ok" id="authOk">확인</button></div>
+    <div id="authMsg"></div>
+  </div>
+</div>
 <!-- TRIPHTML -->
 <div id="tripbar"><button id="tripStart" class="tb-start">▶ 카누잉 시작</button><button id="tripLog" class="tb-log">📋 기록</button></div>
 <div id="tmodal" class="pmodal-wrap">
@@ -292,8 +315,16 @@ function _adminBadge(on){ let el=document.getElementById('adminBadge');
     document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
   else if(el){ el.remove(); } }
 function _setAdmin(on){ _adminOk=on; _adminBadge(on); }
-function openAdminAuth(){ const k=prompt('관리자 키를 입력하세요'); if(k===null||!k) return;
-  _adminVerify(k).then(function(ok){ if(ok){ try{localStorage.setItem('mc_admin',k);}catch(e){} _setAdmin(true); alert('🔧 관리자 모드 ON'); } else alert('관리자 키가 올바르지 않습니다'); }); }
+function closeAuthModal(){ const m=document.getElementById('authModal'); if(m) m.classList.remove('open'); }
+function openAdminAuth(){
+  const m=document.getElementById('authModal'); if(!m) return;
+  const inp=document.getElementById('authKey'), msg=document.getElementById('authMsg'), ok=document.getElementById('authOk');
+  inp.value=''; msg.textContent=''; m.classList.add('open'); setTimeout(function(){ try{inp.focus();}catch(e){} }, 60);
+  function submit(){ const k=inp.value||''; if(!k) return; msg.textContent='확인 중…';
+    _adminVerify(k).then(function(good){ if(good){ try{localStorage.setItem('mc_admin',k);}catch(e){} _setAdmin(true); closeAuthModal(); }
+      else msg.textContent='관리자 키가 올바르지 않습니다'; }); }
+  ok.onclick=submit; inp.onkeydown=function(e){ if(e.key==='Enter') submit(); };
+}
 function _maybeAdmin(){ if(/admin/.test(location.hash||'')){ try{history.replaceState(null,'',location.pathname+location.search);}catch(e){} openAdminAuth(); } }
 window.addEventListener('hashchange', _maybeAdmin);   // 새로고침 없이 #admin 붙여도 동작
 (function(){
