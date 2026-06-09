@@ -114,7 +114,7 @@
   .beta-tag{display:inline-block;background:#ff7043;color:#fff;font:700 10px sans-serif;padding:2px 7px;border-radius:8px;vertical-align:middle;margin-left:7px}
   .gate-warn{display:flex;gap:8px;text-align:left;background:#fff8e1;border:1px solid #ffe082;border-left:4px solid #ffb300;border-radius:9px;padding:9px 11px;margin:0 0 16px;font:12px/1.5 sans-serif;color:#6d4c00}
   .gate-warn span:first-child{flex:none}
-  .admin-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:2500;display:flex;align-items:center;gap:9px;background:#263238;color:#fff;padding:8px 14px;border-radius:22px;font:700 13px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  .admin-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3100;display:flex;align-items:center;gap:9px;background:#263238;color:#fff;padding:8px 14px;border-radius:22px;font:700 13px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
   .admin-badge .ab-dot{width:8px;height:8px;border-radius:50%;background:#69f0ae;box-shadow:0 0 6px #69f0ae}
   .admin-badge a{color:#80d8ff;text-decoration:none;cursor:pointer;margin-left:4px}
   @media(max-width:520px){
@@ -188,10 +188,12 @@ function _adminBadge(on){ let el=document.getElementById('adminBadge');
     document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
   else if(el){ el.remove(); } }
 function _setAdmin(on){ _adminOk=on; _adminBadge(on); }
-function openAdminAuth(){ const k=prompt('관리자 키를 입력하세요'); if(k===null) return;
-  _adminVerify(k).then(function(ok){ if(ok){ try{localStorage.setItem('mc_admin',k);}catch(e){} _setAdmin(true); } else alert('키가 올바르지 않습니다'); }); }
+function openAdminAuth(){ const k=prompt('관리자 키를 입력하세요'); if(k===null||!k) return;
+  _adminVerify(k).then(function(ok){ if(ok){ try{localStorage.setItem('mc_admin',k);}catch(e){} _setAdmin(true); alert('🔧 관리자 모드 ON'); } else alert('관리자 키가 올바르지 않습니다'); }); }
+function _maybeAdmin(){ if(/admin/.test(location.hash||'')){ try{history.replaceState(null,'',location.pathname+location.search);}catch(e){} openAdminAuth(); } }
+window.addEventListener('hashchange', _maybeAdmin);   // 새로고침 없이 #admin 붙여도 동작
 (function(){
-  if(/admin/.test(location.hash||'')){ try{history.replaceState(null,'',location.pathname+location.search);}catch(e){} setTimeout(openAdminAuth, 700); }
+  if(/admin/.test(location.hash||'')){ try{history.replaceState(null,'',location.pathname+location.search);}catch(e){} setTimeout(openAdminAuth, 600); }
   const k=adminKey(); if(k) _adminVerify(k).then(function(ok){ _setAdmin(ok); if(!ok){ try{localStorage.removeItem('mc_admin');}catch(e){} } });
 })();
 
