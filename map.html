@@ -30,12 +30,23 @@ const POLYS = {"type":"FeatureCollection","features":[{"type":"Feature","geometr
 const map = L.map('map', {preferCanvas:true}).setView([36.3, 127.8], 7);
 window.map = map;
 
-// 외부 지도(카카오/네이버) 열기 링크
+// 외부 지도 딥링크 (모바일=앱 스킴 / 데스크톱=웹). 좌표로 정확히 센터링.
+function isMobile(){ return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent); }
 function extLinks(lat,lng,label){
-  const L1='https://map.kakao.com/link/map/'+encodeURIComponent((label||'위치').slice(0,30))+','+lat+','+lng;
-  const L2='https://map.naver.com/p/search/'+lat+','+lng;
-  return '<br><a href="'+L1+'" target="_blank" rel="noopener">카카오맵</a> · '+
-         '<a href="'+L2+'" target="_blank" rel="noopener">네이버맵</a>';
+  // 이름의 쉼표/줄바꿈 제거 (카카오 링크는 쉼표 구분이라 깨짐 방지)
+  const nm = (label||'위치').replace(/,/g,' ').trim().slice(0,30) || '위치';
+  const enc = encodeURIComponent(nm);
+  let k, n, tgt;
+  if(isMobile()){
+    k = 'kakaomap://look?p='+lat+','+lng;
+    n = 'nmap://place?lat='+lat+'&lng='+lng+'&name='+enc+'&appname=kohoon.github.io';
+    tgt = '';
+  }else{
+    k = 'https://map.kakao.com/link/map/'+enc+','+lat+','+lng;
+    n = 'https://map.naver.com/p/search/'+lat+','+lng;
+    tgt = ' target="_blank" rel="noopener"';
+  }
+  return '<br><a href="'+k+'"'+tgt+'>카카오맵</a> · <a href="'+n+'"'+tgt+'>네이버맵</a>';
 }
 
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
