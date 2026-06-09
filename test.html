@@ -308,11 +308,11 @@ async function showAddress(lat,lng){
   pop.setContent(h);
 }
 // ---- 어드민: 장소 등록 ----
-const regLayer=L.layerGroup().addTo(map);
-function placeColors(cat){ const pink=(cat==='명소'); return {pink:pink,r:pink?7:5,line:pink?'#ad1457':'#1565c0',fill:pink?'#ec407a':'#2196f3'}; }
-function addPlaceMarker(pl){ const c=placeColors(pl.cat);
-  L.circleMarker([pl.lat,pl.lng],{radius:c.r,color:c.line,weight:1,fillColor:c.fill,fillOpacity:.95}).addTo(regLayer)
-   .on('click',function(){ openPlaceModal(pl); }); }
+// 등록장소는 별도 레이어 없이 카테고리(명소/런칭·랜딩) 레이어에 합쳐 표시
+function addPlaceMarker(pl){ const spot=(pl.cat==='명소');
+  const m=L.marker([pl.lat,pl.lng],{icon:spot?boathouseIcon():canoeIcon()});
+  m.on('click',function(){ openPlaceModal(pl); });
+  m.addTo(spot?famousLayer:canoeLayer); }
 function loadPlaces(){ if(!WORKER_URL) return;
   fetch(WORKER_URL.replace(/\/+$/,'')+'/places').then(function(r){return r.json();})
     .then(function(list){ (list||[]).forEach(addPlaceMarker); }).catch(function(){}); }
@@ -456,11 +456,10 @@ const canoeLayer = L.geoJSON(landFeats, {
 
 // ---- 레이어 토글 ----
 const _ov = {};
-_ov['상수원보호구역(면)'] = protectLayer;
-Object.keys(courseLayers).forEach(function(sc){ _ov['카누잉코스 · '+sc+'('+_courseGroups[sc].length+')']=courseLayers[sc]; });
-_ov['카누명소('+spotFeats.features.length+'곳)'] = famousLayer;
-_ov['카누 런칭/랜딩('+landFeats.features.length+'곳)'] = canoeLayer;
-_ov['등록장소'] = regLayer;
+_ov['상수원보호'] = protectLayer;
+Object.keys(courseLayers).forEach(function(sc){ _ov['코스 · '+sc+'('+_courseGroups[sc].length+')']=courseLayers[sc]; });
+_ov['명소('+spotFeats.features.length+')'] = famousLayer;
+_ov['런칭/랜딩('+landFeats.features.length+')'] = canoeLayer;
 L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:true, position:'topright'}).addTo(map);
 
 // ---- 장소 검색 (Nominatim) ----
@@ -743,11 +742,10 @@ document.addEventListener('visibilitychange',function(){ if(_trk&&document.visib
 const legend = L.control({position:'bottomright'});
 legend.onAdd=function(){ const d=L.DomUtil.create('div','legend');
   d.innerHTML='<b>범례</b>'+
-    '<span class="sw" style="background:#ec407a"></span>카누명소<br>'+
-    '<span class="sw" style="background:#2196f3"></span>카누 런칭/랜딩 장소<br>'+
-    '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호구역(진입금지)'+
-    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#7c4dff"></span>카누잉코스':'')+
-    '<br><span class="sw" style="width:16px;height:4px;background:#ff7043"></span>거리측정(물길)';
+    '<span class="sw" style="background:#ec407a"></span>명소<br>'+
+    '<span class="sw" style="background:#2196f3"></span>런칭/랜딩<br>'+
+    '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호'+
+    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#7c4dff"></span>코스':'');
   return d; };
 legend.addTo(map);
 map.addControl(new CafeCtl());   // 카페 카드: 범례 위(우하단)에 표시
