@@ -41,6 +41,40 @@ export default {
       return new Response("ok", { headers: cors });
     }
 
+    // 0-2) 등록 장소 저장/조회 (Cloudflare KV: env.PLACES, 어드민: env.ADMIN_ID)
+    if (url.pathname.endsWith("/places")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      if (req.method === "GET") {
+        const data = KV ? await KV.get("places") : null;
+        return new Response(data || "[]", { headers: { ...cors, "Content-Type": "application/json" } });
+      }
+      if (req.method === "POST") {
+        let b = {};
+        try { b = await req.json(); } catch (e) {}
+        if (!env.ADMIN_ID || String(b.id) !== String(env.ADMIN_ID))
+          return new Response("forbidden", { status: 403, headers: cors });
+        if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        const lat = Number(b.lat), lng = Number(b.lng);
+        const name = String(b.name || "").slice(0, 60);
+        const cat = b.cat === "명소" ? "명소" : "런칭랜딩";
+        if (!name || !isFinite(lat) || !isFinite(lng))
+          return new Response("bad", { status: 400, headers: cors });
+        let arr = [];
+        try { arr = JSON.parse((await KV.get("places")) || "[]"); } catch (e) {}
+        arr.push({ name, cat, lat, lng, by: String(b.nick || ""), t: Date.now() });
+        await KV.put("places", JSON.stringify(arr));
+        return new Response("ok", { headers: cors });
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
     // 1) 로그인 시작
     if (!code) {
       const auth = "https://kauth.kakao.com/oauth/authorize?response_type=code"

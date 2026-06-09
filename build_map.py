@@ -23,6 +23,8 @@ VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
 
 # 카카오 로그인 OAuth Worker (Redirect URI 와 동일, 끝 슬래시 포함)
 WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/"
+# 어드민(장소등록 권한) 카카오 ID. 고훈 본인 ID. 비면 어드민 없음.
+ADMIN_ID = ""
 # GA4 측정 ID (G-XXXXXXXXXX). 받으면 채움. 비면 추적 비활성(no-op).
 GA_ID = "G-W75JHWTDYS"
 if GA_ID.startswith("G-"):
@@ -72,6 +74,11 @@ __GTAG__
   .locbtn{cursor:pointer;font-size:20px;background:#fff;width:40px;height:40px;line-height:40px;text-align:center;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);user-select:none}
   .locbtn.loading{opacity:.45}
   .loc-dot{filter:drop-shadow(0 0 3px rgba(25,118,210,.6))}
+  .addplace-btn{margin-top:7px;background:#00b894;color:#fff;border:0;border-radius:6px;padding:6px 11px;font:600 12px sans-serif;cursor:pointer}
+  .addform #apName{width:100%;box-sizing:border-box;padding:6px;margin:6px 0;border:1px solid #bbb;border-radius:4px;font-size:13px}
+  .addform .aprow{font:12px sans-serif;margin-bottom:8px;display:flex;flex-direction:column;gap:3px}
+  .addform #apSave{background:#00b894;color:#fff;border:0;border-radius:5px;padding:6px 13px;font:600 13px sans-serif;cursor:pointer}
+  .addform #apMsg{font-size:12px;color:#666;margin-left:6px}
   .authbox{font:600 13px sans-serif}
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
   .authbox .who{display:inline-block;background:#fff;border-radius:6px;padding:7px 10px;box-shadow:0 1px 4px rgba(0,0,0,.3);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -130,6 +137,8 @@ const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
 const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
 const GA_ID = "__GA_ID__";        // GA4 측정 ID(비면 추적 off)
+const ADMIN_ID = "__ADMIN__";     // 어드민 카카오 ID(장소등록 권한)
+function isAdmin(){ const u=getUser(); return !!(u&&u.uid&&ADMIN_ID&&String(u.uid)===String(ADMIN_ID)); }
 
 // ---- 사용량 추적 + 카카오 로그인 세션 ----
 function gaEvent(name, params){ try{ if(window.gtag) gtag('event', name, params||{}); }catch(e){} }
@@ -252,7 +261,40 @@ async function showAddress(lat,lng){
   let h='<b>'+(main||'주소를 찾지 못함')+'</b>';
   if(sub) h+='<br><small>'+sub+'</small>';
   h+='<br><small>'+lat.toFixed(5)+', '+lng.toFixed(5)+'</small>'+extLinks(lat,lng,main||'위치');
+  window._curAddr={lat:lat, lng:lng, name:main||''};
+  if(isAdmin()) h+='<br><button class="addplace-btn" onclick="addPlace()">📌 장소 등록</button>';
   pop.setContent(h);
+}
+// ---- 어드민: 장소 등록 ----
+const regLayer=L.layerGroup().addTo(map);
+function placeColors(cat){ const pink=(cat==='명소'); return {pink:pink,r:pink?7:5,line:pink?'#ad1457':'#1565c0',fill:pink?'#ec407a':'#2196f3'}; }
+function addPlaceMarker(pl){ const c=placeColors(pl.cat);
+  L.circleMarker([pl.lat,pl.lng],{radius:c.r,color:c.line,weight:1,fillColor:c.fill,fillOpacity:.95}).addTo(regLayer)
+   .bindPopup('<b>'+(pl.name||'')+'</b>'+extLinks(pl.lat,pl.lng,pl.name||'위치')); }
+function loadPlaces(){ if(!WORKER_URL) return;
+  fetch(WORKER_URL.replace(/\/+$/,'')+'/places').then(function(r){return r.json();})
+    .then(function(list){ (list||[]).forEach(addPlaceMarker); }).catch(function(){}); }
+loadPlaces();
+function addPlace(){
+  if(!isAdmin()) return; const a=window._curAddr; if(!a) return;
+  const html='<div class="addform"><b>장소 등록</b>'
+    +'<input id="apName" placeholder="장소 이름" value="'+(a.name||'').replace(/["<>]/g,'')+'">'
+    +'<div class="aprow"><label><input type="radio" name="apc" value="명소">카누명소(핑크)</label>'
+    +'<label><input type="radio" name="apc" value="런칭랜딩" checked>런칭/랜딩(파랑)</label></div>'
+    +'<button id="apSave">저장</button> <span id="apMsg"></span></div>';
+  L.popup({minWidth:240}).setLatLng([a.lat,a.lng]).setContent(html).openOn(map);
+  setTimeout(function(){ const sv=document.getElementById('apSave'); if(!sv) return;
+    sv.onclick=async function(){
+      const nm=(document.getElementById('apName').value||'').trim(); if(!nm){ document.getElementById('apMsg').textContent='이름 입력'; return; }
+      const cc=document.querySelector('input[name=apc]:checked'); const cat=cc?cc.value:'런칭랜딩';
+      const msg=document.getElementById('apMsg'); msg.textContent='저장 중…'; const u=getUser();
+      try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/places',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({id:u.uid,nick:u.nick||'',name:nm,cat:cat,lat:a.lat,lng:a.lng})});
+        if(r.ok){ msg.textContent='완료!'; addPlaceMarker({name:nm,cat:cat,lat:a.lat,lng:a.lng}); gaEvent('place_add',{cat:cat}); setTimeout(function(){map.closePopup();},700); }
+        else { msg.textContent=(r.status===403?'권한 없음':'실패'); }
+      }catch(e){ msg.textContent='오류'; }
+    };
+  },0);
 }
 map.on('contextmenu', e=>showAddress(e.latlng.lat, e.latlng.lng));   // 데스크톱 우클릭
 
@@ -323,6 +365,7 @@ _ov['상수원보호구역(면)'] = protectLayer;
 if(COURSES.features.length) _ov['카누잉코스('+COURSES.features.length+')'] = courseLayer;
 _ov['카누명소('+spotFeats.features.length+'곳)'] = famousLayer;
 _ov['카누 런칭/랜딩('+landFeats.features.length+'곳)'] = canoeLayer;
+_ov['등록장소'] = regLayer;
 L.control.layers(null, _ov, {collapsed:true, position:'topright'}).addTo(map);
 
 // ---- 장소 검색 (Nominatim) ----
@@ -517,7 +560,8 @@ html = (HTML
         .replace("__VKEY__", VKEY)
         .replace("__GTAG__", GTAG)
         .replace("__WORKER__", WORKER_URL)
-        .replace("__GA_ID__", GA_ID))
+        .replace("__GA_ID__", GA_ID)
+        .replace("__ADMIN__", ADMIN_ID))
 out = BASE / "map.html"
 out.write_text(html, encoding="utf-8")
 print(f"생성: map.html ({out.stat().st_size/1024:.0f} KB) — VKEY {'포함(공개)' if VKEY else '없음'}")
