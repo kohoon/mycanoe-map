@@ -1,0 +1,10 @@
+name = "mycanoe-auth"
+main = "auth-worker.js"
+compatibility_date = "2024-09-01"
+
+# 카카오 OAuth 콜백 Worker 설정.
+# REST 키는 OAuth client_id 로 브라우저 URL 에 어차피 노출되며 Redirect URI 화이트리스트로 보호되므로 vars 로 둠.
+# (Client Secret 은 쓰지 않음 — 쓰려면 대시보드 Secret 으로 KAKAO_CLIENT_SECRET 추가)
+[vars]
+SITE_URL = "https://kohoon.github.io/mycanoe-map/"
+KAKAO_REST_KEY = "75762a42634f319b1187427cc00e2b37"
