@@ -23,8 +23,6 @@ VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
 
 # 카카오 로그인 OAuth Worker (Redirect URI 와 동일, 끝 슬래시 포함)
 WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/"
-# 어드민(장소등록 권한) 카카오 ID. 고훈 본인 ID. 비면 어드민 없음.
-ADMIN_ID = "4936913088"
 # GA4 측정 ID (G-XXXXXXXXXX). 받으면 채움. 비면 추적 비활성(no-op).
 GA_ID = "G-W75JHWTDYS"
 if GA_ID.startswith("G-"):
@@ -183,6 +181,9 @@ __GTAG__
   .beta-tag{display:inline-block;background:#ff7043;color:#fff;font:700 10px sans-serif;padding:2px 7px;border-radius:8px;vertical-align:middle;margin-left:7px}
   .gate-warn{display:flex;gap:8px;text-align:left;background:#fff8e1;border:1px solid #ffe082;border-left:4px solid #ffb300;border-radius:9px;padding:9px 11px;margin:0 0 16px;font:12px/1.5 sans-serif;color:#6d4c00}
   .gate-warn span:first-child{flex:none}
+  .admin-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:2500;display:flex;align-items:center;gap:9px;background:#263238;color:#fff;padding:8px 14px;border-radius:22px;font:700 13px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  .admin-badge .ab-dot{width:8px;height:8px;border-radius:50%;background:#69f0ae;box-shadow:0 0 6px #69f0ae}
+  .admin-badge a{color:#80d8ff;text-decoration:none;cursor:pointer;margin-left:4px}
   @media(max-width:520px){
     .measbtn{padding:8px 11px;font-size:12px}
     .search input{max-width:150px;font-size:12px}
@@ -249,8 +250,23 @@ const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
 const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
 const GA_ID = "__GA_ID__";        // GA4 측정 ID(비면 추적 off)
-const ADMIN_ID = "__ADMIN__";     // 어드민 카카오 ID(장소등록 권한)
-function isAdmin(){ const u=getUser(); return !!(u&&u.uid&&ADMIN_ID&&String(u.uid)===String(ADMIN_ID)); }
+// 관리자 백도어(키 인증). 키는 공개 코드에 없음 — 서버(Cloudflare Secret)가 검증
+let _adminOk=false;
+function adminKey(){ try{ return localStorage.getItem('mc_admin')||''; }catch(e){ return ''; } }
+function isAdmin(){ return _adminOk; }
+async function _adminVerify(k){ try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/admincheck',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}); const d=await r.json(); return !!(d&&d.ok); }catch(e){ return false; } }
+function _adminBadge(on){ let el=document.getElementById('adminBadge');
+  if(on){ if(!el){ el=document.createElement('div'); el.id='adminBadge'; el.className='admin-badge';
+    el.innerHTML='<span class="ab-dot"></span>🔧 관리자 모드 <a id="adminOff">해제</a>'; document.body.appendChild(el);
+    document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
+  else if(el){ el.remove(); } }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); }
+function openAdminAuth(){ const k=prompt('관리자 키를 입력하세요'); if(k===null) return;
+  _adminVerify(k).then(function(ok){ if(ok){ try{localStorage.setItem('mc_admin',k);}catch(e){} _setAdmin(true); } else alert('키가 올바르지 않습니다'); }); }
+(function(){
+  if(/admin/.test(location.hash||'')){ try{history.replaceState(null,'',location.pathname+location.search);}catch(e){} setTimeout(openAdminAuth, 700); }
+  const k=adminKey(); if(k) _adminVerify(k).then(function(ok){ _setAdmin(ok); if(!ok){ try{localStorage.removeItem('mc_admin');}catch(e){} } });
+})();
 
 // ---- 사용량 추적 + 카카오 로그인 세션 ----
 function gaEvent(name, params){ try{ if(window.gtag) gtag('event', name, params||{}); }catch(e){} }
@@ -430,7 +446,7 @@ function addPlace(){
       const cc=document.querySelector('input[name=apc]:checked'); const cat=cc?cc.value:'런칭랜딩';
       const msg=document.getElementById('apMsg'); msg.textContent='저장 중…'; const u=getUser();
       try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/places',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:u.uid,nick:u.nick||'',name:nm,cat:cat,lat:a.lat,lng:a.lng})});
+          body:JSON.stringify({id:u.uid,adminKey:adminKey(),nick:u.nick||'',name:nm,cat:cat,lat:a.lat,lng:a.lng})});
         if(r.ok){ msg.textContent='완료!'; addPlaceMarker({name:nm,cat:cat,lat:a.lat,lng:a.lng}); gaEvent('place_add',{cat:cat}); setTimeout(function(){map.closePopup();},700); }
         else { msg.textContent=(r.status===403?'권한 없음':'실패'); }
       }catch(e){ msg.textContent='오류'; }
@@ -528,7 +544,7 @@ async function submitComment(){ const u=getUser(); if(!u||!u.uid) return;
 function editAdminComment(){ if(!isAdmin()) return; const u=getUser();
   const t=prompt('관리자 코멘트 (이 장소 설명)', window._pmAdminCur||''); if(t===null) return;
   fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,nick:u.nick||'',admin:true,text:t.slice(0,300)})})
+    body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,adminKey:adminKey(),nick:u.nick||'',admin:true,text:t.slice(0,300)})})
     .then(function(r){ if(r.ok) loadComments(); }).catch(function(){}); }
 (function(){ const s=document.getElementById('pmSend'); if(s) s.onclick=submitComment;
   const i=document.getElementById('pmInput'); if(i) i.addEventListener('keydown',function(e){ if(e.key==='Enter') submitComment(); }); })();
@@ -842,7 +858,7 @@ async function viewTrip(id){ const u=getUser(); closeTModal();
 async function toggleShare(id,cur){ const u=getUser();
   try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'share',id:u.uid,tripId:id,shared:!cur})}); if(r.ok){ gaEvent('trip_share'); renderTrips(); } }catch(e){} }
 async function deleteTrip(id){ if(!confirm('이 기록을 삭제할까요?')) return; const u=getUser();
-  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',id:u.uid,tripId:id})}); if(r.ok) renderTrips(); }catch(e){} }
+  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',id:u.uid,adminKey:adminKey(),tripId:id})}); if(r.ok) renderTrips(); }catch(e){} }
 (function(){ const s=document.getElementById('tripStart'); if(s) s.onclick=tripStartStop; const l=document.getElementById('tripLog'); if(l) l.onclick=function(){ openTModal('trips'); };
   const u=getUser(); if(!u||!u.uid) return; let bk=null; try{ bk=JSON.parse(localStorage.getItem('mc_trk')||'null'); }catch(e){}
   if(bk&&bk.track&&bk.track.length>1){ setTimeout(function(){
@@ -875,8 +891,7 @@ html = (HTML
         .replace("__VKEY__", VKEY)
         .replace("__GTAG__", GTAG)
         .replace("__WORKER__", WORKER_URL)
-        .replace("__GA_ID__", GA_ID)
-        .replace("__ADMIN__", ADMIN_ID))
+        .replace("__GA_ID__", GA_ID))
 
 # 카누잉 기록(트립) 기능: 기본 빌드는 제외(운영), `python build_map.py test` 만 포함(테스트 페이지)
 import re as _re, sys as _sys
