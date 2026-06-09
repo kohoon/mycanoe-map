@@ -256,19 +256,29 @@ const courseLine = L.geoJSON(COURSES, {
 });
 const courseLayer = L.layerGroup([courseCasing, courseLine]).addTo(map);
 
-// ---- 카누 즐겨찾기 점 ----
-const canoeLayer = L.geoJSON(POINTS, {
+// ---- 카누 점: 명소(핑크) vs 런칭/랜딩(파랑) ----
+const SPOTS=['마이카누','라온카누','캐나디언카누클럽','장자늪카누체험장','올리버보트'];
+function isSpot(nm){ nm=(nm||'').replace(/\s/g,''); return SPOTS.some(function(s){ return nm.indexOf(s.replace(/\s/g,''))>=0; }); }
+function ptPopup(f){ const p=f.properties, c=f.geometry.coordinates;
+  let h='<b>'+(p.name||'(이름없음)')+'</b>'; if(p.memo) h+='<br>'+p.memo;
+  h+=extLinks(c[1],c[0],p.name); return h; }
+const spotFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return isSpot(f.properties.name);})};
+const landFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return !isSpot(f.properties.name);})};
+const famousLayer = L.geoJSON(spotFeats, {
+  pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:7,color:'#ad1457',weight:1,fillColor:'#ec407a',fillOpacity:0.95}),
+  onEachFeature:(f,l)=>l.bindPopup(ptPopup(f))
+}).addTo(map);
+const canoeLayer = L.geoJSON(landFeats, {
   pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:5,color:'#1565c0',weight:1,fillColor:'#2196f3',fillOpacity:0.9}),
-  onEachFeature:(f,l)=>{ const p=f.properties; const c=f.geometry.coordinates;
-    let h='<b>'+(p.name||'(이름없음)')+'</b>'; if(p.memo) h+='<br>'+p.memo;
-    h+=extLinks(c[1],c[0],p.name); l.bindPopup(h); }
+  onEachFeature:(f,l)=>l.bindPopup(ptPopup(f))
 }).addTo(map);
 
 // ---- 레이어 토글 ----
 const _ov = {};
 _ov['상수원보호구역(면)'] = protectLayer;
 if(COURSES.features.length) _ov['카누잉코스('+COURSES.features.length+')'] = courseLayer;
-_ov['카누 런칭/랜딩('+POINTS.features.length+'곳)'] = canoeLayer;
+_ov['카누명소('+spotFeats.features.length+'곳)'] = famousLayer;
+_ov['카누 런칭/랜딩('+landFeats.features.length+'곳)'] = canoeLayer;
 L.control.layers(null, _ov, {collapsed:true, position:'topright'}).addTo(map);
 
 // ---- 장소 검색 (Nominatim) ----
@@ -444,6 +454,7 @@ map.on('locationerror', function(){
 const legend = L.control({position:'bottomright'});
 legend.onAdd=function(){ const d=L.DomUtil.create('div','legend');
   d.innerHTML='<b>범례</b>'+
+    '<span class="sw" style="background:#ec407a"></span>카누명소<br>'+
     '<span class="sw" style="background:#2196f3"></span>카누 런칭/랜딩 장소<br>'+
     '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호구역(진입금지)'+
     (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#00b894"></span>카누잉코스':'')+
