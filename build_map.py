@@ -24,7 +24,7 @@ VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
 # 카카오 로그인 OAuth Worker (Redirect URI 와 동일, 끝 슬래시 포함)
 WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/"
 # 어드민(장소등록 권한) 카카오 ID. 고훈 본인 ID. 비면 어드민 없음.
-ADMIN_ID = ""
+ADMIN_ID = "4936913088"
 # GA4 측정 ID (G-XXXXXXXXXX). 받으면 채움. 비면 추적 비활성(no-op).
 GA_ID = "G-W75JHWTDYS"
 if GA_ID.startswith("G-"):

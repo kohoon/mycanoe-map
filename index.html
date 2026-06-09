@@ -93,7 +93,7 @@ const COURSES = {"type":"FeatureCollection","features":[{"type":"Feature","geome
 const VKEY = "9EC86A7C-7341-3FE5-BA0D-FDB52EC8E3EE";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
 const WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/";  // 카카오 로그인 OAuth Worker
 const GA_ID = "G-W75JHWTDYS";        // GA4 측정 ID(비면 추적 off)
-const ADMIN_ID = "";     // 어드민 카카오 ID(장소등록 권한)
+const ADMIN_ID = "4936913088";     // 어드민 카카오 ID(장소등록 권한)
 function isAdmin(){ const u=getUser(); return !!(u&&u.uid&&ADMIN_ID&&String(u.uid)===String(ADMIN_ID)); }
 
 // ---- 사용량 추적 + 카카오 로그인 세션 ----
