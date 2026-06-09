@@ -65,6 +65,32 @@
   .pm-form input{flex:1;min-width:0;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:14px}
   .pm-form button{background:#1565c0;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
   #pmMsg{font-size:12px;color:#888;margin-top:6px;min-height:14px}
+  #tripbar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;z-index:1200;display:flex;gap:8px}
+  .tb-start{background:#ff3d00;color:#fff;border:0;border-radius:24px;padding:13px 20px;font:800 15px sans-serif;box-shadow:0 4px 14px rgba(255,61,0,.45);cursor:pointer;white-space:nowrap}
+  #tripbar.rec .tb-start{background:#d32f2f;animation:recpulse 1.4s ease-in-out infinite}
+  @keyframes recpulse{0%,100%{box-shadow:0 4px 14px rgba(211,47,47,.5)}50%{box-shadow:0 4px 22px rgba(211,47,47,.9)}}
+  .tb-log{background:#fff;color:#1b3a2b;border:0;border-radius:24px;padding:13px 16px;font:700 14px sans-serif;box-shadow:0 3px 12px rgba(0,0,0,.25);cursor:pointer}
+  .tm-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+  .tm-tab{background:#eef2f0;border:0;border-radius:14px;padding:6px 11px;font:600 12.5px sans-serif;cursor:pointer}
+  .tm-tab.on{background:#1565c0;color:#fff}
+  .tm-item{padding:9px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .tm-item .ti-main{cursor:pointer;flex:1;min-width:0}
+  .tm-item .ti-t{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tm-item .ti-s{font-size:12px;color:#777}
+  .tm-btn{background:#eef2f0;border:0;border-radius:7px;padding:5px 9px;font-size:12px;cursor:pointer;white-space:nowrap}
+  .tm-btn.on{background:#03C75A;color:#fff}
+  .tm-btn.del{color:#c62828}
+  .tm-stat{display:flex;gap:10px;margin:12px 0}
+  .tm-stat>div{background:#f3f7f4;border-radius:10px;padding:11px 8px;text-align:center;flex:1}
+  .tm-stat b{display:block;font-size:19px;color:#1b3a2b}
+  .tm-stat span{font-size:11px;color:#778}
+  .tm-row{display:flex;gap:6px;margin-top:10px}
+  .tm-row input{flex:1;min-width:0;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:14px}
+  .tm-save{background:#1565c0;color:#fff;border:0;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer}
+  .tm-toggle{display:flex;align-items:center;gap:7px;font-size:13px;margin:10px 0;color:#334}
+  .tm-rank{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0}
+  .tm-rank .rk{width:22px;text-align:center;font-weight:800;color:#1565c0}
+  .tm-empty{color:#999;font-size:13px;padding:14px 0;text-align:center}
   .authbox{font:600 13px sans-serif}
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
   .authbox .who{display:inline-block;background:#fff;border-radius:6px;padding:7px 10px;box-shadow:0 1px 4px rgba(0,0,0,.3);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -127,6 +153,11 @@
     <div class="pm-form"><input id="pmInput" maxlength="100" placeholder="한줄 코멘트 (최대 100자)"><button id="pmSend">등록</button></div>
     <div id="pmMsg"></div>
   </div>
+</div>
+<div id="tripbar"><button id="tripStart" class="tb-start">▶ 카누잉 시작</button><button id="tripLog" class="tb-log">📋 기록</button></div>
+<div id="tmodal" class="pmodal-wrap">
+  <div class="pmodal-bg" onclick="closeTModal()"></div>
+  <div class="pmodal"><button class="pmodal-x" onclick="closeTModal()">✕</button><div id="tmBody"></div></div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -597,6 +628,110 @@ map.on('locationerror', function(){
   const b=document.getElementById('locBtn'); if(b) b.classList.remove('loading');
   L.popup().setLatLng(map.getCenter()).setContent('위치를 가져올 수 없습니다.<br><small>브라우저 위치 권한을 허용해 주세요</small>').openOn(map);
 });
+
+// ====== 카누잉 트립 기록 ======
+function wapi(p){ return WORKER_URL.replace(/\/+$/,'')+p; }
+function toastMsg(m){ const h=document.getElementById('hint'); if(!h) return; h.textContent=m; h.style.opacity='1'; clearTimeout(window._htid); window._htid=setTimeout(function(){h.style.opacity='0';},3800); }
+function fmtDur(s){ s=Math.floor(s); const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(ss).padStart(2,'0'); }
+function trkMeters(t){ let d=0; for(let i=1;i<t.length;i++) d+=map.distance([t[i-1][0],t[i-1][1]],[t[i][0],t[i][1]]); return d; }
+function shortPlace(a){ if(!a) return ''; return a.trim().split(/\s+/).slice(-2).join(' '); }
+let _trk=null, _viewLine=null, _pendTrip=null;
+function tripBackup(){ try{ if(_trk) localStorage.setItem('mc_trk',JSON.stringify({track:_trk.track,startMs:_trk.startMs})); }catch(e){} }
+function tripBackupClear(){ try{ localStorage.removeItem('mc_trk'); }catch(e){} }
+async function startTrip(resume){
+  if(_trk) return; const u=getUser(); if(!u||!u.uid){ toastMsg('로그인 후 이용하세요'); return; }
+  if(!navigator.geolocation){ toastMsg('이 기기는 위치를 지원하지 않습니다'); return; }
+  const track=(resume&&resume.track)||[];
+  _trk={track:track, startMs:(resume&&resume.startMs)||Date.now(), watchId:null, wakeLock:null, timer:null,
+    line:L.polyline(track.map(function(p){return [p[0],p[1]];}),{color:'#ff3d00',weight:5,opacity:.9}).addTo(map)};
+  try{ if('wakeLock' in navigator) _trk.wakeLock=await navigator.wakeLock.request('screen'); }catch(e){}
+  _trk.watchId=navigator.geolocation.watchPosition(onTripPos,function(){},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+  _trk.timer=setInterval(updateTripUI,1000);
+  document.getElementById('tripbar').classList.add('rec'); document.getElementById('tripLog').style.display='none';
+  updateTripUI(); gaEvent('trip_start'); if(!resume) toastMsg('🛶 기록 시작 — 화면을 켜두세요(꺼지면 기록이 멈춰요)');
+}
+function onTripPos(pos){ if(!_trk) return; const c=pos.coords; if(c.accuracy>50) return;
+  const np=[+c.latitude.toFixed(6),+c.longitude.toFixed(6),Date.now()]; const t=_trk.track;
+  if(t.length){ const last=t[t.length-1]; const d=map.distance([last[0],last[1]],[np[0],np[1]]); const dt=(np[2]-last[2])/1000;
+    if(d<5) return; if(dt>0 && d/dt>15) return; }
+  t.push(np); _trk.line.addLatLng([np[0],np[1]]); tripBackup(); }
+function updateTripUI(){ if(!_trk) return; const sec=(Date.now()-_trk.startMs)/1000; const km=trkMeters(_trk.track)/1000;
+  const el=document.getElementById('tripStart'); if(el) el.textContent='■ 종료 · '+fmtDur(sec)+' · '+km.toFixed(2)+'km'; }
+async function stopTrip(){ if(!_trk) return; const t=_trk; _trk=null;
+  try{ navigator.geolocation.clearWatch(t.watchId); }catch(e){} clearInterval(t.timer);
+  try{ if(t.wakeLock) t.wakeLock.release(); }catch(e){}
+  document.getElementById('tripbar').classList.remove('rec'); document.getElementById('tripLog').style.display='';
+  document.getElementById('tripStart').textContent='▶ 카누잉 시작';
+  if(t.track.length<2){ map.removeLayer(t.line); tripBackupClear(); toastMsg('기록된 위치가 부족해 저장 안 함'); return; }
+  await openTripSummary(t.track, t.startMs, t.line); }
+function tripStartStop(){ if(_trk) stopTrip(); else startTrip(); }
+async function openTripSummary(track, startMs, line){
+  const a=track[0], b=track[track.length-1]; const km=trkMeters(track)/1000; const sec=(track[track.length-1][2]-startMs)/1000;
+  try{ map.fitBounds(line.getBounds().pad(0.25)); }catch(e){}
+  document.getElementById('tmBody').innerHTML='<h3>카누잉 요약</h3><div class="tm-empty">주소 확인 중…</div>'; openTModalRaw();
+  let la=null,lo=null; try{ la=await vworldReverse(a[0],a[1]); }catch(e){} try{ lo=await vworldReverse(b[0],b[1]); }catch(e){}
+  const launchAddr=(la&&(la.parcel||la.road))||''; const landAddr=(lo&&(lo.parcel||lo.road))||'';
+  const title=(shortPlace(launchAddr)||'런칭')+' → '+(shortPlace(landAddr)||'랜딩');
+  _pendTrip={track:track,startMs:startMs,endMs:track[track.length-1][2],durSec:Math.round(sec),km:km,
+    launch:{lat:a[0],lng:a[1],addr:launchAddr},landing:{lat:b[0],lng:b[1],addr:landAddr},line:line};
+  document.getElementById('tmBody').innerHTML='<h3>카누잉 요약</h3>'
+    +'<div class="tm-stat"><div><b>'+km.toFixed(2)+'</b><span>km</span></div><div><b>'+fmtDur(sec)+'</b><span>시간</span></div></div>'
+    +'<div style="font-size:13px;color:#445"><b>런칭</b> '+pmEsc(launchAddr||'-')+'<br><b>랜딩</b> '+pmEsc(landAddr||'-')+'</div>'
+    +'<div class="tm-row"><input id="tmTitle" maxlength="40" value="'+title.replace(/["<>]/g,'')+'"></div>'
+    +'<label class="tm-toggle"><input type="checkbox" id="tmShare"> 공유하기 (다른 사용자도 이 경로를 볼 수 있어요)</label>'
+    +'<div class="tm-row"><button class="tm-save" id="tmSave">저장</button><button class="tm-btn" id="tmCancel">취소</button><span id="tmMsg" style="font-size:12px;color:#888;margin-left:6px"></span></div>';
+  document.getElementById('tmSave').onclick=saveTrip;
+  document.getElementById('tmCancel').onclick=function(){ if(_pendTrip&&_pendTrip.line) map.removeLayer(_pendTrip.line); tripBackupClear(); _pendTrip=null; closeTModal(); }; }
+async function saveTrip(){ if(!_pendTrip) return; const u=getUser(); if(!u||!u.uid) return;
+  const title=(document.getElementById('tmTitle').value||'카누잉').trim().slice(0,40); const shared=document.getElementById('tmShare').checked;
+  document.getElementById('tmMsg').textContent='저장 중…';
+  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'save',id:u.uid,nick:u.nick||'',title:title,shared:shared,start:_pendTrip.startMs,end:_pendTrip.endMs,durSec:_pendTrip.durSec,track:_pendTrip.track,launch:_pendTrip.launch,landing:_pendTrip.landing})});
+    if(r.ok){ gaEvent('trip_save',{km:Math.round(_pendTrip.km*10)/10,shared:shared}); tripBackupClear(); if(_pendTrip.line) map.removeLayer(_pendTrip.line); _pendTrip=null; openTModal('trips'); }
+    else document.getElementById('tmMsg').textContent='저장 실패';
+  }catch(e){ document.getElementById('tmMsg').textContent='오류'; } }
+function openTModalRaw(){ document.getElementById('tmodal').classList.add('open'); }
+function closeTModal(){ document.getElementById('tmodal').classList.remove('open'); }
+function tabBar(active){ const tabs=[['trips','내 기록'],['feed','공유된 코스'],['board','랭킹'],['stats','내 통계']];
+  return '<div class="tm-tabs">'+tabs.map(function(t){return '<button class="tm-tab'+(t[0]===active?' on':'')+'" onclick="openTModal(\''+t[0]+'\')">'+t[1]+'</button>';}).join('')+'</div>'; }
+async function openTModal(tab){ tab=tab||'trips'; openTModalRaw(); const body=document.getElementById('tmBody'); body.innerHTML=tabBar(tab)+'<div class="tm-empty">불러오는 중…</div>';
+  try{ if(tab==='trips') await renderTrips(); else if(tab==='feed') await renderFeed(); else if(tab==='board') await renderBoard(); else await renderStats(); }
+  catch(e){ body.innerHTML=tabBar(tab)+'<div class="tm-empty">불러오지 못했어요</div>'; } }
+function tripItem(x, mine){ const dt=x.start?new Date(x.start):null; const ds=dt?(dt.getMonth()+1)+'/'+dt.getDate():'';
+  let h='<div class="tm-item"><div class="ti-main" onclick="viewTrip(\''+x.id+'\')"><div class="ti-t">'+pmEsc(x.title||'카누잉')+'</div><div class="ti-s">'+ds+' · '+(x.distKm||0).toFixed(2)+'km · '+fmtDur(x.durSec||0)+(x.nick?' · '+pmEsc(x.nick):'')+'</div></div>';
+  if(mine){ h+='<button class="tm-btn tm-share'+(x.shared?' on':'')+'" onclick="toggleShare(\''+x.id+'\','+(x.shared?'true':'false')+')">'+(x.shared?'공유중':'공유')+'</button><button class="tm-btn del" onclick="deleteTrip(\''+x.id+'\')">삭제</button>'; }
+  return h+'</div>'; }
+async function renderTrips(){ const u=getUser(); const r=await fetch(wapi('/trips?uid='+encodeURIComponent(u.uid))); const list=await r.json();
+  document.getElementById('tmBody').innerHTML=tabBar('trips')+(list.length?list.map(function(x){return tripItem(x,true);}).join(''):'<div class="tm-empty">아직 기록이 없어요. 하단 ▶ 카누잉 시작!</div>'); }
+async function renderFeed(){ const r=await fetch(wapi('/feed')); const list=await r.json();
+  document.getElementById('tmBody').innerHTML=tabBar('feed')+(list.length?list.map(function(x){return tripItem(x,false);}).join(''):'<div class="tm-empty">아직 공유된 코스가 없어요</div>'); }
+async function renderBoard(){ const r=await fetch(wapi('/board')); const list=await r.json(); const u=getUser();
+  document.getElementById('tmBody').innerHTML=tabBar('board')+(list.length?list.map(function(x,i){ return '<div class="tm-rank"><span class="rk">'+(i+1)+'</span><div style="flex:1"><b>'+pmEsc(x.nick||'익명')+'</b>'+(String(x.uid)===String(u.uid)?' (나)':'')+'</div><div>'+(x.totalKm||0).toFixed(1)+'km · '+(x.trips||0)+'회</div></div>'; }).join(''):'<div class="tm-empty">랭킹 데이터가 없어요</div>'); }
+async function renderStats(){ const u=getUser(); const r=await fetch(wapi('/trips?uid='+encodeURIComponent(u.uid))); const list=await r.json();
+  const n=list.length, km=list.reduce(function(s,x){return s+(x.distKm||0);},0), sec=list.reduce(function(s,x){return s+(x.durSec||0);},0);
+  document.getElementById('tmBody').innerHTML=tabBar('stats')+'<div class="tm-stat"><div><b>'+n+'</b><span>회</span></div><div><b>'+km.toFixed(1)+'</b><span>총 km</span></div><div><b>'+(n?(km/n).toFixed(1):'0')+'</b><span>평균 km</span></div></div><div class="tm-empty">총 카누잉 시간 '+fmtDur(sec)+'</div>'; }
+async function viewTrip(id){ const u=getUser(); closeTModal();
+  try{ const r=await fetch(wapi('/trip?id='+encodeURIComponent(id)+'&viewer='+encodeURIComponent(u.uid))); if(!r.ok){ toastMsg('불러오지 못했어요'); return; }
+    const trip=await r.json(); if(_viewLine) map.removeLayer(_viewLine);
+    _viewLine=L.polyline(trip.track.map(function(p){return [p[0],p[1]];}),{color:'#ff3d00',weight:5,opacity:.9}).addTo(map);
+    const a=trip.track[0], b=trip.track[trip.track.length-1];
+    L.circleMarker([a[0],a[1]],{radius:7,color:'#fff',weight:2,fillColor:'#2e7d32',fillOpacity:1}).addTo(_viewLine).bindTooltip('런칭');
+    L.circleMarker([b[0],b[1]],{radius:7,color:'#fff',weight:2,fillColor:'#c62828',fillOpacity:1}).addTo(_viewLine).bindTooltip('랜딩');
+    map.fitBounds(_viewLine.getBounds().pad(0.2));
+    L.popup().setLatLng([b[0],b[1]]).setContent('<b>'+pmEsc(trip.title||'카누잉')+'</b><br>'+(trip.distKm||0).toFixed(2)+'km · '+fmtDur(trip.durSec||0)).openOn(map);
+    gaEvent('trip_view');
+  }catch(e){ toastMsg('오류'); } }
+async function toggleShare(id,cur){ const u=getUser();
+  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'share',id:u.uid,tripId:id,shared:!cur})}); if(r.ok){ gaEvent('trip_share'); renderTrips(); } }catch(e){} }
+async function deleteTrip(id){ if(!confirm('이 기록을 삭제할까요?')) return; const u=getUser();
+  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',id:u.uid,tripId:id})}); if(r.ok) renderTrips(); }catch(e){} }
+(function(){ const s=document.getElementById('tripStart'); if(s) s.onclick=tripStartStop; const l=document.getElementById('tripLog'); if(l) l.onclick=function(){ openTModal('trips'); };
+  const u=getUser(); if(!u||!u.uid) return; let bk=null; try{ bk=JSON.parse(localStorage.getItem('mc_trk')||'null'); }catch(e){}
+  if(bk&&bk.track&&bk.track.length>1){ setTimeout(function(){
+    if(confirm('이전에 종료하지 않은 카누잉 기록이 있어요. 이어서 기록할까요?\n(취소 = 그 기록을 요약/저장 화면으로)')) startTrip(bk);
+    else openTripSummary(bk.track, bk.startMs, L.polyline(bk.track.map(function(p){return [p[0],p[1]];}),{color:'#ff3d00',weight:5,opacity:.9}).addTo(map));
+  },1200); } })();
+document.addEventListener('visibilitychange',function(){ if(_trk&&document.visibilityState==='visible'&&'wakeLock' in navigator){ navigator.wakeLock.request('screen').then(function(w){ _trk.wakeLock=w; }).catch(function(){}); } });
 
 // ---- 범례 ----
 const legend = L.control({position:'bottomright'});
