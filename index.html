@@ -246,17 +246,18 @@ map.on('click', async function(e){
     L.popup({closeButton:false}).setLatLng(pt).setContent(seg&&seg.err==='overpass'?'서버 혼잡 — 잠시 후 다시 클릭':'이 구간 물길 못 찾음<br><small>더 가까운 점/경유지를 찍어보세요</small>').openOn(map);
     updateMeasBtn(); return;
   }
-  L.polyline(seg.coords,{color:'#ff7043',weight:4,opacity:.85}).addTo(measDraft);
+  L.polyline(seg.coords,{color:'#ff7043',weight:4,opacity:.85,dashArray:seg.straight?'6,8':null}).addTo(measDraft);
   measSegs.push(seg); measPts.push(pt); updateMeasBtn();
 });
 function finishMeasure(){
   if(measPts.length<2){ cancelMeasure(); return; }
   const km=measSegs.reduce(function(s,x){return s+x.km;},0);
-  let coords=[]; measSegs.forEach(function(sg,i){ coords=coords.concat(i?sg.coords.slice(1):sg.coords); });
   measDraft.clearLayers();
   const grp=L.layerGroup().addTo(measDone);
-  L.polyline(coords,{color:'#ff7043',weight:5,opacity:.95,lineCap:'round'})
-    .bindTooltip('물길 '+km.toFixed(1)+'km',{sticky:true,opacity:.95}).addTo(grp);
+  measSegs.forEach(function(sg){
+    L.polyline(sg.coords,{color:'#ff7043',weight:5,opacity:.95,lineCap:'round',dashArray:sg.straight?'6,8':null})
+      .bindTooltip('거리 '+km.toFixed(1)+'km',{sticky:true,opacity:.95}).addTo(grp);
+  });
   measPts.forEach(function(p){ L.circleMarker(p,{radius:4,color:'#bf360c',fillColor:'#ff7043',fillOpacity:1}).addTo(grp); });
   const end=measPts[measPts.length-1];
   const pill=L.marker(end,{icon:L.divIcon({className:'meas-pill',html:km.toFixed(1)+'km&nbsp;✕',iconSize:[64,22],iconAnchor:[32,30]}),riseOnHover:true}).addTo(grp);
@@ -292,15 +293,17 @@ async function waterRoute(p1,p2){
     for(const p of el.geometry){ const k=key(p.lat,p.lon); if(prev&&prev!==k){ const d=hav(nodes[prev],nodes[k]);
       (adj[prev]=adj[prev]||[]).push([k,d]); (adj[k]=adj[k]||[]).push([prev,d]); } prev=k; } }
   function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return best; }
-  const s1=nearest(p1), s2=nearest(p2); if(!s1||!s2) return {err:'noroute'};
+  // 물길을 못 찾는 경우엔 항상 두 점을 직선으로 연결(거리=직선)
+  const straight=function(){ return {coords:[[p1.lat,p1.lng],[p2.lat,p2.lng]], km: hav([p1.lat,p1.lng],[p2.lat,p2.lng])/1000, straight:true}; };
+  const s1=nearest(p1), s2=nearest(p2); if(!s1||!s2) return straight();
   // 두 점이 강에서 멀면(호수/열린수면) 강 중심선 추적 대신 직선으로
   const od1=hav([p1.lat,p1.lng],nodes[s1]), od2=hav([p2.lat,p2.lng],nodes[s2]);
-  if(od1>150 || od2>150){ return {coords:[[p1.lat,p1.lng],[p2.lat,p2.lng]], km: hav([p1.lat,p1.lng],[p2.lat,p2.lng])/1000, straight:true}; }
+  if(od1>150 || od2>150) return straight();
   const dist={}, prev={}; dist[s1]=0; const heap=new MinHeap(); heap.push(0,s1);
   while(heap.size()){ const top=heap.pop(); const d=top[0], u=top[1]; if(u===s2) break; if(d>(dist[u]===undefined?1e18:dist[u])) continue;
     for(const vw of (adj[u]||[])){ const v=vw[0], nd=d+vw[1]; if(nd<(dist[v]===undefined?1e18:dist[v])){ dist[v]=nd; prev[v]=u; heap.push(nd,v); } } }
-  if(dist[s2]===undefined) return {err:'noroute'};
-  const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return {err:'noroute'}; path.push(pp); } path.reverse();
+  if(dist[s2]===undefined) return straight();
+  const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return straight(); path.push(pp); } path.reverse();
   // 클릭한 실제 점까지 연결 + 그 거리 포함(점-to-점)
   const d1=hav([p1.lat,p1.lng],nodes[s1]), d2=hav([p2.lat,p2.lng],nodes[s2]);
   const coords=[[p1.lat,p1.lng]].concat(path.map(k=>nodes[k])).concat([[p2.lat,p2.lng]]);
