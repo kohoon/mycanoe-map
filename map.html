@@ -35,7 +35,7 @@
   .addform #apMsg{font-size:12px;color:#666;margin-left:6px}
   .canoe-pin-in{width:26px;height:26px;border-radius:50%;background:#2196f3;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
   .canoe-pin-in svg{width:17px;height:auto}
-  .cafecard{display:flex;align-items:center;gap:10px;background:#fff;padding:8px 13px 8px 8px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);text-decoration:none}
+  .cafecard{display:flex;align-items:center;gap:10px;background:#fff;padding:8px 13px 8px 8px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);text-decoration:none;cursor:pointer}
   .cafecard .nb{width:34px;height:34px;border-radius:9px;background:#03C75A;color:#fff;display:flex;align-items:center;justify-content:center;font:900 19px sans-serif;flex:none}
   .cafecard .txt{display:flex;flex-direction:column;line-height:1.25}
   .cafecard .t1{font:800 13.5px sans-serif;color:#1f2d25}
@@ -621,7 +621,7 @@ map.on('locationfound', function(e){
   const b=document.getElementById('locBtn'); if(b) b.classList.remove('loading');
   if(_locMarker) map.removeLayer(_locMarker); if(_locCircle) map.removeLayer(_locCircle);
   _locCircle=L.circle(e.latlng,{radius:Math.min(e.accuracy,2000),color:'#1976d2',weight:1,fillColor:'#42a5f5',fillOpacity:.15}).addTo(map);
-  _locMarker=L.circleMarker(e.latlng,{radius:7,color:'#fff',weight:3,fillColor:'#1976d2',fillOpacity:1,className:'loc-dot'}).addTo(map).bindPopup('현재 위치').openPopup();
+  _locMarker=L.circleMarker(e.latlng,{radius:7,color:'#fff',weight:3,fillColor:'#1976d2',fillOpacity:1,className:'loc-dot'}).addTo(map);
   gaEvent('locate');
 });
 map.on('locationerror', function(){
