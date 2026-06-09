@@ -56,6 +56,10 @@
   .spot-pin-in svg{width:19px;height:auto}
   .wreck-in{width:34px;height:34px;border-radius:50%;background:#c62828;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;overflow:hidden}
   .wreck-in svg{width:30px;height:30px}
+  .dotpin{border-radius:50%;border:1.5px solid #fff;box-sizing:border-box;box-shadow:0 0 3px rgba(0,0,0,.5)}
+  .dot-canoe{background:#2196f3}
+  .dot-spot{background:#ec407a}
+  .dot-wreck{background:#c62828}
   .locbtn svg{width:22px;height:22px;display:block;margin:auto}
   .pmodal-wrap{position:fixed;inset:0;z-index:3500;display:none;align-items:flex-end;justify-content:center}
   .pmodal-wrap.open{display:flex}
@@ -347,10 +351,10 @@ function suggestPlace(){
   },0);
 }
 // 등록장소는 별도 레이어 없이 카테고리(명소/런칭·랜딩) 레이어에 합쳐 표시
-function addPlaceMarker(pl){ const spot=(pl.cat==='명소');
-  const m=L.marker([pl.lat,pl.lng],{icon:spot?boathouseIcon():canoeIcon()});
+function addPlaceMarker(pl){ const k=(pl.cat==='명소')?'spot':'canoe';
+  const m=makeMarker([pl.lat,pl.lng],k);
   m.on('click',function(){ openPlaceModal(pl); });
-  m.addTo(spot?famousLayer:canoeLayer); }
+  m.addTo(k==='spot'?famousLayer:canoeLayer); }
 function loadPlaces(){ if(!WORKER_URL) return;
   fetch(WORKER_URL.replace(/\/+$/,'')+'/places').then(function(r){return r.json();})
     .then(function(list){ (list||[]).forEach(addPlaceMarker); }).catch(function(){}); }
@@ -487,14 +491,22 @@ function wreckIcon(){ return L.divIcon({className:'wreck-pin',html:'<span class=
 function isWreck(nm){ return (nm||'').replace(/\s/g,'').indexOf('번버리')>=0; }
 const BOATHOUSE_SVG='<svg viewBox="0 0 32 28"><path d="M16 2L30 13H27V26H5V13H2Z" fill="#fff"/><path d="M11 26V18.5a5 5 0 0 1 10 0V26Z" fill="#c2185b"/></svg>';
 function boathouseIcon(){ return L.divIcon({className:'spot-pin',html:'<span class="spot-pin-in">'+BOATHOUSE_SVG+'</span>',iconSize:[30,30],iconAnchor:[15,15]}); }
+// 줌아웃: 작은 점 / 줌인(>=Z_ICON): 아이콘
+const Z_ICON=12;
+function dotIcon(kind){ const c=kind==='spot'?'dot-spot':kind==='wreck'?'dot-wreck':'dot-canoe'; return L.divIcon({className:'dotpin '+c,html:'',iconSize:[10,10],iconAnchor:[5,5]}); }
+function fullIcon(kind){ return kind==='spot'?boathouseIcon():kind==='wreck'?wreckIcon():canoeIcon(); }
+function makeMarker(ll,kind){ const dot=map.getZoom()<Z_ICON; const m=L.marker(ll,{icon:dot?dotIcon(kind):fullIcon(kind)}); m._kind=kind; m._isDot=dot; return m; }
 const famousLayer = L.geoJSON(spotFeats, {
-  pointToLayer:(f,ll)=>L.marker(ll,{icon:boathouseIcon()}),
+  pointToLayer:(f,ll)=>makeMarker(ll,'spot'),
   onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
 }).addTo(map);
 const canoeLayer = L.geoJSON(landFeats, {
-  pointToLayer:(f,ll)=>L.marker(ll,{icon:isWreck((f.properties||{}).name)?wreckIcon():canoeIcon()}),
+  pointToLayer:(f,ll)=>makeMarker(ll, isWreck((f.properties||{}).name)?'wreck':'canoe'),
   onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
 }).addTo(map);
+function applyZoomIcons(){ const dot=map.getZoom()<Z_ICON; const f=function(m){ if(!m._kind||m._isDot===dot) return; m._isDot=dot; m.setIcon(dot?dotIcon(m._kind):fullIcon(m._kind)); };
+  famousLayer.eachLayer(f); canoeLayer.eachLayer(f); }
+map.on('zoomend', applyZoomIcons);
 
 // ---- 레이어 토글 ----
 const _ov = {};
