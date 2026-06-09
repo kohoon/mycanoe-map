@@ -102,6 +102,25 @@ export default {
       if (req.method === "POST") {
         let b = {};
         try { b = await req.json(); } catch (e) {}
+        if (b.action === "export") {   // 어드민: 기존 KV 코멘트 전체를 시트로 백필
+          if (String(b.id) !== String(env.ADMIN_ID)) return new Response("forbidden", { status: 403, headers: cors });
+          if (!KV || !env.LOG_WEBHOOK) return new Response("no-store", { status: 500, headers: cors });
+          let cursor, n = 0;
+          do {
+            const lst = await KV.list({ prefix: "cmt:", cursor });
+            for (const k of lst.keys) {
+              let o = {}; try { o = JSON.parse((await KV.get(k.name)) || "{}"); } catch (e) {}
+              const place = o.name || k.name.slice(4);
+              for (const c of (o.list || [])) {
+                await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ type: "comment", place: String(place).slice(0, 60), nick: c.nick || "", text: c.text || "" }) }).catch(function () {});
+                n++;
+              }
+            }
+            cursor = lst.list_complete ? null : lst.cursor;
+          } while (cursor);
+          return new Response(JSON.stringify({ ok: true, exported: n }), { headers: { ...cors, "Content-Type": "application/json" } });
+        }
         const slug = String(b.place || "").slice(0, 40);
         if (!slug) return new Response("bad", { status: 400, headers: cors });
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
@@ -115,6 +134,7 @@ export default {
           const text = String(b.text || "").trim().slice(0, 100);
           if (!text) return new Response("bad", { status: 400, headers: cors });
           const cnick = String(b.nick || "익명").slice(0, 20);
+          if (b.name) obj.name = String(b.name).slice(0, 60);   // 장소명 저장(백필/표시용)
           obj.list.push({ nick: cnick, text: text, t: Date.now() });
           if (obj.list.length > 500) obj.list = obj.list.slice(-500);
           // 새 코멘트 알림 → Google Sheet(comments 탭)
