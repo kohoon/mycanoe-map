@@ -11,6 +11,11 @@
   html,body,#map{height:100%;margin:0}
   .legend{background:#fff;padding:8px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);font:13px/1.5 sans-serif}
   .legend b{display:block;margin-bottom:4px}
+  .legend-c .lg-h{cursor:pointer;font-weight:700;white-space:nowrap;user-select:none}
+  .legend-c .lg-ar{display:inline-block;transition:transform .2s}
+  .legend-c.open .lg-ar{transform:rotate(180deg)}
+  .legend-c .lg-b{display:none;margin-top:6px}
+  .legend-c.open .lg-b{display:block}
   .sw{display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:5px;border-radius:2px}
   .leaflet-popup-content{font:13px/1.55 sans-serif}
   .search input{padding:5px 6px;border:1px solid #bbb;border-radius:3px;width:44vw;max-width:200px;font-size:13px}
@@ -70,6 +75,7 @@
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
   .authbox .who{display:inline-block;background:#fff;border-radius:6px;padding:7px 10px;box-shadow:0 1px 4px rgba(0,0,0,.3);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .authbox .who a{color:#1565c0;margin-left:8px;text-decoration:none;cursor:pointer}
+  .authbox .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2ecc71;margin-right:6px;vertical-align:middle}
   #gate{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;overflow:hidden;
     background:radial-gradient(125% 90% at 50% 0%,#bfe3ff 0%,#dff1e6 55%,#eef7f0 100%)}
   #gate::before,#gate::after{content:"";position:absolute;border-radius:50%;filter:blur(10px);opacity:.45;pointer-events:none}
@@ -173,7 +179,7 @@ function renderAuth(){
   const d=document.getElementById('authbox'); if(!d) return;
   const u=getUser();
   if(u&&u.uid){
-    d.innerHTML='<span class="who">👤 '+(u.nick||'사용자').replace(/[<>]/g,'')+' <a id="logoutA">로그아웃</a></span>';
+    d.innerHTML='<span class="who"><span class="dot"></span>로그인됨 <a id="logoutA">로그아웃</a></span>';
     const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); gaEvent('logout'); renderAuth(); showGate(); });
   } else {
     d.innerHTML='<button id="loginA">카카오 로그인</button>';
@@ -605,12 +611,15 @@ map.on('locationerror', function(){
 
 // ---- 범례 ----
 const legend = L.control({position:'bottomright'});
-legend.onAdd=function(){ const d=L.DomUtil.create('div','legend');
-  d.innerHTML='<b>범례</b>'+
+legend.onAdd=function(){ const d=L.DomUtil.create('div','legend legend-c');
+  d.innerHTML='<div class="lg-h">범례 <span class="lg-ar">▾</span></div><div class="lg-b">'+
     '<span class="sw" style="background:#ec407a"></span>명소<br>'+
     '<span class="sw" style="background:#2196f3"></span>런칭/랜딩<br>'+
     '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호'+
-    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#7c4dff"></span>코스':'');
+    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#7c4dff"></span>코스':'')+
+    '</div>';
+  L.DomEvent.disableClickPropagation(d);
+  const h=d.querySelector('.lg-h'); L.DomEvent.on(h,'click',function(){ d.classList.toggle('open'); });
   return d; };
 legend.addTo(map);
 map.addControl(new CafeCtl());   // 카페 카드: 범례 위(우하단)에 표시
