@@ -25,7 +25,7 @@
   .measbtn.on{background:#ff7043;color:#fff}
   .measbtn .mx{margin-left:8px;background:rgba(255,255,255,.35);border-radius:8px;padding:1px 7px;cursor:pointer}
   .meas-pill{background:#ff7043;color:#fff;border-radius:11px;padding:2px 8px;font:700 12px sans-serif;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;text-align:center}
-  .locbtn{cursor:pointer;font-size:20px;background:#fff;width:40px;height:40px;line-height:40px;text-align:center;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);user-select:none}
+  .locbtn{cursor:pointer;background:#fff;width:40px;height:40px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);user-select:none;display:flex;align-items:center;justify-content:center}
   .locbtn.loading{opacity:.45}
   .loc-dot{filter:drop-shadow(0 0 3px rgba(25,118,210,.6))}
   .addplace-btn{margin-top:7px;background:#00b894;color:#fff;border:0;border-radius:6px;padding:6px 11px;font:600 12px sans-serif;cursor:pointer}
@@ -35,6 +35,14 @@
   .addform #apMsg{font-size:12px;color:#666;margin-left:6px}
   .canoe-pin-in{width:26px;height:26px;border-radius:50%;background:#2196f3;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
   .canoe-pin-in svg{width:17px;height:auto}
+  .cafecard{display:flex;align-items:center;gap:10px;background:#fff;padding:8px 13px 8px 8px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);text-decoration:none}
+  .cafecard .nb{width:34px;height:34px;border-radius:9px;background:#03C75A;color:#fff;display:flex;align-items:center;justify-content:center;font:900 19px sans-serif;flex:none}
+  .cafecard .txt{display:flex;flex-direction:column;line-height:1.25}
+  .cafecard .t1{font:800 13.5px sans-serif;color:#1f2d25}
+  .cafecard .t2{font:11px sans-serif;color:#7b8a82}
+  .spot-pin-in{width:30px;height:30px;border-radius:50%;background:#ec407a;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+  .spot-pin-in svg{width:19px;height:auto}
+  .locbtn svg{width:22px;height:22px;display:block;margin:auto}
   .pmodal-wrap{position:fixed;inset:0;z-index:3500;display:none;align-items:flex-end;justify-content:center}
   .pmodal-wrap.open{display:flex}
   .pmodal-bg{position:absolute;inset:0;background:rgba(0,0,0,.45)}
@@ -182,6 +190,13 @@ window.map = map;
 let measureMode = false;   // 물길 거리측정 모드
 L.control.zoom({position:'bottomleft'}).addTo(map);
 map.addControl(new AuthCtl());   // 카카오 로그인 박스(우상단)
+const CafeCtl=L.Control.extend({ options:{position:'topright'},
+  onAdd:function(){ const d=L.DomUtil.create('a','cafecard'); d.href='https://cafe.naver.com/mytalon'; d.target='_blank'; d.rel='noopener';
+    d.innerHTML='<span class="nb">N</span><span class="txt"><span class="t1">마이카누 마니아</span><span class="t2">네이버 카페 바로가기 ›</span></span>';
+    L.DomEvent.disableClickPropagation(d);
+    L.DomEvent.on(d,'click',function(){ gaEvent('cafe_click'); });
+    return d; } });
+map.addControl(new CafeCtl());   // 네이버 카페 바로가기
 
 const baseOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
@@ -323,7 +338,7 @@ const protectLayer = L.geoJSON(POLYS, {
 }).addTo(map);
 
 // ---- 카누잉코스 (물길 따라, 에메랄드 단일색 + 외곽선) ----
-const EMERALD = '#00b894';
+const EMERALD = '#7c4dff';   // 카누잉코스 색(선명한 바이올렛 — 일반/위성 모두 잘 보임)
 function courseSubcat(name){ const m=(name||'').match(/^([^#0-9]+)/); return (m?m[1]:'코스').trim()||'코스'; }
 const _courseGroups={};   // 서브카테고리 -> features
 COURSES.features.forEach(function(f){ const sc=courseSubcat((f.properties||{}).name);
@@ -331,7 +346,7 @@ COURSES.features.forEach(function(f){ const sc=courseSubcat((f.properties||{}).n
 const courseLayers={};    // 서브카테고리 -> layerGroup
 Object.keys(_courseGroups).forEach(function(sc){
   const fc={type:'FeatureCollection',features:_courseGroups[sc]};
-  const casing=L.geoJSON(fc,{style:{color:'#05382f',weight:8,opacity:0.5}});
+  const casing=L.geoJSON(fc,{style:{color:'#2a0a4a',weight:8,opacity:0.55}});
   const line=L.geoJSON(fc,{style:{color:EMERALD,weight:5,opacity:0.95},
     onEachFeature:(f,l)=>{ const p=f.properties||{};
       const html='<b>'+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'');
@@ -394,8 +409,10 @@ const spotFeats={type:'FeatureCollection',features:POINTS.features.filter(functi
 const landFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return !isSpot(f.properties.name);})};
 const CANOE_SVG='<svg viewBox="0 0 64 40"><path d="M2 20C2 13 16 10 32 10C48 10 62 13 62 20C62 27 48 30 32 30C16 30 2 27 2 20Z" fill="#fff"/><path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#cfe3f5"/><path d="M23 15.5V24.5M41 15.5V24.5" stroke="#5a9bd4" stroke-width="2.2" stroke-linecap="round"/></svg>';
 function canoeIcon(){ return L.divIcon({className:'canoe-pin',html:'<span class="canoe-pin-in">'+CANOE_SVG+'</span>',iconSize:[26,26],iconAnchor:[13,13]}); }
+const BOATHOUSE_SVG='<svg viewBox="0 0 32 28"><path d="M16 2L30 13H27V26H5V13H2Z" fill="#fff"/><path d="M11 26V18.5a5 5 0 0 1 10 0V26Z" fill="#c2185b"/></svg>';
+function boathouseIcon(){ return L.divIcon({className:'spot-pin',html:'<span class="spot-pin-in">'+BOATHOUSE_SVG+'</span>',iconSize:[30,30],iconAnchor:[15,15]}); }
 const famousLayer = L.geoJSON(spotFeats, {
-  pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:7,color:'#ad1457',weight:1,fillColor:'#ec407a',fillOpacity:0.95}),
+  pointToLayer:(f,ll)=>L.marker(ll,{icon:boathouseIcon()}),
   onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
 }).addTo(map);
 const canoeLayer = L.geoJSON(landFeats, {
@@ -558,7 +575,8 @@ MinHeap.prototype.pop=function(){ const a=this.a, top=a[0], last=a.pop();
 // ---- 내 위치 ----
 let _locMarker=null, _locCircle=null;
 const LocateCtl=L.Control.extend({ options:{position:'bottomleft'},
-  onAdd:function(){ const d=L.DomUtil.create('div','locbtn'); d.id='locBtn'; d.title='내 위치'; d.innerHTML='📍';
+  onAdd:function(){ const d=L.DomUtil.create('div','locbtn'); d.id='locBtn'; d.title='내 위치';
+    d.innerHTML='<svg viewBox="0 0 24 24" fill="#1976d2"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19a7 7 0 110-14 7 7 0 010 14z"/></svg>';
     L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
     L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); locateMe(); });
     return d; }
@@ -588,7 +606,7 @@ legend.onAdd=function(){ const d=L.DomUtil.create('div','legend');
     '<span class="sw" style="background:#ec407a"></span>카누명소<br>'+
     '<span class="sw" style="background:#2196f3"></span>카누 런칭/랜딩 장소<br>'+
     '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호구역(진입금지)'+
-    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#00b894"></span>카누잉코스':'')+
+    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#7c4dff"></span>카누잉코스':'')+
     '<br><span class="sw" style="width:16px;height:4px;background:#ff7043"></span>거리측정(물길)';
   return d; };
 legend.addTo(map);
