@@ -114,8 +114,14 @@ export default {
           if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
           const text = String(b.text || "").trim().slice(0, 100);
           if (!text) return new Response("bad", { status: 400, headers: cors });
-          obj.list.push({ nick: String(b.nick || "익명").slice(0, 20), text: text, t: Date.now() });
+          const cnick = String(b.nick || "익명").slice(0, 20);
+          obj.list.push({ nick: cnick, text: text, t: Date.now() });
           if (obj.list.length > 500) obj.list = obj.list.slice(-500);
+          // 새 코멘트 알림 → Google Sheet(comments 탭)
+          if (env.LOG_WEBHOOK) ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "comment", place: String(b.name || slug).slice(0, 60), nick: cnick, text: text }),
+          }).catch(function () {}));
         }
         await KV.put("cmt:" + slug, JSON.stringify(obj));
         return new Response("ok", { headers: cors });
