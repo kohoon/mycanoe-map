@@ -1,0 +1,13 @@
+# 민감정보 — 절대 커밋 금지
+# auth_state.json: 카카오/네이버 로그인 세션 쿠키
+# vworld_key.txt: V-World 인증키
+auth_state.json
+vworld_key.txt
+
+# 로컬 상태/캐시/대용량 (재생성 가능)
+kakao_add_state.json
+protect_geom.json
+synced_seqs.backup.json
+__pycache__/
+*.log
+*.output
