@@ -520,6 +520,9 @@ Object.keys(_courseGroups).forEach(function(sc){
 // ---- 장소 상세 모달 + 코멘트 ----
 function placeSlug(lat,lng){ return lat.toFixed(5)+'_'+lng.toFixed(5); }
 function pmEsc(s){ return (s||'').replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}); }
+function linkify(s){ return pmEsc(s||'').replace(/(https?:\/\/[^\s<]+)/g,function(u){
+  var tail='',m=u.match(/[.,!?)\]]+$/); if(m){ tail=m[0]; u=u.slice(0,-tail.length); }
+  return '<a href="'+u+'" target="_blank" rel="noopener" style="color:#1565c0;word-break:break-all">'+u+'</a>'+tail; }); }
 function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return {name:p.name||'',lat:c[1],lng:c[0],memo:p.memo||'',cat:isSpot(p.name)?'명소':'런칭랜딩'}; }
 let _pmPlace=null,_pmSlug=null;
 function openPlaceModal(pl){
@@ -537,12 +540,12 @@ async function loadComments(){ if(!WORKER_URL||!_pmSlug) return;
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments?place='+encodeURIComponent(_pmSlug)); renderComments(await r.json()); }
   catch(e){ renderComments({}); document.getElementById('pmCmts').innerHTML='<div class="pm-empty">코멘트를 불러오지 못했어요(잠시 후 다시)</div>'; } }
 function renderComments(d){ d=d||{}; let ah='';
-  if(d.admin) ah+='<div class="pm-adminbox"><b>📌 관리자</b><div>'+pmEsc(d.admin)+'</div></div>';
+  if(d.admin) ah+='<div class="pm-adminbox"><b>📌 관리자</b><div>'+linkify(d.admin)+'</div></div>';
   if(isAdmin()) ah+='<button class="pm-admedit" onclick="editAdminComment()">관리자 코멘트 '+(d.admin?'수정':'작성')+'</button>';
   document.getElementById('pmAdmin').innerHTML=ah; window._pmAdminCur=d.admin||'';
   const list=d.list||[]; document.getElementById('pmCnt').textContent='('+list.length+')';
   document.getElementById('pmCmts').innerHTML = list.length? list.slice().reverse().map(function(c){
-    return '<div class="pm-cmt"><div class="pm-cmt-h"><b>'+pmEsc(c.nick||'익명')+'</b></div><div class="pm-cmt-b">'+pmEsc(c.text)+'</div></div>';
+    return '<div class="pm-cmt"><div class="pm-cmt-h"><b>'+pmEsc(c.nick||'익명')+'</b></div><div class="pm-cmt-b">'+linkify(c.text)+'</div></div>';
   }).join('') : '<div class="pm-empty">첫 코멘트를 남겨보세요</div>';
 }
 async function submitComment(){ const u=getUser(); if(!u||!u.uid) return;
