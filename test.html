@@ -682,7 +682,26 @@ _ov['상수원보호'] = protectLayer;
 Object.keys(courseLayers).forEach(function(sc){ _ov['코스 · '+sc+'('+_courseGroups[sc].length+')']=courseLayers[sc]; });
 _ov['명소('+spotFeats.features.length+')'] = famousLayer;
 _ov['런칭/랜딩('+landFeats.features.length+')'] = canoeLayer;
-L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:true, position:'topright'}).addTo(map);
+const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:true, position:'topright'}).addTo(map);
+
+// ---- 등록 코스(KV) 로드/렌더 ----
+const _kvCourseGrp=L.layerGroup();
+function renderKVCourse(c){
+  if(!c||!c.coords||c.coords.length<2) return;
+  const sc=courseSubcat(c.name), col=subcatColor(sc), coords=c.coords;
+  const casing=L.polyline(coords,{color:'#2a0a4a',weight:8,opacity:.55,interactive:false});
+  const line=L.polyline(coords,{color:col,weight:5,opacity:.95,interactive:false});
+  const html='<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?'<br>약 '+c.km+'km':'')+(isAdmin()?'<br><a onclick="deleteCourse(\''+c.id+'\')" style="color:#c62828;cursor:pointer">코스 삭제</a>':'');
+  const hit=L.polyline(coords,{color:'#000',weight:22,opacity:0}); hit.bindPopup(html); if(!isTouch) hit.bindTooltip('<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?' '+c.km+'km':''),{sticky:true,direction:'top'});
+  let grp=courseLayers[sc];
+  if(!grp){ grp=L.layerGroup().addTo(map); courseLayers[sc]=grp; _courseGroups[sc]=_courseGroups[sc]||[]; if(_layerControl) _layerControl.addOverlay(grp,'코스 · '+sc); }
+  casing.addTo(grp); line.addTo(grp); hit.addTo(grp);
+}
+function loadCourses(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ (list||[]).forEach(renderKVCourse); }).catch(function(){}); }
+loadCourses();
+async function deleteCourse(id){ if(!isAdmin()) return; if(!confirm('이 등록 코스를 삭제할까요?\n(새로고침 후 반영)')) return;
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/course',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',adminKey:adminKey(),courseId:id})});
+    if(r.ok){ map.closePopup(); alert('삭제됨 — 새로고침하면 사라집니다'); } }catch(e){} }
 
 // ---- 장소 검색 (Nominatim) ----
 const SearchCtl = L.Control.extend({ options:{position:'topleft'},
@@ -792,7 +811,22 @@ function finishMeasure(){
   pill.on('click', function(){ measDone.removeLayer(grp); });
   pill.bindTooltip('클릭하면 이 측정 삭제',{direction:'top'});
   gaEvent('measure_done',{km:Math.round(km*10)/10, points:measPts.length});
+  if(isAdmin()){   // 관리자: 이 경로를 코스로 등록
+    let cc=[]; measSegs.forEach(function(sg,i){ cc=cc.concat(i?sg.coords.slice(1):sg.coords); });
+    _lastCourse={coords:cc.map(function(p){return [+(+p[0]).toFixed(6),+(+p[1]).toFixed(6)];}), km:Math.round(km*100)/100};
+    L.popup({closeButton:true}).setLatLng(end).setContent('<b>측정 '+km.toFixed(2)+'km</b><br><button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록</button>').openOn(map);
+  }
   measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn();
+}
+let _lastCourse=null;
+async function saveCoursePrompt(){
+  if(!isAdmin()||!_lastCourse) return;
+  const name=prompt('코스 이름을 입력하세요\n예: 초심자코스#3 청라호수공원 한바퀴\n※ # 앞부분이 카테고리(엑스페디션 / 초심자코스 …)');
+  if(name===null||!name.trim()) return;
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/course',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'add',adminKey:adminKey(),name:name.trim(),coords:_lastCourse.coords,km:_lastCourse.km})});
+    if(r.ok){ gaEvent('course_add'); map.closePopup(); renderKVCourse({id:Date.now(),name:name.trim(),coords:_lastCourse.coords,km:_lastCourse.km}); alert('✅ 코스 등록 완료!'); }
+    else alert('등록 실패('+(r.status===403?'관리자 권한 확인':'서버 확인')+')'); }catch(e){ alert('오류'); }
 }
 // Overpass 미러 + 재시도 (서버 혼잡 대응)
 function overpassOne(url,q,ms){
