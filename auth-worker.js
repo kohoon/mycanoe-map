@@ -116,24 +116,32 @@ export default {
           if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
           if (!KV || !env.LOG_WEBHOOK) return new Response("no-store", { status: 500, headers: cors });
           let cursor, n = 0;
+          let sent = {}; try { sent = JSON.parse((await KV.get("cmt_exported")) || "{}"); } catch (e) {}   // 이미 보낸 것
           do {
             const lst = await KV.list({ prefix: "cmt:", cursor });
             for (const k of lst.keys) {
               let o = {}; try { o = JSON.parse((await KV.get(k.name)) || "{}"); } catch (e) {}
               const place = o.name || k.name.slice(4);
-              if (o.admin) {   // 관리자 코멘트도 내보내기
-                await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ type: "comment", place: String(place).slice(0, 60), nick: "📌관리자", text: o.admin }) }).catch(function () {});
-                n++;
+              if (o.admin) {   // 관리자 코멘트
+                const sig = k.name + "#admin#" + o.admin;
+                if (!sent[sig]) {
+                  await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ type: "comment", place: String(place).slice(0, 60), nick: "📌관리자", text: o.admin }) }).catch(function () {});
+                  sent[sig] = 1; n++;
+                }
               }
               for (const c of (o.list || [])) {
-                await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ type: "comment", place: String(place).slice(0, 60), nick: c.nick || "", text: c.text || "" }) }).catch(function () {});
-                n++;
+                const sig = k.name + "#" + (c.t || "") + "#" + (c.text || "");
+                if (!sent[sig]) {
+                  await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ type: "comment", place: String(place).slice(0, 60), nick: c.nick || "", text: c.text || "" }) }).catch(function () {});
+                  sent[sig] = 1; n++;
+                }
               }
             }
             cursor = lst.list_complete ? null : lst.cursor;
           } while (cursor);
+          await KV.put("cmt_exported", JSON.stringify(sent));
           return new Response(JSON.stringify({ ok: true, exported: n }), { headers: { ...cors, "Content-Type": "application/json" } });
         }
         const slug = String(b.place || "").slice(0, 40);
@@ -144,24 +152,37 @@ export default {
         if (b.admin) {
           if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
           obj.admin = String(b.text || "").slice(0, 300);
-          // 관리자 코멘트도 시트(comments)에 기록(전체 코멘트 관리)
-          if (env.LOG_WEBHOOK && obj.admin) ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "comment", place: String(b.name || slug).slice(0, 60), nick: "📌관리자", text: obj.admin }),
-          }).catch(function () {}));
+          // 관리자 코멘트도 시트에 기록(중복 방지)
+          if (env.LOG_WEBHOOK && obj.admin) {
+            const sig = "cmt:" + slug + "#admin#" + obj.admin, pl = String(b.name || slug).slice(0, 60), txt = obj.admin;
+            ctx.waitUntil((async () => { try {
+              let sent = {}; try { sent = JSON.parse((await KV.get("cmt_exported")) || "{}"); } catch (e) {}
+              if (sent[sig]) return;
+              await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type: "comment", place: pl, nick: "📌관리자", text: txt }) }).catch(function () {});
+              sent[sig] = 1; await KV.put("cmt_exported", JSON.stringify(sent));
+            } catch (e) {} })());
+          }
         } else {
           if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
           const text = String(b.text || "").trim().slice(0, 100);
           if (!text) return new Response("bad", { status: 400, headers: cors });
           const cnick = String(b.nick || "익명").slice(0, 20);
           if (b.name) obj.name = String(b.name).slice(0, 60);   // 장소명 저장(백필/표시용)
-          obj.list.push({ nick: cnick, text: text, t: Date.now() });
+          const ct = Date.now();
+          obj.list.push({ nick: cnick, text: text, t: ct });
           if (obj.list.length > 500) obj.list = obj.list.slice(-500);
-          // 새 코멘트 알림 → Google Sheet(comments 탭)
-          if (env.LOG_WEBHOOK) ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "comment", place: String(b.name || slug).slice(0, 60), nick: cnick, text: text }),
-          }).catch(function () {}));
+          // 새 코멘트 → 시트(중복 방지)
+          if (env.LOG_WEBHOOK) {
+            const sig = "cmt:" + slug + "#" + ct + "#" + text, pl = String(b.name || slug).slice(0, 60);
+            ctx.waitUntil((async () => { try {
+              let sent = {}; try { sent = JSON.parse((await KV.get("cmt_exported")) || "{}"); } catch (e) {}
+              if (sent[sig]) return;
+              await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type: "comment", place: pl, nick: cnick, text: text }) }).catch(function () {});
+              sent[sig] = 1; await KV.put("cmt_exported", JSON.stringify(sent));
+            } catch (e) {} })());
+          }
         }
         await KV.put("cmt:" + slug, JSON.stringify(obj));
         return new Response("ok", { headers: cors });
