@@ -97,6 +97,7 @@ __GTAG__
   .leaflet-control-zoom a{width:40px;height:40px;line-height:40px;font-size:22px}
   .measbtn{cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none}
   .measbtn.on{background:#ff7043;color:#fff}
+  .measmode{font-size:12.5px;padding:7px 11px}
   .measbtn .mx{margin-left:8px;background:rgba(255,255,255,.35);border-radius:8px;padding:1px 7px;cursor:pointer}
   .meas-pill{background:#ff7043;color:#fff;border-radius:11px;padding:2px 8px;font:700 12px sans-serif;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;text-align:center}
   .locbtn{cursor:pointer;background:#fff;width:40px;height:40px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);user-select:none;display:flex;align-items:center;justify-content:center}
@@ -777,6 +778,7 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
 // ---- 물길 거리측정 (두 점 클릭 → 강 따라 거리) ----
 // 출발→경유…→완료. 완료한 측정은 유지(호버 거리표시 + ✕닫기), 여러 개 동시.
 let measPts=[], measSegs=[];
+let measMode='water'; try{ measMode=localStorage.getItem('mc_measmode')||'water'; }catch(e){}   // water=물길따라 / straight=직선
 const measDraft=L.layerGroup().addTo(map);   // 측정 중 임시 표시
 const measDone=L.layerGroup().addTo(map);    // 완료된 측정(영구)
 const MeasureCtl = L.Control.extend({ options:{position:'topleft'},
@@ -788,6 +790,14 @@ const MeasureCtl = L.Control.extend({ options:{position:'topleft'},
   }
 });
 map.addControl(new MeasureCtl());
+// 측정 모드 토글(물길/직선)
+const MeasModeCtl=L.Control.extend({ options:{position:'topleft'},
+  onAdd:function(){ const d=L.DomUtil.create('div','measbtn measmode'); d.id='measModeBtn'; d.title='측정 방식 전환(물길/직선)';
+    L.DomEvent.disableClickPropagation(d);
+    L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); measMode=(measMode==='water'?'straight':'water'); try{localStorage.setItem('mc_measmode',measMode);}catch(e){} updateMeasModeBtn(); });
+    updateMeasModeBtn(d); return d; } });
+map.addControl(new MeasModeCtl());
+function updateMeasModeBtn(d){ d=d||document.getElementById('measModeBtn'); if(!d) return; d.innerHTML=(measMode==='water'?'🌊 물길':'📏 직선'); }
 function updateMeasBtn(){
   const b=document.getElementById('measBtnBox'); if(!b) return;
   b.classList.toggle('on', measureMode);
@@ -813,8 +823,14 @@ async function _runMeasQueue(){
   while(_measQueue.length){
     const pt=_measQueue.shift();
     if(measPts.length===0){ measPts.push(pt); updateMeasBtn(); continue; }
-    const b=document.getElementById('measBtnBox'); if(b) b.innerHTML='⏳ 물길 계산 중…';
-    let seg=null; try{ seg=await waterRoute(measPts[measPts.length-1], pt); }catch(err){ seg={err:'overpass'}; }
+    const last=measPts[measPts.length-1];
+    let seg=null;
+    if(measMode==='straight'){   // 직선 모드: 즉시 직선 구간
+      seg={coords:[[last.lat,last.lng],[pt.lat,pt.lng]], km:map.distance([last.lat,last.lng],[pt.lat,pt.lng])/1000, straight:true};
+    } else {
+      const b=document.getElementById('measBtnBox'); if(b) b.innerHTML='⏳ 물길 계산 중…';
+      try{ seg=await waterRoute(last, pt); }catch(err){ seg={err:'overpass'}; }
+    }
     if(!seg || seg.err){
       L.popup({closeButton:false}).setLatLng(pt).setContent(seg&&seg.err==='overpass'?'서버 혼잡 — 잠시 후 다시 클릭':'이 구간 물길 못 찾음<br><small>더 가까운 점/경유지를 찍어보세요</small>').openOn(map);
       updateMeasBtn(); continue;   // 이 점은 건너뛰고 다음 점은 마지막 성공점에서 이어감
