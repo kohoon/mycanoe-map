@@ -431,19 +431,23 @@ const baseSat = L.layerGroup([satImg, satLabels]);     // 위성 + OSM 지명(�
 function extLinks(lat,lng,label){
   const nm=(label||'위치').replace(/,/g,' ').trim().slice(0,30)||'위치';
   const enc=encodeURIComponent(nm);
-  let k,n,tgt='';
+  let k,n,r,tgt='';
+  const rvWeb='https://map.kakao.com/link/roadview/'+lat+','+lng;   // 카카오 웹 로드뷰
   if(isAndroid){
     k='intent://look?p='+lat+','+lng+'#Intent;scheme=kakaomap;package=net.daum.android.map;S.browser_fallback_url='+encodeURIComponent('https://map.kakao.com/link/map/'+enc+','+lat+','+lng)+';end';
     n='intent://place?lat='+lat+'&lng='+lng+'&name='+enc+'&appname=kohoon.github.io#Intent;scheme=nmap;package=com.nhn.android.nmap;S.browser_fallback_url='+encodeURIComponent('https://map.naver.com/p/search/'+lat+','+lng)+';end';
+    r='intent://look?p='+lat+','+lng+'#Intent;scheme=kakaomap;package=net.daum.android.map;S.browser_fallback_url='+encodeURIComponent(rvWeb)+';end';
   }else if(isiOS){
     k='kakaomap://look?p='+lat+','+lng;
     n='nmap://place?lat='+lat+'&lng='+lng+'&name='+enc+'&appname=kohoon.github.io';
+    r='kakaomap://look?p='+lat+','+lng;
   }else{
     k='https://map.kakao.com/link/map/'+enc+','+lat+','+lng;
     n='https://map.naver.com/p/search/'+lat+','+lng;
+    r=rvWeb;
     tgt=' target="_blank" rel="noopener"';
   }
-  return '<br><a href="'+k+'"'+tgt+'>카카오맵</a> &middot; <a href="'+n+'"'+tgt+'>네이버맵</a>';
+  return '<br><a href="'+k+'"'+tgt+'>카카오맵</a> &middot; <a href="'+n+'"'+tgt+'>네이버맵</a> &middot; <a href="'+r+'"'+tgt+'>🛣️로드뷰</a>';
 }
 
 // ---- 역지오코딩: V-World 직접 호출(JSONP, 지번) → 실패시 Nominatim ----
