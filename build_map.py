@@ -173,6 +173,10 @@ __GTAG__
   .nt-replyform{display:flex;gap:6px;margin-top:8px}
   .nt-replyform input{flex:1;min-width:0;padding:9px;border:1px solid #ccd;border-radius:9px;font-size:13.5px}
   .nt-reply-btn{background:#1565c0;color:#fff;border:0;border-radius:9px;padding:9px 13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .nt-edit{color:#1565c0;cursor:pointer;margin-left:6px;text-decoration:none}
+  .nt-wbtns{display:flex;gap:7px}
+  .nt-wbtns .sg-submit{flex:1;margin-top:0}
+  .nt-cancel{flex:none;background:#eef1f3;color:#456;border:0;border-radius:11px;padding:0 18px;font:700 14px sans-serif;cursor:pointer}
   /* TRIPCSS */
   #tripbar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;z-index:1200;display:flex;gap:8px}
   .tb-start{background:#ff3d00;color:#fff;border:0;border-radius:24px;padding:13px 20px;font:800 15px sans-serif;box-shadow:0 4px 14px rgba(255,61,0,.45);cursor:pointer;white-space:nowrap}
@@ -1062,13 +1066,22 @@ async function openNotices(){
   try{ const r=await fetch(napi()); _notices=(await r.json())||[]; renderNotices(_notices); markNoticesSeen(); }
   catch(e){ document.getElementById('ntBody').innerHTML='<h3>📢 공지사항</h3><div class="tm-empty">불러오지 못했어요</div>'; }
 }
+let _editingNotice=null;
 function renderNotices(list){
   let h='<h3>📢 공지사항</h3>';
-  if(isAdmin()) h+='<div class="nt-write"><input id="ntTitle" placeholder="공지 제목" maxlength="80"><textarea id="ntBodyIn" rows="2" placeholder="공지 내용" maxlength="2000"></textarea><button class="sg-submit" onclick="postNotice()">공지 등록</button></div>';
+  if(isAdmin()){
+    const ed=_editingNotice?(list||[]).find(function(n){return String(n.id)===String(_editingNotice);}):null;
+    const tv=ed?pmEsc(ed.title||'').replace(/"/g,'&quot;'):'';
+    const bv=ed?pmEsc(ed.body||''):'';
+    h+='<div class="nt-write"><input id="ntTitle" placeholder="공지 제목" maxlength="80" value="'+tv+'"><textarea id="ntBodyIn" rows="2" placeholder="공지 내용" maxlength="2000">'+bv+'</textarea>'
+      +'<div class="nt-wbtns"><button class="sg-submit" onclick="postNotice()">'+(ed?'수정 완료':'공지 등록')+'</button>'
+      +(ed?'<button class="nt-cancel" onclick="cancelEditNotice()">취소</button>':'')+'</div></div>';
+  }
   if(!list||!list.length){ h+='<div class="tm-empty">아직 공지가 없어요</div>'; }
   else h+=list.map(function(n){
     const rep=(n.replies||[]).map(function(r){ return '<div class="nt-reply"><b>'+pmEsc(r.nick||'익명')+'</b> '+linkify(r.text)+'</div>'; }).join('');
-    return '<div class="nt-item"><div class="nt-h"><b>'+pmEsc(n.title||'(제목없음)')+'</b><span class="nt-date">'+ntDate(n.t)+(isAdmin()?' <a class="nt-del" onclick="deleteNotice(\''+n.id+'\')">삭제</a>':'')+'</span></div>'
+    const adm=isAdmin()?' <a class="nt-edit" onclick="editNoticeStart(\''+n.id+'\')">수정</a> <a class="nt-del" onclick="deleteNotice(\''+n.id+'\')">삭제</a>':'';
+    return '<div class="nt-item"><div class="nt-h"><b>'+pmEsc(n.title||'(제목없음)')+'</b><span class="nt-date">'+ntDate(n.t)+(n.edited?' (수정됨)':'')+adm+'</span></div>'
       +'<div class="nt-body">'+linkify(n.body||'')+'</div>'
       +(rep?'<div class="nt-replies">'+rep+'</div>':'')
       +'<div class="nt-replyform"><input class="ntReplyIn" data-nid="'+n.id+'" placeholder="답글 달기" maxlength="300"><button class="nt-reply-btn" data-nid="'+n.id+'">답글</button></div></div>';
@@ -1076,11 +1089,14 @@ function renderNotices(list){
   document.getElementById('ntBody').innerHTML=h;
   Array.prototype.forEach.call(document.querySelectorAll('.nt-reply-btn'), function(btn){ btn.onclick=function(){ const nid=btn.getAttribute('data-nid'); const inp=document.querySelector('.ntReplyIn[data-nid="'+nid+'"]'); replyNotice(nid, inp?inp.value:''); }; });
 }
+function editNoticeStart(id){ _editingNotice=id; renderNotices(_notices); try{ document.querySelector('#noticeModal .pmodal').scrollTop=0; }catch(e){} const t=document.getElementById('ntTitle'); if(t) t.focus(); }
+function cancelEditNotice(){ _editingNotice=null; renderNotices(_notices); }
 async function postNotice(){ if(!isAdmin()) return;
   const t=(document.getElementById('ntTitle').value||'').trim(), bd=(document.getElementById('ntBodyIn').value||'').trim();
   if(!t&&!bd){ return; }
-  try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'post',adminKey:adminKey(),title:t,body:bd})});
-    if(r.ok){ gaEvent('notice_post'); openNotices(); } else alert('등록 실패(권한 확인)'); }catch(e){ alert('오류'); } }
+  const body={action:_editingNotice?'edit':'post',adminKey:adminKey(),title:t,body:bd}; if(_editingNotice) body.noticeId=_editingNotice;
+  try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){ gaEvent(_editingNotice?'notice_edit':'notice_post'); _editingNotice=null; openNotices(); } else alert('실패(권한 확인)'); }catch(e){ alert('오류'); } }
 async function replyNotice(nid, text){ const u=getUser(); if(!u||!u.uid) return; text=(text||'').trim(); if(!text) return;
   try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reply',id:u.uid,nick:u.nick||'',noticeId:nid,text:text})});
     if(r.ok){ gaEvent('notice_reply'); openNotices(); } else alert('답글 실패'); }catch(e){ alert('오류'); } }
