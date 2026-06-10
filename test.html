@@ -835,8 +835,10 @@ async function waterRoute(p1,p2){
   const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return straight(); path.push(pp); } path.reverse();
   // 클릭한 실제 점까지 연결 + 그 거리 포함(점-to-점)
   const d1=hav([p1.lat,p1.lng],nodes[s1]), d2=hav([p2.lat,p2.lng],nodes[s2]);
+  const routeM=dist[s2]+d1+d2, straightM=hav([p1.lat,p1.lng],[p2.lat,p2.lng]);
+  if(routeM > straightM*3 + 200) return straight();   // 물길이 비정상적으로 돌면(연못/빈약데이터) 직선
   const coords=[[p1.lat,p1.lng]].concat(path.map(k=>nodes[k])).concat([[p2.lat,p2.lng]]);
-  return {coords, km:(dist[s2]+d1+d2)/1000};
+  return {coords, km:routeM/1000};
 }
 function MinHeap(){ this.a=[]; }
 MinHeap.prototype.size=function(){ return this.a.length; };
