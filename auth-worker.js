@@ -250,6 +250,43 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
+    // 0-3e) 코스 장애물(보/징검다리/낮은바닥) — 관리자. KV "obstacles"
+    if (url.pathname.endsWith("/obstacles") || url.pathname.endsWith("/obstacle")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
+      if (req.method === "GET") { const d = KV ? await KV.get("obstacles") : null; return J(d || "[]"); }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+        if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        const TYPES = ["보", "징검다리", "낮은바닥"];
+        let arr = []; try { arr = JSON.parse((await KV.get("obstacles")) || "[]"); } catch (e) {}
+        let created = null;
+        if (b.action === "delete") {
+          arr = arr.filter((x) => String(x.id) !== String(b.obsId));
+        } else if (b.action === "edit") {
+          const it = arr.find((x) => String(x.id) === String(b.obsId));
+          if (!it) return new Response("notfound", { status: 404, headers: cors });
+          if (b.type && TYPES.indexOf(b.type) >= 0) it.type = b.type;
+          if (b.note != null) it.note = String(b.note).slice(0, 200);
+          if (b.lat != null && b.lng != null) { it.lat = Number(b.lat); it.lng = Number(b.lng); }
+        } else {
+          const lat = Number(b.lat), lng = Number(b.lng);
+          if (!isFinite(lat) || !isFinite(lng)) return new Response("bad", { status: 400, headers: cors });
+          const type = TYPES.indexOf(b.type) >= 0 ? b.type : "보";
+          created = { id: Date.now(), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), t: Date.now() };
+          arr.unshift(created);
+          if (arr.length > 500) arr = arr.slice(0, 500);
+        }
+        await KV.put("obstacles", JSON.stringify(arr));
+        return J(JSON.stringify({ ok: true, obstacle: created }));
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
     // 0-3c) 공지사항 게시판 (관리자 글 + 사용자 답글). KV "notices"
     if (url.pathname.endsWith("/notices")) {
       const origin = req.headers.get("Origin") || "*";

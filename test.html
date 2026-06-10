@@ -37,6 +37,17 @@
   .measbtn.on{background:#ff7043;color:#fff}
   .measmode{font-size:12.5px;padding:7px 11px;display:none}
   .measbtn .mx{margin-left:8px;background:rgba(255,255,255,.35);border-radius:8px;padding:1px 7px;cursor:pointer}
+  .obsbtn.on{background:#e53935;color:#fff}
+  .obs-ic{display:inline-flex;align-items:center;gap:3px;padding:3px 8px 3px 6px;border-radius:12px;font:700 12px sans-serif;color:#fff;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #fff}
+  .obs-bo{background:#e53935}
+  .obs-jing{background:#fb8c00}
+  .obs-shal{background:#fdd835;color:#5a4500}
+  .leaflet-div-icon.obs-div{background:transparent;border:0;width:auto!important;height:auto!important}
+  .obs-div .obs-ic{position:absolute;transform:translate(-50%,-50%)}
+  #obNote{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccd;border-radius:11px;font-size:14px;resize:vertical;font-family:inherit}
+  #obMsg{font-size:13px;color:#888;margin-top:9px;min-height:18px;text-align:center}
+  .lg-obs{margin-top:6px;font-size:11px;color:#556;line-height:1.9}
+  .lg-obs .obs-ic{font-size:10px;padding:1px 6px;border-width:1.5px;vertical-align:middle}
   .meas-pill{background:#ff7043;color:#fff;border-radius:11px;padding:2px 8px;font:700 12px sans-serif;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;text-align:center}
   .locbtn{cursor:pointer;background:#fff;width:40px;height:40px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);user-select:none;display:flex;align-items:center;justify-content:center}
   .locbtn.loading{opacity:.45}
@@ -285,6 +296,10 @@
   <div class="pmodal-bg" onclick="closeCourseModal()"></div>
   <div class="pmodal"><button class="pmodal-x" onclick="closeCourseModal()">✕</button><div id="cmBody"></div></div>
 </div>
+<div id="obsModal" class="pmodal-wrap">
+  <div class="pmodal-bg" onclick="closeObsModal()"></div>
+  <div class="pmodal"><button class="pmodal-x" onclick="closeObsModal()">✕</button><div id="obBody"></div></div>
+</div>
 <!-- TRIPHTML -->
 <div id="tripbar"><button id="tripStart" class="tb-start">▶ 카누잉 시작</button><button id="tripLog" class="tb-log">📋 기록</button></div>
 <div id="tmodal" class="pmodal-wrap">
@@ -311,7 +326,7 @@ function _adminBadge(on){ let el=document.getElementById('adminBadge');
     document.getElementById('adminExport').onclick=exportComments;
     document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
   else if(el){ el.remove(); } }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -653,6 +668,78 @@ function courseCmt(kind,id){
   if(kind==='c'){ const c=_courseByCid[String(id)]; if(c) openCourseComments('course_c'+id, c.name, c.km, id); }
   else { const c=_kvCourses[id]; if(c) openCourseComments('course_k'+id, c.name, c.km, 'k'+id); }
 }
+// ---- 코스 장애물(보/징검다리/낮은바닥) ----
+const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'}};
+const obstacleLayer=L.layerGroup();
+const _obstacles={};
+function obsIcon(type){ const t=OBS_TYPES[type]||OBS_TYPES['보']; return L.divIcon({className:'obs-div',html:'<span class="obs-ic '+t.c+'">'+t.e+' '+t.label+'</span>',iconSize:null}); }
+function obsPopup(o){ const t=OBS_TYPES[o.type]||OBS_TYPES['보'];
+  return '<span class="obs-ic '+t.c+'">'+t.e+' '+t.label+'</span>'+(o.note?'<div style="margin:7px 0 4px;color:#445;font-size:13px">'+linkify(o.note)+'</div>':'<br>')
+    +(isAdmin()?'<a onclick="editObstacle(\''+o.id+'\')" style="color:#1565c0;cursor:pointer;margin-right:12px">✏️ 수정</a><a onclick="deleteObstacle(\''+o.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':''); }
+function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
+  const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type)}); m.bindPopup(obsPopup(o));
+  if(!isTouch) m.bindTooltip((OBS_TYPES[o.type]||OBS_TYPES['보']).label,{direction:'top',opacity:0.9});
+  m.addTo(obstacleLayer); o._m=m; }
+function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();})
+  .then(function(list){ (list||[]).forEach(renderObstacle); _syncObstacleVis(); }).catch(function(){}); }
+// 장애물 표시 = 코스 레이어가 하나라도 켜져 있을 때(별도 레이어 항목 없음)
+function _anyCourseOn(){ return Object.keys(courseLayers).some(function(sc){ return map.hasLayer(courseLayers[sc]); }); }
+function _syncObstacleVis(){ if(_anyCourseOn()){ if(!map.hasLayer(obstacleLayer)) obstacleLayer.addTo(map); }
+  else if(map.hasLayer(obstacleLayer)) map.removeLayer(obstacleLayer); }
+map.on('overlayadd overlayremove', function(e){ if(e&&e.name&&e.name.indexOf('코스')===0) _syncObstacleVis(); });
+loadObstacles();
+// 장애물 추가(관리자 전용 버튼 — 거리측정 버튼 옆)
+let obsPlaceMode=false;
+const ObstacleCtl=L.Control.extend({ options:{position:'topleft'},
+  onAdd:function(){ const d=L.DomUtil.create('div','measbtn obsbtn'); d.id='obsBtnBox'; d.innerHTML='🚧 장애물'; d.title='장애물 표시 추가(관리자)'; d.style.display='none';
+    L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+    L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); toggleObsPlace(); });
+    return d; } });
+map.addControl(new ObstacleCtl());
+(function(){ const ob=document.getElementById('obsBtnBox'); if(ob&&isAdmin()) ob.style.display='block'; })();
+function toggleObsPlace(){ obsPlaceMode=!obsPlaceMode; const b=document.getElementById('obsBtnBox');
+  if(b){ b.classList.toggle('on',obsPlaceMode); b.innerHTML=obsPlaceMode?'🚧 지점 탭…':'🚧 장애물'; }
+  map.getContainer().style.cursor=obsPlaceMode?'crosshair':'';
+  measHint(obsPlaceMode?'🚧 장애물을 표시할 지점을 지도에서 탭하세요':false); }
+map.on('click', function(e){ if(!obsPlaceMode) return; toggleObsPlace(); openObsModal('add',{lat:e.latlng.lat,lng:e.latlng.lng}); });
+// 장애물 모달
+let _obMode='add', _obCur=null, _obLL=null;
+function closeObsModal(){ document.getElementById('obsModal').classList.remove('open'); }
+function _obType(){ const e=document.querySelector('#obBody .seg-b.on'); return e?e.getAttribute('data-ty'):'보'; }
+function obPick(el){ const bs=document.querySelectorAll('#obBody .seg-b'); for(let i=0;i<bs.length;i++) bs[i].classList.remove('on'); el.classList.add('on'); }
+function openObsModal(mode,data){ if(!isAdmin()) return;
+  _obMode=mode; let ty='보', note='';
+  if(mode==='edit'){ _obCur=data; _obLL={lat:data.lat,lng:data.lng}; ty=data.type; note=data.note||''; }
+  else { _obCur=null; _obLL={lat:data.lat,lng:data.lng}; }
+  const tys=['보','징검다리','낮은바닥'];
+  let seg=''; for(let i=0;i<tys.length;i++){ const t=tys[i],info=OBS_TYPES[t]; seg+='<button class="seg-b'+(t===ty?' on':'')+'" data-ty="'+t+'" onclick="obPick(this)">'+info.e+' '+t+'</button>'; }
+  document.getElementById('obBody').innerHTML=
+    '<h3>'+(mode==='edit'?'✏️ 장애물 수정':'🚧 장애물 추가')+'</h3>'
+    +'<div class="sg-label">유형 (색 = 주의 강도)</div><div class="seg">'+seg+'</div>'
+    +'<div class="sg-label">메모 (선택)</div>'
+    +'<textarea id="obNote" rows="2" placeholder="예: 우안 하선 후 30m 우회. 수위 높을 때 위험" maxlength="200">'+pmEsc(note)+'</textarea>'
+    +'<button class="sg-submit" id="obSave">'+(mode==='edit'?'수정 완료':'추가')+'</button><div id="obMsg"></div>';
+  document.getElementById('obsModal').classList.add('open');
+  document.getElementById('obSave').onclick=doSaveObs; }
+async function doSaveObs(){ if(!isAdmin()||!_obLL) return;
+  const type=_obType(), note=(document.getElementById('obNote').value||'').trim().slice(0,200);
+  const msg=document.getElementById('obMsg'); msg.style.color='#888'; msg.textContent='저장 중…';
+  const base=WORKER_URL.replace(/\/+$/,'')+'/obstacle';
+  try{ let body;
+    if(_obMode==='edit'&&_obCur){ body={action:'edit',adminKey:adminKey(),obsId:_obCur.id,type:type,note:note}; }
+    else { body={action:'add',adminKey:adminKey(),lat:_obLL.lat,lng:_obLL.lng,type:type,note:note}; }
+    const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){ const d=await r.json().catch(function(){return {};}); gaEvent('obstacle_'+_obMode); closeObsModal();
+      if(_obMode==='edit'&&_obCur){ if(_obCur._m) obstacleLayer.removeLayer(_obCur._m); renderObstacle(Object.assign({},_obCur,{type:type,note:note,_m:null})); }
+      else { renderObstacle((d&&d.obstacle)||{id:Date.now(),lat:_obLL.lat,lng:_obLL.lng,type:type,note:note}); }
+      _syncObstacleVis(); map.closePopup();
+    } else { msg.style.color='#c0392b'; msg.textContent=(r.status===403?'관리자 권한 확인 필요':'저장 실패'); }
+  }catch(e){ msg.style.color='#c0392b'; msg.textContent='오류'; } }
+function editObstacle(id){ const o=_obstacles[id]; if(o) openObsModal('edit',o); }
+async function deleteObstacle(id){ if(!isAdmin()) return; if(!confirm('이 장애물 표시를 삭제할까요?')) return;
+  const o=_obstacles[id];
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',adminKey:adminKey(),obsId:id})});
+    if(r.ok){ if(o&&o._m) obstacleLayer.removeLayer(o._m); delete _obstacles[id]; map.closePopup(); } }catch(e){} }
 async function loadComments(){ if(!WORKER_URL||!_pmSlug) return;
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments?place='+encodeURIComponent(_pmSlug)); renderComments(await r.json()); }
   catch(e){ renderComments({}); document.getElementById('pmCmts').innerHTML='<div class="pm-empty">코멘트를 불러오지 못했어요(잠시 후 다시)</div>'; } }
@@ -1216,7 +1303,9 @@ legend.onAdd=function(){ const d=L.DomUtil.create('div','legend legend-c');
     '<span class="sw" style="background:#ec407a"></span>명소<br>'+
     '<span class="sw" style="background:#2196f3"></span>런칭/랜딩<br>'+
     '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호'+
-    _courseLegendHtml;
+    _courseLegendHtml+
+    '<div class="lg-obs">⚠️ 장애물(코스와 함께 표시)<br>'
+    +'<span class="obs-ic obs-bo">🚧 보</span> <span class="obs-ic obs-jing">🪨 징검다리</span> <span class="obs-ic obs-shal">〰️ 얕음</span></div>';
   return d; };
 legend.addTo(map);
 map.addControl(new CafeCtl());   // 카페 카드: 범례 위(우하단)에 표시
