@@ -109,11 +109,18 @@ __GTAG__
   .obs-div .obs-ic{position:absolute;transform:translate(-50%,-50%)}
   #obNote{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccd;border-radius:11px;font-size:14px;resize:vertical;font-family:inherit}
   #obMsg{font-size:13px;color:#888;margin-top:9px;min-height:18px;text-align:center}
+  .leaflet-control-layers{padding:8px 11px!important;border-radius:8px!important;box-shadow:0 1px 5px rgba(0,0,0,.3)!important;font:13px/1.55 sans-serif}
+  .leaflet-control-layers-expanded{width:162px;color:#222}
+  .lc-title{font-weight:700;font-size:13px;color:#13312a;margin-bottom:5px}
+  .leaflet-control-layers label{margin:3px 0;cursor:pointer}
+  .leaflet-control-layers-separator{margin:6px 0}
+  .lc-key{margin-top:2px}
+  .lc-key .lg-row{margin:2px 0}
+  .sw-course{background:linear-gradient(90deg,#7c4dff 0 33%,#d500f9 33% 66%,#00897b 66% 100%)!important}
   .lg-sub{font-weight:700;font-size:11.5px;color:#2a3b34;margin:6px 0 2px;padding-top:5px;border-top:1px solid #eee}
   .lg-note{font-weight:400;color:#8a948e;font-size:10px}
   .lg-row{display:flex;align-items:center;margin:2px 0;line-height:1.4}
-  .legend .ln{display:inline-block;width:16px;height:4px;border-radius:2px;margin-right:6px;flex:none}
-  .legend .sw{flex:none}
+  .ln{display:inline-block;width:16px;height:4px;border-radius:2px;margin-right:6px;flex:none;vertical-align:middle}
   .lg-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
   .lg-pills .obs-ic{font-size:10px;padding:1px 6px;border-width:1.5px;box-shadow:0 1px 3px rgba(0,0,0,.3)}
   .meas-pill{background:#ff7043;color:#fff;border-radius:11px;padding:2px 8px;font:700 12px sans-serif;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;text-align:center}
@@ -871,13 +878,24 @@ function applyZoomIcons(){ const dot=map.getZoom()<Z_ICON; const f=function(m){ 
   famousLayer.eachLayer(f); canoeLayer.eachLayer(f); }
 map.on('zoomend', applyZoomIcons);
 
-// ---- 레이어 토글 ----
+// ---- 레이어 + 범례 통합 패널 ----
+function _sw(c){ return '<span class="sw" style="background:'+c+'"></span>'; }
 const _ov = {};
-_ov['상수원보호'] = protectLayer;
-_ov['🛶 카누잉 코스'] = allCoursesGroup;   // 코스 전체 단일 토글
-_ov['명소'] = famousLayer;
-_ov['런칭/랜딩'] = canoeLayer;
-const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:true, position:'topright'}).addTo(map);
+_ov[_sw('rgba(229,57,53,.45)')+'상수원보호'] = protectLayer;
+_ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup;   // 코스 전체 단일 토글
+_ov[_sw('#ec407a')+'명소'] = famousLayer;
+_ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
+const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
+// 패널에 제목 + 토글불가 항목(코스 종류·장애물) 색상 키를 함께 표시 = 범례 통합
+(function(){ const c=_layerControl.getContainer(); if(!c) return;
+  const h=L.DomUtil.create('div','lc-title'); h.innerHTML='🗺️ 레이어 · 범례'; c.insertBefore(h, c.firstChild);
+  function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
+  const k=L.DomUtil.create('div','lc-key');
+  k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
+    +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">코스와 함께</span></div>'
+    +'<div class="lg-pills"><span class="obs-ic obs-bo">🚧 보</span><span class="obs-ic obs-jing">🪨 징검다리</span><span class="obs-ic obs-shal">〰️ 얕음</span></div>';
+  c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
+})();
 // 위성지도일 때 최대 줌 제한 + 선택 저장(다음 접속에 유지)
 map.on('baselayerchange', function(e){ const mz=(e.name==='위성지도')?SAT_MAXZOOM:19; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz);
   try{ localStorage.setItem('mc_basemap', e.name); }catch(err){} });
@@ -1367,22 +1385,8 @@ async function deleteNotice(nid){ if(!isAdmin()) return; if(!confirm('이 공지
   try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',adminKey:adminKey(),noticeId:nid})});
     if(r.ok) openNotices(); }catch(e){} }
 
-// ---- 범례 ----
-const legend = L.control({position:'bottomright'});
-legend.onAdd=function(){ const d=L.DomUtil.create('div','legend legend-c');
-  function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
-  d.innerHTML='<b>범례</b>'
-    +'<div class="lg-sub">장소</div>'
-    +'<div class="lg-row"><span class="sw" style="background:#ec407a"></span>명소</div>'
-    +'<div class="lg-row"><span class="sw" style="background:#2196f3"></span>런칭/랜딩</div>'
-    +'<div class="lg-row"><span class="sw" style="background:rgba(229,57,53,.45)"></span>상수원보호</div>'
-    +'<div class="lg-sub">코스</div>'
-    +ln('엑스페디션')+ln('초심자코스')+ln('기타')
-    +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">코스와 함께</span></div>'
-    +'<div class="lg-pills"><span class="obs-ic obs-bo">🚧 보</span><span class="obs-ic obs-jing">🪨 징검다리</span><span class="obs-ic obs-shal">〰️ 얕음</span></div>';
-  return d; };
-legend.addTo(map);
-map.addControl(new CafeCtl());   // 카페 카드: 범례 위(우하단)에 표시
+// ---- 범례는 레이어 패널에 통합됨(위 _layerControl) ----
+map.addControl(new CafeCtl());   // 카페 카드: 우하단
 </script>
 </body>
 </html>
