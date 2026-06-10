@@ -231,11 +231,17 @@ export default {
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
         let arr = []; try { arr = JSON.parse((await KV.get("notices")) || "[]"); } catch (e) {}
         const action = b.action || "";
-        if (action === "post" || action === "delete") {
+        if (action === "post" || action === "delete" || action === "edit") {
           if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
           if (action === "post") {
             arr.unshift({ id: Date.now(), title: String(b.title || "").slice(0, 80), body: String(b.body || "").slice(0, 2000), t: Date.now(), replies: [] });
             if (arr.length > 200) arr = arr.slice(0, 200);
+          } else if (action === "edit") {
+            const nt = arr.find((x) => String(x.id) === String(b.noticeId));
+            if (!nt) return new Response("bad", { status: 400, headers: cors });
+            nt.title = String(b.title || "").slice(0, 80);
+            nt.body = String(b.body || "").slice(0, 2000);
+            nt.edited = Date.now();
           } else {
             arr = arr.filter((x) => String(x.id) !== String(b.noticeId));
           }
