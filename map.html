@@ -93,6 +93,22 @@
   .sg-submit{width:100%;margin-top:13px;background:#1565c0;color:#fff;border:0;border-radius:11px;padding:14px;font:700 15px sans-serif;cursor:pointer}
   .sg-submit:active{transform:translateY(1px)}
   #sgMsg{font-size:13px;color:#1b8a5a;margin-top:9px;min-height:18px;text-align:center}
+  .pm-cid{font-size:11px;color:#aab;font-weight:400}
+  .noticebtn{cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none}
+  #ntBody h3{margin:0 30px 10px 0;font-size:18px;color:#1b3a2b}
+  .nt-write{background:#f3f7f4;border-radius:10px;padding:11px;margin-bottom:14px}
+  .nt-write input,.nt-write textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccd;border-radius:9px;font-size:14px;margin-bottom:7px;font-family:inherit}
+  .nt-item{border:1px solid #eee;border-radius:12px;padding:13px;margin-bottom:12px}
+  .nt-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .nt-h b{font-size:15.5px;color:#13312a}
+  .nt-date{font-size:11.5px;color:#8a98a0;white-space:nowrap}
+  .nt-del{color:#c62828;cursor:pointer;margin-left:6px;text-decoration:none}
+  .nt-body{font-size:14px;color:#333;margin:7px 0;white-space:pre-wrap;word-break:break-word;line-height:1.55}
+  .nt-reply{font-size:13px;color:#445;padding:5px 0 5px 11px;border-left:2px solid #cfe0d8;margin:4px 0;word-break:break-word}
+  .nt-reply b{color:#1565c0}
+  .nt-replyform{display:flex;gap:6px;margin-top:8px}
+  .nt-replyform input{flex:1;min-width:0;padding:9px;border:1px solid #ccd;border-radius:9px;font-size:13.5px}
+  .nt-reply-btn{background:#1565c0;color:#fff;border:0;border-radius:9px;padding:9px 13px;font-weight:700;cursor:pointer;white-space:nowrap}
   
   .authbox{font:600 13px sans-serif}
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
@@ -136,7 +152,7 @@
   @media(max-width:520px){ #welcomeBanner{font-size:12px;top:58px} }
   .gate-warn{display:flex;gap:8px;text-align:left;background:#fff8e1;border:1px solid #ffe082;border-left:4px solid #ffb300;border-radius:9px;padding:9px 11px;margin:0 0 16px;font:12px/1.5 sans-serif;color:#6d4c00}
   .gate-warn span:first-child{flex:none}
-  .admin-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3100;display:flex;align-items:center;gap:9px;background:#263238;color:#fff;padding:8px 14px;border-radius:22px;font:700 13px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  .admin-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3100;display:flex;align-items:center;gap:8px;white-space:nowrap;background:#263238;color:#fff;padding:7px 13px;border-radius:22px;font:700 12.5px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
   .admin-badge .ab-dot{width:8px;height:8px;border-radius:50%;background:#69f0ae;box-shadow:0 0 6px #69f0ae}
   .admin-badge a{color:#80d8ff;text-decoration:none;cursor:pointer;margin-left:4px}
   #authModal{position:fixed;inset:0;z-index:3600;display:none;align-items:center;justify-content:center}
@@ -218,6 +234,10 @@
     <div id="authMsg"></div>
   </div>
 </div>
+<div id="noticeModal" class="pmodal-wrap">
+  <div class="pmodal-bg" onclick="closeNotices()"></div>
+  <div class="pmodal"><button class="pmodal-x" onclick="closeNotices()">✕</button><div id="ntBody"></div></div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -234,7 +254,7 @@ function isAdmin(){ return _adminOk; }
 async function _adminVerify(k){ try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/admincheck',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}); const d=await r.json(); return !!(d&&d.ok); }catch(e){ return false; } }
 function _adminBadge(on){ let el=document.getElementById('adminBadge');
   if(on){ if(!el){ el=document.createElement('div'); el.id='adminBadge'; el.className='admin-badge';
-    el.innerHTML='<span class="ab-dot"></span>🔧 관리자 <a id="adminExport">코멘트내보내기</a> <a id="adminOff">해제</a>'; document.body.appendChild(el);
+    el.innerHTML='<span class="ab-dot"></span>🔧관리자 <a id="adminExport">내보내기</a> <a id="adminOff">해제</a>'; document.body.appendChild(el);
     document.getElementById('adminExport').onclick=exportComments;
     document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
   else if(el){ el.remove(); } }
@@ -270,10 +290,11 @@ window.addEventListener('hashchange', _maybeAdmin);   // 새로고침 없이 #ad
 function gaEvent(name, params){ try{ if(window.gtag) gtag('event', name, params||{}); }catch(e){} }
 function getUser(){ try{ return JSON.parse(localStorage.getItem('mc_user')||'null'); }catch(e){ return null; } }
 function setUser(u){ try{ u?localStorage.setItem('mc_user',JSON.stringify(u)):localStorage.removeItem('mc_user'); }catch(e){} }
+function devType(){ return (('ontouchstart' in window)||navigator.maxTouchPoints>0)?'모바일':'PC'; }
 function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Worker → 시트
   try{ const u=getUser(); if(!u||!u.uid) return;
     fetch(WORKER_URL.replace(/\/+$/,'')+'/log',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id:u.uid, nick:u.nick||'', type:'visit'})}).catch(function(){});
+      body:JSON.stringify({id:u.uid, nick:u.nick||'', type:'visit', dev:devType()})}).catch(function(){});
   }catch(e){}
 }
 (function(){   // 로그인 콜백(#login=ID&nick=NICK) 처리 + 세션 복원
@@ -561,7 +582,7 @@ function renderComments(d){ d=d||{}; let ah='';
   document.getElementById('pmAdmin').innerHTML=ah; window._pmAdminCur=d.admin||'';
   const list=d.list||[]; document.getElementById('pmCnt').textContent='('+list.length+')';
   document.getElementById('pmCmts').innerHTML = list.length? list.slice().reverse().map(function(c){
-    return '<div class="pm-cmt"><div class="pm-cmt-h"><b>'+pmEsc(c.nick||'익명')+'</b></div><div class="pm-cmt-b">'+linkify(c.text)+'</div></div>';
+    return '<div class="pm-cmt"><div class="pm-cmt-h"><b>'+pmEsc(c.nick||'익명')+'</b>'+(c.id?' <span class="pm-cid">#'+c.id+'</span>':'')+'</div><div class="pm-cmt-b">'+linkify(c.text)+'</div></div>';
   }).join('') : '<div class="pm-empty">첫 코멘트를 남겨보세요</div>';
 }
 async function submitComment(){ const u=getUser(); if(!u||!u.uid) return;
@@ -812,6 +833,47 @@ map.on('locationerror', function(){
 });
 
 
+
+// ====== 공지사항 게시판 (관리자 글 + 사용자 답글) ======
+const NoticeCtl=L.Control.extend({ options:{position:'topleft'},
+  onAdd:function(){ const d=L.DomUtil.create('div','noticebtn'); d.innerHTML='📢 공지'; d.title='공지사항';
+    L.DomEvent.disableClickPropagation(d); L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); openNotices(); }); return d; } });
+map.addControl(new NoticeCtl());
+function napi(){ return WORKER_URL.replace(/\/+$/,'')+'/notices'; }
+function closeNotices(){ document.getElementById('noticeModal').classList.remove('open'); }
+function ntDate(t){ try{ const d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate(); }catch(e){ return ''; } }
+async function openNotices(){
+  document.getElementById('noticeModal').classList.add('open');
+  document.getElementById('ntBody').innerHTML='<h3>📢 공지사항</h3><div class="tm-empty">불러오는 중…</div>';
+  gaEvent('notice_open');
+  try{ const r=await fetch(napi()); renderNotices(await r.json()); }
+  catch(e){ document.getElementById('ntBody').innerHTML='<h3>📢 공지사항</h3><div class="tm-empty">불러오지 못했어요</div>'; }
+}
+function renderNotices(list){
+  let h='<h3>📢 공지사항</h3>';
+  if(isAdmin()) h+='<div class="nt-write"><input id="ntTitle" placeholder="공지 제목" maxlength="80"><textarea id="ntBodyIn" rows="2" placeholder="공지 내용" maxlength="2000"></textarea><button class="sg-submit" onclick="postNotice()">공지 등록</button></div>';
+  if(!list||!list.length){ h+='<div class="tm-empty">아직 공지가 없어요</div>'; }
+  else h+=list.map(function(n){
+    const rep=(n.replies||[]).map(function(r){ return '<div class="nt-reply"><b>'+pmEsc(r.nick||'익명')+'</b> '+linkify(r.text)+'</div>'; }).join('');
+    return '<div class="nt-item"><div class="nt-h"><b>'+pmEsc(n.title||'(제목없음)')+'</b><span class="nt-date">'+ntDate(n.t)+(isAdmin()?' <a class="nt-del" onclick="deleteNotice(\''+n.id+'\')">삭제</a>':'')+'</span></div>'
+      +'<div class="nt-body">'+linkify(n.body||'')+'</div>'
+      +(rep?'<div class="nt-replies">'+rep+'</div>':'')
+      +'<div class="nt-replyform"><input class="ntReplyIn" data-nid="'+n.id+'" placeholder="답글 달기" maxlength="300"><button class="nt-reply-btn" data-nid="'+n.id+'">답글</button></div></div>';
+  }).join('');
+  document.getElementById('ntBody').innerHTML=h;
+  Array.prototype.forEach.call(document.querySelectorAll('.nt-reply-btn'), function(btn){ btn.onclick=function(){ const nid=btn.getAttribute('data-nid'); const inp=document.querySelector('.ntReplyIn[data-nid="'+nid+'"]'); replyNotice(nid, inp?inp.value:''); }; });
+}
+async function postNotice(){ if(!isAdmin()) return;
+  const t=(document.getElementById('ntTitle').value||'').trim(), bd=(document.getElementById('ntBodyIn').value||'').trim();
+  if(!t&&!bd){ return; }
+  try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'post',adminKey:adminKey(),title:t,body:bd})});
+    if(r.ok){ gaEvent('notice_post'); openNotices(); } else alert('등록 실패(권한 확인)'); }catch(e){ alert('오류'); } }
+async function replyNotice(nid, text){ const u=getUser(); if(!u||!u.uid) return; text=(text||'').trim(); if(!text) return;
+  try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reply',id:u.uid,nick:u.nick||'',noticeId:nid,text:text})});
+    if(r.ok){ gaEvent('notice_reply'); openNotices(); } else alert('답글 실패'); }catch(e){ alert('오류'); } }
+async function deleteNotice(nid){ if(!isAdmin()) return; if(!confirm('이 공지를 삭제할까요?')) return;
+  try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',adminKey:adminKey(),noticeId:nid})});
+    if(r.ok) openNotices(); }catch(e){} }
 
 // ---- 범례 ----
 const legend = L.control({position:'bottomright'});
