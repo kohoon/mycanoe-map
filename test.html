@@ -409,8 +409,9 @@ const CafeCtl=L.Control.extend({ options:{position:'bottomright'},
 
 const baseOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+const SAT_MAXZOOM=18;   // 위성(Esri) 고배율 미제공 줌에서 'Map data not yet available' 방지 — 여기서 멈춤
 const baseSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  {maxZoom:19, attribution:'Tiles © Esri'});
+  {maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, attribution:'Tiles © Esri'});
 
 // ---- 외부 지도 딥링크 (안드로이드 intent / iOS scheme / 데스크톱 웹) ----
 function extLinks(lat,lng,label){
@@ -683,6 +684,8 @@ Object.keys(courseLayers).forEach(function(sc){ _ov['코스 · '+sc]=courseLayer
 _ov['명소'] = famousLayer;
 _ov['런칭/랜딩'] = canoeLayer;
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:true, position:'topright'}).addTo(map);
+// 위성지도일 때 최대 줌 제한(고배율 미제공 → 더 확대 안 되고 멈춤). 일반지도면 복원
+map.on('baselayerchange', function(e){ const mz=(e.name==='위성지도')?SAT_MAXZOOM:19; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); });
 
 // ---- 등록 코스(KV) 로드/렌더 ----
 const _kvCourseGrp=L.layerGroup();
