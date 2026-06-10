@@ -233,6 +233,11 @@ export default {
         let arr = []; try { arr = JSON.parse((await KV.get("courses")) || "[]"); } catch (e) {}
         if (b.action === "delete") {
           arr = arr.filter((x) => String(x.id) !== String(b.courseId));
+        } else if (b.action === "edit") {
+          const it = arr.find((x) => String(x.id) === String(b.courseId));
+          if (!it) return new Response("notfound", { status: 404, headers: cors });
+          it.name = String(b.name || it.name || "코스").slice(0, 80);
+          if (b.km != null) it.km = Number(b.km) || 0;
         } else {
           const coords = Array.isArray(b.coords) ? b.coords.slice(0, 5000) : [];
           if (coords.length < 2) return new Response("bad", { status: 400, headers: cors });
