@@ -43,7 +43,7 @@ export default {
         ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: b.id || "", nick: b.nick || "", type: b.type || "visit" }),
+          body: JSON.stringify({ id: b.id || "", nick: b.nick || "", type: b.type || "visit", dev: b.dev || "" }),
         }).catch(() => {}));
       }
       return new Response("ok", { headers: cors });
@@ -169,8 +169,10 @@ export default {
           if (!text) return new Response("bad", { status: 400, headers: cors });
           const cnick = String(b.nick || "익명").slice(0, 20);
           if (b.name) obj.name = String(b.name).slice(0, 60);   // 장소명 저장(백필/표시용)
+          let cseq = 0; try { cseq = parseInt((await KV.get("cmt_seq")) || "0", 10) || 0; } catch (e) {}
+          cseq++; await KV.put("cmt_seq", String(cseq));   // 코멘트 전역 ID
           const ct = Date.now();
-          obj.list.push({ nick: cnick, text: text, t: ct });
+          obj.list.push({ id: cseq, nick: cnick, text: text, t: ct });
           if (obj.list.length > 500) obj.list = obj.list.slice(-500);
           // 새 코멘트 → 시트(중복 방지)
           if (env.LOG_WEBHOOK) {
@@ -179,7 +181,7 @@ export default {
               let sent = {}; try { sent = JSON.parse((await KV.get("cmt_exported")) || "{}"); } catch (e) {}
               if (sent[sig]) return;
               await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type: "comment", place: pl, nick: cnick, text: text }) }).catch(function () {});
+                body: JSON.stringify({ type: "comment", cid: cseq, place: pl, nick: cnick, text: text }) }).catch(function () {});
               sent[sig] = 1; await KV.put("cmt_exported", JSON.stringify(sent));
             } catch (e) {} })());
           }
@@ -212,6 +214,42 @@ export default {
           }),
         }).catch(function () {}));
         return new Response("ok", { headers: cors });
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
+    // 0-3c) 공지사항 게시판 (관리자 글 + 사용자 답글). KV "notices"
+    if (url.pathname.endsWith("/notices")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
+      if (req.method === "GET") { const d = KV ? await KV.get("notices") : null; return J(d || "[]"); }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        let arr = []; try { arr = JSON.parse((await KV.get("notices")) || "[]"); } catch (e) {}
+        const action = b.action || "";
+        if (action === "post" || action === "delete") {
+          if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+          if (action === "post") {
+            arr.unshift({ id: Date.now(), title: String(b.title || "").slice(0, 80), body: String(b.body || "").slice(0, 2000), t: Date.now(), replies: [] });
+            if (arr.length > 200) arr = arr.slice(0, 200);
+          } else {
+            arr = arr.filter((x) => String(x.id) !== String(b.noticeId));
+          }
+        } else if (action === "reply") {
+          if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
+          const nt = arr.find((x) => String(x.id) === String(b.noticeId));
+          if (!nt) return new Response("bad", { status: 400, headers: cors });
+          const text = String(b.text || "").trim().slice(0, 300);
+          if (!text) return new Response("bad", { status: 400, headers: cors });
+          nt.replies = nt.replies || [];
+          nt.replies.push({ nick: String(b.nick || "익명").slice(0, 20), text: text, t: Date.now() });
+        } else return new Response("action", { status: 400, headers: cors });
+        await KV.put("notices", JSON.stringify(arr));
+        return J(JSON.stringify({ ok: true }));
       }
       return new Response("method", { status: 405, headers: cors });
     }
@@ -372,11 +410,13 @@ export default {
 
     // 로그인 기록 → Google Sheet(Apps Script 웹앱). LOG_WEBHOOK 은 대시보드 Secret 으로 설정.
     if (env.LOG_WEBHOOK) {
+      const _ua = req.headers.get("User-Agent") || "";
+      const _dev = /mobile|android|iphone|ipad|ipod/i.test(_ua) ? "모바일" : "PC";
       ctx.waitUntil(
         fetch(env.LOG_WEBHOOK, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: id, nick: nick, type: "login" }),
+          body: JSON.stringify({ id: id, nick: nick, type: "login", dev: _dev }),
         }).catch(() => {})
       );
     }
