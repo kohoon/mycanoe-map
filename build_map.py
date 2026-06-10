@@ -813,7 +813,12 @@ map.addControl(new MeasureCtl());
 const MeasModeCtl=L.Control.extend({ options:{position:'topleft'},
   onAdd:function(){ const d=L.DomUtil.create('div','measbtn measmode'); d.id='measModeBtn'; d.title='측정 방식 전환(물길/직선)';
     L.DomEvent.disableClickPropagation(d);
-    L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); measMode=(measMode==='water'?'straight':'water'); try{localStorage.setItem('mc_measmode',measMode);}catch(e){} updateMeasModeBtn(); });
+    L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e);
+      measMode=(measMode==='water'?'straight':'water'); try{localStorage.setItem('mc_measmode',measMode);}catch(e){} updateMeasModeBtn();
+      if(measureMode){   // 측정 중 모드 변경 -> 현재 측정 종료(초기화) 후 새 모드로
+        measPts=[]; measSegs=[]; _measQueue=[]; measDraft.clearLayers(); updateMeasBtn();
+        measHint((measMode==='water'?'🌊물길':'📏직선')+' 모드로 변경 — 지도를 다시 탭해 측정하세요');
+      } });
     updateMeasModeBtn(d); return d; } });
 map.addControl(new MeasModeCtl());
 function updateMeasModeBtn(d){ d=d||document.getElementById('measModeBtn'); if(!d) return; d.innerHTML=(measMode==='water'?'🌊 물길':'📏 직선'); }
