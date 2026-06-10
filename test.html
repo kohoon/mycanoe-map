@@ -696,10 +696,13 @@ function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
   m.addTo(obstacleLayer); o._m=m; }
 function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();})
   .then(function(list){ (list||[]).forEach(renderObstacle); _syncObstacleVis(); }).catch(function(){}); }
-// 장애물 표시 = 코스 전체 레이어가 켜져 있을 때(별도 레이어 항목 없음)
-function _syncObstacleVis(){ if(map.hasLayer(allCoursesGroup)){ if(!map.hasLayer(obstacleLayer)) obstacleLayer.addTo(map); }
+// 장애물 표시 = 코스 전체 레이어 ON + 충분히 확대(줌 ≥ OBS_MINZOOM)일 때만
+const OBS_MINZOOM=14;
+function _syncObstacleVis(){ const show=map.hasLayer(allCoursesGroup) && map.getZoom()>=OBS_MINZOOM;
+  if(show){ if(!map.hasLayer(obstacleLayer)) obstacleLayer.addTo(map); }
   else if(map.hasLayer(obstacleLayer)) map.removeLayer(obstacleLayer); }
 map.on('overlayadd overlayremove', function(e){ if(e&&e.layer===allCoursesGroup) _syncObstacleVis(); });
+map.on('zoomend', _syncObstacleVis);
 loadObstacles();
 // 장애물 추가(관리자 전용 버튼 — 거리측정 버튼 옆)
 let obsPlaceMode=false;
