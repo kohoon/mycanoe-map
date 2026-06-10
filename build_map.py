@@ -33,14 +33,33 @@ else:
     GTAG = '<script>function gtag(){}</script>'
 
 items = json.loads((BASE / "synced_seqs.json").read_text(encoding="utf-8"))["items"]
+
+# ---- 안정적 장소 ID 레지스트리(즐겨찾기 key -> 고정 ID). 새 장소만 다음 번호 부여 ----
+_idf = BASE / "place_ids.json"
+_reg = json.loads(_idf.read_text(encoding="utf-8")) if _idf.exists() else {"next": 1, "ids": {}}
+_ids = _reg["ids"]
+_newk = [k for k in items if k not in _ids and items[k].get("lat") is not None]
+_newk.sort(key=lambda k: items[k].get("name", ""))   # 최초 부여는 이름순(이후엔 추가 순서로 고정)
+for k in _newk:
+    _ids[k] = _reg["next"]; _reg["next"] += 1
+_idf.write_text(json.dumps(_reg, ensure_ascii=False, indent=0), encoding="utf-8")
+
 pfeats = [{"type": "Feature",
            "geometry": {"type": "Point", "coordinates": [v["lng"], v["lat"]]},
-           "properties": {"name": v.get("name", ""), "memo": v.get("memo", "")}}
-          for v in items.values() if v.get("lat") is not None]
+           "properties": {"name": v.get("name", ""), "memo": v.get("memo", ""), "id": _ids.get(k)}}
+          for k, v in items.items() if v.get("lat") is not None]
 points = {"type": "FeatureCollection", "features": pfeats}
 polygons = json.loads((BASE / "protect_polygons.geojson").read_text(encoding="utf-8"))
 _cf = BASE / "courses.geojson"
 courses = json.loads(_cf.read_text(encoding="utf-8")) if _cf.exists() else {"type": "FeatureCollection", "features": []}
+# 코스에도 ID 부여(코스명 기준 고정)
+_creg = json.loads((BASE / "course_ids.json").read_text(encoding="utf-8")) if (BASE / "course_ids.json").exists() else {"next": 1, "ids": {}}
+for _f in courses["features"]:
+    _nm = _f["properties"]["name"]
+    if _nm not in _creg["ids"]:
+        _creg["ids"][_nm] = _creg["next"]; _creg["next"] += 1
+    _f["properties"]["cid"] = _creg["ids"][_nm]
+(BASE / "course_ids.json").write_text(json.dumps(_creg, ensure_ascii=False, indent=0), encoding="utf-8")
 print(f"점 {len(pfeats)} / 면 {len(polygons['features'])} / 코스 {len(courses['features'])} / VKEY {'있음' if VKEY else '없음'}")
 
 HTML = r"""<!DOCTYPE html>
@@ -356,7 +375,7 @@ function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Wor
 function showGate(){ const g=document.getElementById('gate'); if(g) g.style.display='flex'; }
 function hideGate(){ const g=document.getElementById('gate'); if(g) g.style.display='none'; }
 // ---- 환영 배너: 공유 안내 + 카누잉 한마디(랜덤 순환) ----
-const WB_CTA='🛶 <b>나만 아는 카누잉 장소</b>를 지도에 우클릭(모바일 더블탭)해 공유해주세요!';
+const WB_CTA='<b>나만 아는 카누잉 장소</b>를 지도에 우클릭(모바일 더블탭)해 공유해주세요!';
 const WB_QUOTES=['"강은 서두르지 않아도 언젠가 바다에 닿는다."','"노를 젓는 만큼 물길이 열린다."','"급할수록, 강물처럼 흘러라."','"물결을 거스르지 말고, 물결을 읽어라."','"카누는 자연으로 들어가는 가장 조용한 문이다."','"한 번의 패들이 하루를 바꾼다."','"고요한 수면 아래 가장 깊은 평온이 있다."','"오늘 젓지 않으면 그 물길은 영원히 모른다."','"바람은 방향을, 노는 의지를 정한다."','"젖는 걸 두려워하면 강을 건널 수 없다."'];
 function showWelcome(){
   try{ if(sessionStorage.getItem('mc_wb')) return; }catch(e){}
@@ -593,7 +612,7 @@ Object.keys(_courseGroups).forEach(function(sc){
   // 투명 넓은 탭 영역(어디를 탭/클릭해도 정보)
   const hit=L.geoJSON(fc,{style:{color:'#000',weight:22,opacity:0},
     onEachFeature:(f,l)=>{ const p=f.properties||{};
-      const html='<b>'+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'');
+      const html='<b>'+(p.cid?('C'+p.cid+' '):'')+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'');
       l.bindPopup(html); if(!isTouch) l.bindTooltip(html,{sticky:true,direction:'top',opacity:0.95}); }
   });
   courseLayers[sc]=L.layerGroup([casing,line,hit]).addTo(map);
@@ -654,8 +673,6 @@ function ptPopup(f){ const p=f.properties, c=f.geometry.coordinates;
   h+=extLinks(c[1],c[0],p.name); return h; }
 const spotFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return isSpot(f.properties.name);})};
 const landFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return !isSpot(f.properties.name);})};
-// 런칭/랜딩 장소에 일련번호(ID) 부여(이름순) — 지정/참조 편의
-landFeats.features.slice().sort(function(a,b){return (a.properties.name||'').localeCompare(b.properties.name||'','ko');}).forEach(function(f,i){ f.properties.id=i+1; });
 const CANOE_SVG='<svg viewBox="0 0 64 40"><path d="M2 20C2 13 16 10 32 10C48 10 62 13 62 20C62 27 48 30 32 30C16 30 2 27 2 20Z" fill="#fff"/><path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#cfe3f5"/><path d="M23 15.5V24.5M41 15.5V24.5" stroke="#5a9bd4" stroke-width="2.2" stroke-linecap="round"/></svg>';
 function canoeIcon(){ return L.divIcon({className:'canoe-pin',html:'<span class="canoe-pin-in">'+CANOE_SVG+'</span>',iconSize:[26,26],iconAnchor:[13,13]}); }
 const WRECK_SVG='<svg viewBox="0 0 48 48"><path d="M0 27q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#4aa3e0"/><circle cx="11" cy="19" r="3.7" fill="#ffd2a6"/><path d="M7.5 23 L4 18 M14.5 23 L18 18" stroke="#ffd2a6" stroke-width="2.6" stroke-linecap="round"/><g transform="rotate(-20 30 27)"><path d="M16 25Q31 17 44 25Q41 31 30 32Q19 31 16 25Z" fill="#fff"/><path d="M20 25Q31 20 40 25" fill="none" stroke="#bcd6ea" stroke-width="1.4"/></g><path d="M0 31q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#2f80c9"/></svg>';

@@ -206,8 +206,36 @@ def load_favorites():
             if v.get("lat") is not None]
 
 
-def resolve_point(pt, favs):
-    """[lat,lng] 그대로, 또는 즐겨찾기 이름(부분일치)을 좌표로."""
+def load_id_map():
+    """place_ids.json(즐겨찾기 key->ID) + synced_seqs => {ID: [lat,lng]}."""
+    rp = BASE / "place_ids.json"
+    sj = BASE / "synced_seqs.json"
+    if not rp.exists() or not sj.exists():
+        return {}
+    ids = json.loads(rp.read_text(encoding="utf-8")).get("ids", {})
+    items = json.loads(sj.read_text(encoding="utf-8")).get("items", {})
+    m = {}
+    for key, pid in ids.items():
+        v = items.get(key)
+        if v and v.get("lat") is not None:
+            m[int(pid)] = [v["lat"], v["lng"]]
+    return m
+
+
+def resolve_point(pt, favs, idmap=None):
+    """장소 ID(정수/"#N"/"N"), [lat,lng], 또는 즐겨찾기 이름(부분일치)을 좌표로."""
+    idmap = idmap or {}
+    pid = None
+    if isinstance(pt, bool):
+        pass
+    elif isinstance(pt, int):
+        pid = pt
+    elif isinstance(pt, str) and pt.strip().lstrip("#").isdigit():
+        pid = int(pt.strip().lstrip("#"))
+    if pid is not None:
+        if pid in idmap:
+            return idmap[pid]
+        raise SystemExit(f"[!] 장소 ID {pid} 에 해당하는 장소 없음")
     if isinstance(pt, (list, tuple)) and len(pt) == 2 and all(isinstance(x, (int, float)) for x in pt):
         return [pt[0], pt[1]]
     if isinstance(pt, str):
@@ -223,8 +251,9 @@ def resolve_point(pt, favs):
 def main():
     defs = json.loads((BASE / "courses_def.json").read_text(encoding="utf-8"))
     favs = load_favorites()
+    idmap = load_id_map()
     for c in defs:
-        c["points"] = [resolve_point(p, favs) for p in c["points"]]
+        c["points"] = [resolve_point(p, favs, idmap) for p in c["points"]]
     feats = []
     for c in defs:
         coords, total = trace_course(c)

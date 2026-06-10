@@ -139,6 +139,11 @@ export default {
         if (b.admin) {
           if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
           obj.admin = String(b.text || "").slice(0, 300);
+          // 관리자 코멘트도 시트(comments)에 기록(전체 코멘트 관리)
+          if (env.LOG_WEBHOOK && obj.admin) ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "comment", place: String(b.name || slug).slice(0, 60), nick: "📌관리자", text: obj.admin }),
+          }).catch(function () {}));
         } else {
           if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
           const text = String(b.text || "").trim().slice(0, 100);
