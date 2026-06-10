@@ -575,16 +575,21 @@ const protectLayer = L.geoJSON(POLYS, {
 }).addTo(map);
 
 // ---- 카누잉코스 (물길 따라, 에메랄드 단일색 + 외곽선) ----
-const EMERALD = '#7c4dff';   // 카누잉코스 색(선명한 바이올렛 — 일반/위성 모두 잘 보임)
+// 서브카테고리별 색상(보라 계열, 서로 구분)
+const COURSE_COLORS={'엑스페디션':'#7c4dff','초심자코스':'#d500f9'};
+function subcatColor(sc){ return COURSE_COLORS[sc]||'#7c4dff'; }
 function courseSubcat(name){ const m=(name||'').match(/^([^#0-9]+)/); return (m?m[1]:'코스').trim()||'코스'; }
 const _courseGroups={};   // 서브카테고리 -> features
 COURSES.features.forEach(function(f){ const sc=courseSubcat((f.properties||{}).name);
   (_courseGroups[sc]=_courseGroups[sc]||[]).push(f); });
 const courseLayers={};    // 서브카테고리 -> layerGroup
+let _courseLegendHtml='';
 Object.keys(_courseGroups).forEach(function(sc){
   const fc={type:'FeatureCollection',features:_courseGroups[sc]};
+  const col=subcatColor(sc);
+  _courseLegendHtml+='<br><span class="sw" style="width:16px;height:4px;background:'+col+'"></span>'+sc;
   const casing=L.geoJSON(fc,{style:{color:'#2a0a4a',weight:8,opacity:0.55},interactive:false});
-  const line=L.geoJSON(fc,{style:{color:EMERALD,weight:5,opacity:0.95},interactive:false});
+  const line=L.geoJSON(fc,{style:{color:col,weight:5,opacity:0.95},interactive:false});
   // 투명 넓은 탭 영역(어디를 탭/클릭해도 정보)
   const hit=L.geoJSON(fc,{style:{color:'#000',weight:22,opacity:0},
     onEachFeature:(f,l)=>{ const p=f.properties||{};
@@ -600,11 +605,11 @@ function pmEsc(s){ return (s||'').replace(/[<>&]/g,function(c){return {'<':'&lt;
 function linkify(s){ return pmEsc(s||'').replace(/(https?:\/\/[^\s<]+)/g,function(u){
   var tail='',m=u.match(/[.,!?)\]]+$/); if(m){ tail=m[0]; u=u.slice(0,-tail.length); }
   return '<a href="'+u+'" target="_blank" rel="noopener" style="color:#1565c0;word-break:break-all">'+u+'</a>'+tail; }); }
-function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return {name:p.name||'',lat:c[1],lng:c[0],memo:p.memo||'',cat:isSpot(p.name)?'명소':'런칭랜딩'}; }
+function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return {name:p.name||'',lat:c[1],lng:c[0],memo:p.memo||'',cat:isSpot(p.name)?'명소':'런칭랜딩',id:p.id}; }
 let _pmPlace=null,_pmSlug=null;
 function openPlaceModal(pl){
   _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
-  document.getElementById('pmTitle').textContent=pl.name||'장소';
+  document.getElementById('pmTitle').textContent=(pl.id?('#'+pl.id+' '):'')+(pl.name||'장소');
   document.getElementById('pmLinks').innerHTML=extLinks(pl.lat,pl.lng,pl.name||'위치')+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
@@ -649,6 +654,8 @@ function ptPopup(f){ const p=f.properties, c=f.geometry.coordinates;
   h+=extLinks(c[1],c[0],p.name); return h; }
 const spotFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return isSpot(f.properties.name);})};
 const landFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return !isSpot(f.properties.name);})};
+// 런칭/랜딩 장소에 일련번호(ID) 부여(이름순) — 지정/참조 편의
+landFeats.features.slice().sort(function(a,b){return (a.properties.name||'').localeCompare(b.properties.name||'','ko');}).forEach(function(f,i){ f.properties.id=i+1; });
 const CANOE_SVG='<svg viewBox="0 0 64 40"><path d="M2 20C2 13 16 10 32 10C48 10 62 13 62 20C62 27 48 30 32 30C16 30 2 27 2 20Z" fill="#fff"/><path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#cfe3f5"/><path d="M23 15.5V24.5M41 15.5V24.5" stroke="#5a9bd4" stroke-width="2.2" stroke-linecap="round"/></svg>';
 function canoeIcon(){ return L.divIcon({className:'canoe-pin',html:'<span class="canoe-pin-in">'+CANOE_SVG+'</span>',iconSize:[26,26],iconAnchor:[13,13]}); }
 const WRECK_SVG='<svg viewBox="0 0 48 48"><path d="M0 27q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#4aa3e0"/><circle cx="11" cy="19" r="3.7" fill="#ffd2a6"/><path d="M7.5 23 L4 18 M14.5 23 L18 18" stroke="#ffd2a6" stroke-width="2.6" stroke-linecap="round"/><g transform="rotate(-20 30 27)"><path d="M16 25Q31 17 44 25Q41 31 30 32Q19 31 16 25Z" fill="#fff"/><path d="M20 25Q31 20 40 25" fill="none" stroke="#bcd6ea" stroke-width="1.4"/></g><path d="M0 31q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#2f80c9"/></svg>';
@@ -985,7 +992,7 @@ legend.onAdd=function(){ const d=L.DomUtil.create('div','legend legend-c');
     '<span class="sw" style="background:#ec407a"></span>명소<br>'+
     '<span class="sw" style="background:#2196f3"></span>런칭/랜딩<br>'+
     '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호'+
-    (COURSES.features.length?'<br><span class="sw" style="width:16px;height:4px;background:#7c4dff"></span>코스':'');
+    _courseLegendHtml;
   return d; };
 legend.addTo(map);
 map.addControl(new CafeCtl());   // 카페 카드: 범례 위(우하단)에 표시
