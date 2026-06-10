@@ -20,6 +20,9 @@ BASE = Path(__file__).resolve().parent
 # 브라우저가 V-World를 직접 호출(JSONP). 키는 도메인잠금 상태로 공개됨(사용자 승인).
 _kf = BASE / "vworld_key.txt"
 VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
+# 카카오 JS 키(로드뷰 인앱 임베드). 도메인잠금이라 공개되어도 등록 도메인에서만 동작.
+_kjf = BASE / "kakao_js_key.txt"
+KAKAO_JS_KEY = (_kjf.read_text(encoding="utf-8").strip() if _kjf.exists() else "7dfaf9d396a83c4be5e67285dc805c88")
 
 # 카카오 로그인 OAuth Worker (Redirect URI 와 동일, 끝 슬래시 포함)
 WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/"
@@ -125,7 +128,10 @@ __GTAG__
   .sw-course{background:linear-gradient(90deg,#7c4dff 0 33%,#d500f9 33% 66%,#00897b 66% 100%)!important}
   .rv-sw{display:inline-block;width:14px;margin-right:6px;text-align:center;font-size:12px;flex:none}
   .leaflet-div-icon.rv-div{background:transparent;border:0;width:auto!important;height:auto!important}
-  .rv-div .rv-badge{position:absolute;transform:translate(-50%,-150%);font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
+  .rv-div .rv-badge{position:absolute;transform:translate(-50%,-150%);font-size:15px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
+  .rv-pmodal{max-width:560px}
+  #rvView{width:100%;height:58vh;max-height:440px;min-height:240px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
+  #rvMsg{display:none;text-align:center;color:#667;padding:26px 10px;font-size:14px}
   .lg-sub{font-weight:700;font-size:11.5px;color:#2a3b34;margin:6px 0 2px;padding-top:5px;border-top:1px solid #eee}
   .lg-note{font-weight:400;color:#8a948e;font-size:10px}
   .lg-row{display:flex;align-items:center;margin:2px 0;line-height:1.4}
@@ -384,6 +390,14 @@ __GTAG__
   <div class="pmodal-bg" onclick="closeObsModal()"></div>
   <div class="pmodal"><button class="pmodal-x" onclick="closeObsModal()">✕</button><div id="obBody"></div></div>
 </div>
+<div id="rvModal" class="pmodal-wrap">
+  <div class="pmodal-bg" onclick="closeRvModal()"></div>
+  <div class="pmodal rv-pmodal"><button class="pmodal-x" onclick="closeRvModal()">✕</button>
+    <h3 id="rvTitle">🛣️ 로드뷰</h3>
+    <div id="rvView"></div>
+    <div id="rvMsg">근처에 로드뷰가 없습니다.</div>
+  </div>
+</div>
 <!-- TRIPHTML -->
 <div id="tripbar"><button id="tripStart" class="tb-start">▶ 카누잉 시작</button><button id="tripLog" class="tb-log">📋 기록</button></div>
 <div id="tmodal" class="pmodal-wrap">
@@ -392,6 +406,7 @@ __GTAG__
 </div>
 <!-- /TRIPHTML -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=__KAKAO_JS_KEY__&autoload=false"></script>
 <script>
 const POINTS = __POINTS__;
 const POLYS = __POLYS__;
@@ -552,8 +567,29 @@ function extLinks(lat,lng,label,hasRv){   // hasRv===false 면 로드뷰 링크 
     r=rvWeb;
     tgt=' target="_blank" rel="noopener"';
   }
-  const rvLink=(hasRv===false)?'':' &middot; <a href="'+r+'"'+tgt+'>🛣️로드뷰</a>';
+  const sn=nm.replace(/['"\\]/g,'');
+  const rvLink=(hasRv===false)?'':' &middot; <a onclick="openRoadview('+lat+','+lng+',\''+sn+'\')" style="color:#1565c0;cursor:pointer">🛣️로드뷰</a>';
   return '<br><a href="'+k+'"'+tgt+'>카카오맵</a> &middot; <a href="'+n+'"'+tgt+'>네이버맵</a>'+rvLink;
+}
+// ---- 카카오 로드뷰 인앱 임베드 ----
+let _kakaoReady=false,_rvClient=null,_rv=null;
+(function(){ try{ if(window.kakao&&kakao.maps){ kakao.maps.load(function(){ _kakaoReady=true; _rvClient=new kakao.maps.RoadviewClient(); }); } }catch(e){} })();
+function _ensureRv(){ if(!_rv&&_kakaoReady){ try{ _rv=new kakao.maps.Roadview(document.getElementById('rvView')); }catch(e){} } return _rv; }
+function closeRvModal(){ document.getElementById('rvModal').classList.remove('open'); }
+function openRoadview(lat,lng,name){
+  if(!window.kakao||!kakao.maps||!_rvClient){ window.open('https://map.kakao.com/link/roadview/'+lat+','+lng,'_blank'); return; }  // SDK 미동작 시 외부 폴백
+  if(typeof gaEvent==='function') gaEvent('roadview_open');
+  document.getElementById('rvTitle').textContent='🛣️ '+(name||'로드뷰');
+  document.getElementById('rvMsg').style.display='none';
+  document.getElementById('rvModal').classList.add('open');
+  const pos=new kakao.maps.LatLng(lat,lng), rv=_ensureRv();
+  if(!rv){ document.getElementById('rvMsg').style.display='block'; return; }
+  setTimeout(function(){ rv.relayout();
+    _rvClient.getNearestPanoId(pos,120,function(panoId){
+      if(panoId!=null){ rv.setPanoId(panoId,pos); setTimeout(function(){ rv.relayout(); },250); }
+      else { document.getElementById('rvMsg').style.display='block'; }
+    });
+  }, 90);
 }
 
 // ---- 역지오코딩: V-World 직접 호출(JSONP, 지번) → 실패시 Nominatim ----
@@ -896,7 +932,9 @@ map.on('zoomend', applyZoomIcons);
 const _rvCount=POINTS.features.filter(function(f){return f.properties.rv;}).length;
 const roadviewLayer = L.layerGroup(POINTS.features.filter(function(f){return f.properties.rv;}).map(function(f){
   const c=f.geometry.coordinates;
-  return L.marker([c[1],c[0]],{icon:L.divIcon({className:'rv-div',html:'<span class="rv-badge">🛣️</span>',iconSize:null}),interactive:false,keyboard:false});
+  const m=L.marker([c[1],c[0]],{icon:L.divIcon({className:'rv-div',html:'<span class="rv-badge" title="로드뷰 보기">🛣️</span>',iconSize:null})});
+  m.on('click',function(){ openRoadview(c[1],c[0],f.properties.name||'로드뷰'); });
+  return m;
 }));
 
 // ---- 레이어 + 범례 통합 패널 ----
@@ -1419,6 +1457,7 @@ html = (HTML
         .replace("__POLYS__", json.dumps(polygons, ensure_ascii=False, separators=(",", ":")))
         .replace("__COURSES__", json.dumps(courses, ensure_ascii=False, separators=(",", ":")))
         .replace("__VKEY__", VKEY)
+        .replace("__KAKAO_JS_KEY__", KAKAO_JS_KEY)
         .replace("__GTAG__", GTAG)
         .replace("__WORKER__", WORKER_URL)
         .replace("__GA_ID__", GA_ID))
