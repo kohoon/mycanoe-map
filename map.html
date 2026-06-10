@@ -699,8 +699,8 @@ function obsPopup(o){ const t=OBS_TYPES[o.type]||OBS_TYPES['보'];
   return '<span class="obs-ic '+t.c+'">'+t.e+' '+t.label+'</span>'+(o.note?'<div style="margin:7px 0 4px;color:#445;font-size:13px">'+linkify(o.note)+'</div>':'<br>')
     +(isAdmin()?'<a onclick="editObstacle(\''+o.id+'\')" style="color:#1565c0;cursor:pointer;margin-right:12px">✏️ 수정</a><a onclick="deleteObstacle(\''+o.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':''); }
 function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
-  const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type)}); m.bindPopup(obsPopup(o));
-  if(!isTouch) m.bindTooltip((OBS_TYPES[o.type]||OBS_TYPES['보']).label,{direction:'top',opacity:0.9});
+  const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type)});
+  if(isAdmin()) m.bindPopup(obsPopup(o));   // 관리자만 클릭 팝업(수정/삭제). 일반 사용자는 말풍선 없음(호버 툴팁도 제거)
   m.addTo(obstacleLayer); o._m=m; }
 function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();})
   .then(function(list){ (list||[]).forEach(renderObstacle); _syncObstacleVis(); }).catch(function(){}); }
