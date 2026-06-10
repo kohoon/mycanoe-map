@@ -218,6 +218,33 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
+    // 0-3d) 코스 등록(관리자) — 거리측정 경로를 코스로. KV "courses"
+    if (url.pathname.endsWith("/courses") || url.pathname.endsWith("/course")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
+      if (req.method === "GET") { const d = KV ? await KV.get("courses") : null; return J(d || "[]"); }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+        if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        let arr = []; try { arr = JSON.parse((await KV.get("courses")) || "[]"); } catch (e) {}
+        if (b.action === "delete") {
+          arr = arr.filter((x) => String(x.id) !== String(b.courseId));
+        } else {
+          const coords = Array.isArray(b.coords) ? b.coords.slice(0, 5000) : [];
+          if (coords.length < 2) return new Response("bad", { status: 400, headers: cors });
+          arr.unshift({ id: Date.now(), name: String(b.name || "코스").slice(0, 80), coords: coords, km: Number(b.km) || 0, t: Date.now() });
+          if (arr.length > 200) arr = arr.slice(0, 200);
+        }
+        await KV.put("courses", JSON.stringify(arr));
+        return J(JSON.stringify({ ok: true }));
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
     // 0-3c) 공지사항 게시판 (관리자 글 + 사용자 답글). KV "notices"
     if (url.pathname.endsWith("/notices")) {
       const origin = req.headers.get("Origin") || "*";
