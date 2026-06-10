@@ -457,7 +457,7 @@ map.createPane('satLabelsPane'); map.getPane('satLabelsPane').style.zIndex='350'
 // 일반지도와 동일한 OSM 타일을 반투명 라벨 오버레이로(리 단위 한글 지명 보장, 키 불필요).
 // 위성 질감은 비치고 한글 지명/물길/도로가 또렷이 읽히도록 opacity 조정.
 const satLabels = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  {subdomains:'abc', maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, pane:'satLabelsPane', opacity:0.6, attribution:'© OpenStreetMap'});
+  {subdomains:'abc', maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, pane:'satLabelsPane', opacity:0.4, attribution:'© OpenStreetMap'});
 const baseSat = L.layerGroup([satImg, satLabels]);     // 위성 + OSM 지명(반투명) 하이브리드
 
 // ---- 외부 지도 딥링크 (안드로이드 intent / iOS scheme / 데스크톱 웹) ----
