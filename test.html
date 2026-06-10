@@ -34,7 +34,7 @@
   .leaflet-control-zoom a{width:40px;height:40px;line-height:40px;font-size:22px}
   .measbtn{cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none}
   .measbtn.on{background:#ff7043;color:#fff}
-  .measmode{font-size:12.5px;padding:7px 11px}
+  .measmode{font-size:12.5px;padding:7px 11px;display:none}
   .measbtn .mx{margin-left:8px;background:rgba(255,255,255,.35);border-radius:8px;padding:1px 7px;cursor:pointer}
   .meas-pill{background:#ff7043;color:#fff;border-radius:11px;padding:2px 8px;font:700 12px sans-serif;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;text-align:center}
   .locbtn{cursor:pointer;background:#fff;width:40px;height:40px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);user-select:none;display:flex;align-items:center;justify-content:center}
@@ -764,8 +764,11 @@ function updateMeasBtn(){
   const c=document.getElementById('measCancel');
   if(c) L.DomEvent.on(c,'click',function(e){ L.DomEvent.stop(e); cancelMeasure(); });
 }
-function startMeasure(){ measureMode=true; measPts=[]; measSegs=[]; _measQueue=[]; measDraft.clearLayers(); map.getContainer().style.cursor='crosshair'; updateMeasBtn(); }
-function cancelMeasure(){ measureMode=false; measPts=[]; measSegs=[]; _measQueue=[]; measDraft.clearLayers(); map.getContainer().style.cursor=''; updateMeasBtn(); }
+function measHint(s){ const h=document.getElementById('hint'); if(!h) return; if(s){ h.textContent=s; h.style.opacity='1'; clearTimeout(window._mhid); } else { h.style.opacity='0'; } }
+function _showMeasMode(on){ const m=document.getElementById('measModeBtn'); if(m) m.style.display=on?'block':'none'; }
+function startMeasure(){ measureMode=true; measPts=[]; measSegs=[]; _measQueue=[]; measDraft.clearLayers(); map.getContainer().style.cursor='crosshair'; updateMeasBtn(); _showMeasMode(true);
+  measHint('🗺️ 지도를 탭해 출발점을 찍으세요 ('+(measMode==='water'?'🌊물길 따라':'📏직선')+' 모드 · 좌상단에서 전환)'); }
+function cancelMeasure(){ measureMode=false; measPts=[]; measSegs=[]; _measQueue=[]; measDraft.clearLayers(); map.getContainer().style.cursor=''; updateMeasBtn(); _showMeasMode(false); measHint(false); }
 let _measQueue=[], _measRunning=false;
 map.on('click', function(e){
   if(!measureMode) return;
@@ -793,6 +796,7 @@ async function _runMeasQueue(){
     }
     L.polyline(seg.coords,{color:'#ff7043',weight:4,opacity:.85,dashArray:seg.straight?'6,8':null}).addTo(measDraft);
     measSegs.push(seg); measPts.push(pt); updateMeasBtn();
+    measHint('지점 '+measPts.length+'개 · 계속 탭하거나, 좌상단 "🏁 완료"를 누르면 거리가 나와요');
   }
   _measRunning=false;
 }
@@ -816,7 +820,7 @@ function finishMeasure(){
     _lastCourse={coords:cc.map(function(p){return [+(+p[0]).toFixed(6),+(+p[1]).toFixed(6)];}), km:Math.round(km*100)/100};
     L.popup({closeButton:true}).setLatLng(end).setContent('<b>측정 '+km.toFixed(2)+'km</b><br><button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록</button>').openOn(map);
   }
-  measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn();
+  measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn(); _showMeasMode(false); measHint(false);
 }
 let _lastCourse=null;
 async function saveCoursePrompt(){
