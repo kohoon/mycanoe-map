@@ -121,6 +121,11 @@ export default {
             for (const k of lst.keys) {
               let o = {}; try { o = JSON.parse((await KV.get(k.name)) || "{}"); } catch (e) {}
               const place = o.name || k.name.slice(4);
+              if (o.admin) {   // 관리자 코멘트도 내보내기
+                await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ type: "comment", place: String(place).slice(0, 60), nick: "📌관리자", text: o.admin }) }).catch(function () {});
+                n++;
+              }
               for (const c of (o.list || [])) {
                 await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ type: "comment", place: String(place).slice(0, 60), nick: c.nick || "", text: c.text || "" }) }).catch(function () {});
