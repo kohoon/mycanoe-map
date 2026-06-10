@@ -646,9 +646,9 @@ map.on('zoomend', applyZoomIcons);
 // ---- 레이어 토글 ----
 const _ov = {};
 _ov['상수원보호'] = protectLayer;
-Object.keys(courseLayers).forEach(function(sc){ _ov['코스 · '+sc+'('+_courseGroups[sc].length+')']=courseLayers[sc]; });
-_ov['명소('+spotFeats.features.length+')'] = famousLayer;
-_ov['런칭/랜딩('+landFeats.features.length+')'] = canoeLayer;
+Object.keys(courseLayers).forEach(function(sc){ _ov['코스 · '+sc]=courseLayers[sc]; });
+_ov['명소'] = famousLayer;
+_ov['런칭/랜딩'] = canoeLayer;
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:true, position:'topright'}).addTo(map);
 
 // ---- 등록 코스(KV) 로드/렌더 ----
