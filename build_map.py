@@ -158,6 +158,15 @@ __GTAG__
   .sg-submit{width:100%;margin-top:13px;background:#1565c0;color:#fff;border:0;border-radius:11px;padding:14px;font:700 15px sans-serif;cursor:pointer}
   .sg-submit:active{transform:translateY(1px)}
   #sgMsg{font-size:13px;color:#1b8a5a;margin-top:9px;min-height:18px;text-align:center}
+  #cmBody h3{margin:2px 30px 12px 0;font-size:18px;color:#1b3a2b}
+  .cm-stat{font-size:14px;color:#445;background:#eef6f0;border:1px solid #d6e8dc;border-radius:11px;padding:11px 12px;margin:0 0 15px;text-align:center}
+  .cm-stat b{font-size:21px;color:#176a3a;margin-right:2px}
+  #cmName{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccd;border-radius:11px;font-size:14px}
+  .cm-quick{font-size:12.5px;color:#667;margin-top:9px}
+  .cm-quick a{color:#1565c0;cursor:pointer;font-weight:700;text-decoration:underline}
+  .cm-note{font-size:11.5px;color:#8a93a0;margin-top:7px}
+  .cm-note b{color:#d500f9}
+  #cmMsg{font-size:13px;color:#c0392b;margin-top:9px;min-height:18px;text-align:center}
   .pm-cid{font-size:11px;color:#aab;font-weight:400}
   .noticebtn{position:relative;cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none}
   .nt-badge{position:absolute;top:-7px;right:-7px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#e53935;color:#fff;font:700 10px/17px sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.35)}
@@ -334,6 +343,10 @@ __GTAG__
 <div id="noticeModal" class="pmodal-wrap">
   <div class="pmodal-bg" onclick="closeNotices()"></div>
   <div class="pmodal"><button class="pmodal-x" onclick="closeNotices()">✕</button><div id="ntBody"></div></div>
+</div>
+<div id="courseModal" class="pmodal-wrap">
+  <div class="pmodal-bg" onclick="closeCourseModal()"></div>
+  <div class="pmodal"><button class="pmodal-x" onclick="closeCourseModal()">✕</button><div id="cmBody"></div></div>
 </div>
 <!-- TRIPHTML -->
 <div id="tripbar"><button id="tripStart" class="tb-start">▶ 카누잉 시작</button><button id="tripLog" class="tb-log">📋 기록</button></div>
@@ -923,14 +936,33 @@ function finishMeasure(){
   measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn(); _showMeasMode(false); measHint(false);
 }
 let _lastCourse=null;
-async function saveCoursePrompt(){
+function closeCourseModal(){ document.getElementById('courseModal').classList.remove('open'); }
+function cmPrefix(p){ const i=document.getElementById('cmName'); if(!i) return; i.value=p+i.value.replace(/^(초심자코스#|엑스페디션#)\s*/,''); i.focus(); }
+function saveCoursePrompt(){   // 스타일 모달
   if(!isAdmin()||!_lastCourse) return;
-  const name=prompt('코스 이름을 입력하세요\n예: 초심자코스#3 청라호수공원 한바퀴\n※ # 앞부분이 카테고리(엑스페디션 / 초심자코스 …)');
-  if(name===null||!name.trim()) return;
+  document.getElementById('cmBody').innerHTML=
+    '<h3>💾 코스 등록</h3>'
+    +'<div class="cm-stat"><b>'+_lastCourse.km.toFixed(2)+'</b> km · '+_lastCourse.coords.length+'개 점</div>'
+    +'<div class="sg-label">코스 이름</div>'
+    +'<input id="cmName" placeholder="예: 초심자코스#3 청라호수공원 한바퀴" maxlength="80">'
+    +'<div class="cm-quick">빠른 분류: <a onclick="cmPrefix(\'초심자코스#\')">초심자코스</a> · <a onclick="cmPrefix(\'엑스페디션#\')">엑스페디션</a></div>'
+    +'<div class="cm-note">※ <b>#</b> 앞부분이 카테고리(색상)로 분류됩니다</div>'
+    +'<button class="sg-submit" id="cmSave">코스 등록</button><div id="cmMsg"></div>';
+  document.getElementById('courseModal').classList.add('open');
+  document.getElementById('cmSave').onclick=doSaveCourse;
+  setTimeout(function(){ const i=document.getElementById('cmName'); if(i) i.focus(); }, 60);
+}
+async function doSaveCourse(){
+  if(!isAdmin()||!_lastCourse) return;
+  const name=(document.getElementById('cmName').value||'').trim();
+  const msg=document.getElementById('cmMsg');
+  if(!name){ msg.textContent='코스 이름을 입력하세요'; return; }
+  msg.textContent='저장 중…';
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/course',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'add',adminKey:adminKey(),name:name.trim(),coords:_lastCourse.coords,km:_lastCourse.km})});
-    if(r.ok){ gaEvent('course_add'); map.closePopup(); renderKVCourse({id:Date.now(),name:name.trim(),coords:_lastCourse.coords,km:_lastCourse.km}); alert('✅ 코스 등록 완료!'); }
-    else alert('등록 실패('+(r.status===403?'관리자 권한 확인':'서버 확인')+')'); }catch(e){ alert('오류'); }
+    body:JSON.stringify({action:'add',adminKey:adminKey(),name:name,coords:_lastCourse.coords,km:_lastCourse.km})});
+    if(r.ok){ gaEvent('course_add'); renderKVCourse({id:Date.now(),name:name,coords:_lastCourse.coords,km:_lastCourse.km}); _lastCourse=null; closeCourseModal(); map.closePopup(); }
+    else msg.textContent=(r.status===403?'관리자 권한 확인 필요':'등록 실패'); }
+  catch(e){ msg.textContent='오류'; }
 }
 // Overpass 미러 + 재시도 (서버 혼잡 대응)
 function overpassOne(url,q,ms){
