@@ -91,6 +91,7 @@ __GTAG__
   .search button{padding:5px 9px;margin-left:3px;cursor:pointer;font-size:13px}
   .sr-item{margin-top:5px;font-size:12px}
   .sr-item a{color:#1565c0;text-decoration:none}
+  .course-share{color:#1565c0;cursor:pointer;text-decoration:none;font-weight:600}
   #hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:1000;
         background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
         font:12px sans-serif;transition:opacity .6s;pointer-events:none}
@@ -660,7 +661,7 @@ Object.keys(_courseGroups).forEach(function(sc){
   // 투명 넓은 탭 영역(어디를 탭/클릭해도 정보)
   const hit=L.geoJSON(fc,{style:{color:'#000',weight:22,opacity:0},
     onEachFeature:(f,l)=>{ const p=f.properties||{};
-      const html='<b>'+(p.cid?('C'+p.cid+' '):'')+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'');
+      const html='<b>'+(p.cid?('C'+p.cid+' '):'')+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'')+(p.cid?'<br><a class="course-share" onclick="shareCourse(\''+p.cid+'\')">🔗 코스 공유</a>':'');
       l.bindPopup(html); if(!isTouch) l.bindTooltip(html,{sticky:true,direction:'top',opacity:0.95}); }
   });
   courseLayers[sc]=L.layerGroup([casing,line,hit]).addTo(map);
@@ -762,7 +763,7 @@ function renderKVCourse(c){
   const sc=courseSubcat(c.name), col=subcatColor(sc), coords=c.coords;
   const casing=L.polyline(coords,{color:'#2a0a4a',weight:8,opacity:.55,interactive:false});
   const line=L.polyline(coords,{color:col,weight:5,opacity:.95,interactive:false});
-  const html='<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?'<br>약 '+c.km+'km':'')+(isAdmin()?'<br><a onclick="deleteCourse(\''+c.id+'\')" style="color:#c62828;cursor:pointer">코스 삭제</a>':'');
+  const html='<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?'<br>약 '+c.km+'km':'')+'<br><a class="course-share" onclick="shareCourse(\'k'+c.id+'\')">🔗 코스 공유</a>'+(isAdmin()?' <a onclick="deleteCourse(\''+c.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':'');
   const hit=L.polyline(coords,{color:'#000',weight:22,opacity:0}); hit.bindPopup(html); if(!isTouch) hit.bindTooltip('<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?' '+c.km+'km':''),{sticky:true,direction:'top'});
   let grp=courseLayers[sc];
   if(!grp){ grp=L.layerGroup().addTo(map); courseLayers[sc]=grp; _courseGroups[sc]=_courseGroups[sc]||[]; if(_layerControl) _layerControl.addOverlay(grp,'코스 · '+sc); }
@@ -770,6 +771,26 @@ function renderKVCourse(c){
 }
 function loadCourses(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ (list||[]).forEach(renderKVCourse); }).catch(function(){}); }
 loadCourses();
+// ---- 코스 URL 공유 ----
+function courseShareUrl(idStr){ return location.origin+location.pathname+'?course='+encodeURIComponent(idStr); }
+function shareCourse(idStr){ const u=courseShareUrl(idStr); gaEvent('course_share');
+  if(navigator.share){ navigator.share({title:'마이카누 코스',url:u}).catch(function(){}); }
+  else if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(u).then(function(){ alert('코스 링크가 복사됐어요!\n'+u); }).catch(function(){ prompt('아래 링크 복사', u); }); }
+  else prompt('아래 링크 복사', u); }
+function _fitAndPop(ll, name, km){ if(!ll||ll.length<2) return; try{ map.fitBounds(L.latLngBounds(ll).pad(0.2)); }catch(e){ return; }
+  L.popup().setLatLng(ll[Math.floor(ll.length/2)]).setContent('<b>'+pmEsc(name||'코스')+'</b>'+(km?'<br>약 '+km+'km':'')).openOn(map); }
+function focusCourseFromUrl(){
+  let id=null; const m=(location.search||'').match(/[?&]course=([^&]+)/); if(m) id=decodeURIComponent(m[1]);
+  if(!id){ try{ id=sessionStorage.getItem('mc_course_focus'); }catch(e){} }
+  if(!id) return;
+  const u=getUser(); if(!u||!u.uid){ try{ sessionStorage.setItem('mc_course_focus', id); }catch(e){} return; }  // 로그인 후 포커스
+  try{ sessionStorage.removeItem('mc_course_focus'); }catch(e){}
+  if(id.charAt(0)==='k'){ const kid=id.slice(1);   // KV 코스: 별도 조회
+    fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ const c=(list||[]).find(function(x){return String(x.id)===String(kid);}); if(c) _fitAndPop(c.coords, c.name, c.km); }).catch(function(){});
+    return; }
+  const f=COURSES.features.find(function(x){ return String((x.properties||{}).cid)===String(id); });
+  if(f) _fitAndPop(f.geometry.coordinates.map(function(c){return [c[1],c[0]];}), f.properties.name, f.properties.km); }
+setTimeout(focusCourseFromUrl, 1200);
 async function deleteCourse(id){ if(!isAdmin()) return; if(!confirm('이 등록 코스를 삭제할까요?\n(새로고침 후 반영)')) return;
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/course',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',adminKey:adminKey(),courseId:id})});
     if(r.ok){ map.closePopup(); alert('삭제됨 — 새로고침하면 사라집니다'); } }catch(e){} }
