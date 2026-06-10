@@ -409,7 +409,7 @@ const CafeCtl=L.Control.extend({ options:{position:'bottomright'},
     return d; } });
 
 const baseOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+  {maxZoom:19, attribution:'© OpenStreetMap'});   // 기본 추가는 저장된 설정으로(아래)
 const SAT_MAXZOOM=18;   // 위성(Esri) 고배율 미제공 줌에서 'Map data not yet available' 방지 — 여기서 멈춤
 const satImg = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   {maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, attribution:'Tiles © Esri'});
@@ -690,8 +690,13 @@ Object.keys(courseLayers).forEach(function(sc){ _ov['코스 · '+sc]=courseLayer
 _ov['명소'] = famousLayer;
 _ov['런칭/랜딩'] = canoeLayer;
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:true, position:'topright'}).addTo(map);
-// 위성지도일 때 최대 줌 제한(고배율 미제공 → 더 확대 안 되고 멈춤). 일반지도면 복원
-map.on('baselayerchange', function(e){ const mz=(e.name==='위성지도')?SAT_MAXZOOM:19; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); });
+// 위성지도일 때 최대 줌 제한 + 선택 저장(다음 접속에 유지)
+map.on('baselayerchange', function(e){ const mz=(e.name==='위성지도')?SAT_MAXZOOM:19; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz);
+  try{ localStorage.setItem('mc_basemap', e.name); }catch(err){} });
+// 저장된 베이스맵으로 시작(기본 일반지도)
+(function(){ let saved='일반지도'; try{ saved=localStorage.getItem('mc_basemap')||'일반지도'; }catch(e){}
+  if(saved==='위성지도'){ baseSat.addTo(map); map.setMaxZoom(SAT_MAXZOOM); if(map.getZoom()>SAT_MAXZOOM) map.setZoom(SAT_MAXZOOM); }
+  else baseOSM.addTo(map); })();
 
 // ---- 등록 코스(KV) 로드/렌더 ----
 const _kvCourseGrp=L.layerGroup();
