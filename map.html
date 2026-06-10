@@ -234,10 +234,21 @@ function isAdmin(){ return _adminOk; }
 async function _adminVerify(k){ try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/admincheck',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}); const d=await r.json(); return !!(d&&d.ok); }catch(e){ return false; } }
 function _adminBadge(on){ let el=document.getElementById('adminBadge');
   if(on){ if(!el){ el=document.createElement('div'); el.id='adminBadge'; el.className='admin-badge';
-    el.innerHTML='<span class="ab-dot"></span>🔧 관리자 모드 <a id="adminOff">해제</a>'; document.body.appendChild(el);
+    el.innerHTML='<span class="ab-dot"></span>🔧 관리자 <a id="adminExport">코멘트내보내기</a> <a id="adminOff">해제</a>'; document.body.appendChild(el);
+    document.getElementById('adminExport').onclick=exportComments;
     document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
   else if(el){ el.remove(); } }
 function _setAdmin(on){ _adminOk=on; _adminBadge(on); }
+async function exportComments(){
+  if(!isAdmin()) return;
+  if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'export',id:'admin',adminKey:adminKey()})});
+    let d=null; try{ d=await r.json(); }catch(e){}
+    if(r.ok&&d){ alert('완료: 기존 코멘트 '+(d.exported||0)+'개를 시트로 내보냈어요'); }
+    else alert('실패 ('+(r.status===403?'관리자 권한 확인':'서버 확인')+')'); }
+  catch(e){ alert('오류'); }
+}
 function closeAuthModal(){ const m=document.getElementById('authModal'); if(m) m.classList.remove('open'); }
 function openAdminAuth(){
   const m=document.getElementById('authModal'); if(!m) return;
