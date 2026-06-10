@@ -44,11 +44,17 @@ for k in _newk:
     _ids[k] = _reg["next"]; _reg["next"] += 1
 _idf.write_text(json.dumps(_reg, ensure_ascii=False, indent=0), encoding="utf-8")
 
+# ---- 로드뷰 존재 여부(사전계산: build_roadview.py) ----
+_rvf = BASE / "roadview.json"
+_rv = json.loads(_rvf.read_text(encoding="utf-8")) if _rvf.exists() else {}
+
 pfeats = [{"type": "Feature",
            "geometry": {"type": "Point", "coordinates": [v["lng"], v["lat"]]},
-           "properties": {"name": v.get("name", ""), "memo": v.get("memo", ""), "id": _ids.get(k)}}
+           "properties": {"name": v.get("name", ""), "memo": v.get("memo", ""), "id": _ids.get(k),
+                          "rv": bool((_rv.get(str(k)) or {}).get("rv"))}}
           for k, v in items.items() if v.get("lat") is not None]
 points = {"type": "FeatureCollection", "features": pfeats}
+print(f"로드뷰 있음 {sum(1 for f in pfeats if f['properties']['rv'])}/{len(pfeats)}")
 polygons = json.loads((BASE / "protect_polygons.geojson").read_text(encoding="utf-8"))
 _cf = BASE / "courses.geojson"
 courses = json.loads(_cf.read_text(encoding="utf-8")) if _cf.exists() else {"type": "FeatureCollection", "features": []}
@@ -117,6 +123,9 @@ __GTAG__
   .lc-key{margin-top:2px}
   .lc-key .lg-row{margin:2px 0}
   .sw-course{background:linear-gradient(90deg,#7c4dff 0 33%,#d500f9 33% 66%,#00897b 66% 100%)!important}
+  .rv-sw{display:inline-block;width:14px;margin-right:6px;text-align:center;font-size:12px;flex:none}
+  .leaflet-div-icon.rv-div{background:transparent;border:0;width:auto!important;height:auto!important}
+  .rv-div .rv-badge{position:absolute;transform:translate(-50%,-150%);font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
   .lg-sub{font-weight:700;font-size:11.5px;color:#2a3b34;margin:6px 0 2px;padding-top:5px;border-top:1px solid #eee}
   .lg-note{font-weight:400;color:#8a948e;font-size:10px}
   .lg-row{display:flex;align-items:center;margin:2px 0;line-height:1.4}
@@ -524,7 +533,7 @@ const satLabels = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
 const baseSat = L.layerGroup([satImg, satLabels]);     // 위성 + OSM 지명(반투명) 하이브리드
 
 // ---- 외부 지도 딥링크 (안드로이드 intent / iOS scheme / 데스크톱 웹) ----
-function extLinks(lat,lng,label){
+function extLinks(lat,lng,label,hasRv){   // hasRv===false 면 로드뷰 링크 숨김(없는 곳)
   const nm=(label||'위치').replace(/,/g,' ').trim().slice(0,30)||'위치';
   const enc=encodeURIComponent(nm);
   let k,n,r,tgt='';
@@ -543,7 +552,8 @@ function extLinks(lat,lng,label){
     r=rvWeb;
     tgt=' target="_blank" rel="noopener"';
   }
-  return '<br><a href="'+k+'"'+tgt+'>카카오맵</a> &middot; <a href="'+n+'"'+tgt+'>네이버맵</a> &middot; <a href="'+r+'"'+tgt+'>🛣️로드뷰</a>';
+  const rvLink=(hasRv===false)?'':' &middot; <a href="'+r+'"'+tgt+'>🛣️로드뷰</a>';
+  return '<br><a href="'+k+'"'+tgt+'>카카오맵</a> &middot; <a href="'+n+'"'+tgt+'>네이버맵</a>'+rvLink;
 }
 
 // ---- 역지오코딩: V-World 직접 호출(JSONP, 지번) → 실패시 Nominatim ----
@@ -719,12 +729,12 @@ function pmEsc(s){ return (s||'').replace(/[<>&]/g,function(c){return {'<':'&lt;
 function linkify(s){ return pmEsc(s||'').replace(/(https?:\/\/[^\s<]+)/g,function(u){
   var tail='',m=u.match(/[.,!?)\]]+$/); if(m){ tail=m[0]; u=u.slice(0,-tail.length); }
   return '<a href="'+u+'" target="_blank" rel="noopener" style="color:#1565c0;word-break:break-all">'+u+'</a>'+tail; }); }
-function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return {name:p.name||'',lat:c[1],lng:c[0],memo:p.memo||'',cat:isSpot(p.name)?'명소':'런칭랜딩',id:p.id}; }
+function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return {name:p.name||'',lat:c[1],lng:c[0],memo:p.memo||'',cat:isSpot(p.name)?'명소':'런칭랜딩',id:p.id,rv:!!p.rv}; }
 let _pmPlace=null,_pmSlug=null;
 function openPlaceModal(pl){
   _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
   document.getElementById('pmTitle').textContent=(pl.id?('#'+pl.id+' '):'')+(pl.name||'장소');
-  document.getElementById('pmLinks').innerHTML=extLinks(pl.lat,pl.lng,pl.name||'위치')+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
+  document.getElementById('pmLinks').innerHTML=extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
   document.getElementById('pmCnt').textContent=''; document.getElementById('pmInput').value=''; document.getElementById('pmMsg').textContent='';
@@ -856,7 +866,7 @@ const SPOTS=['마이카누','라온카누','캐나디언카누클럽','장자늪
 function isSpot(nm){ nm=(nm||'').replace(/\s/g,''); return SPOTS.some(function(s){ return nm.indexOf(s.replace(/\s/g,''))>=0; }); }
 function ptPopup(f){ const p=f.properties, c=f.geometry.coordinates;
   let h='<b>'+(p.name||'(이름없음)')+'</b>'; if(p.memo) h+='<br>'+p.memo;
-  h+=extLinks(c[1],c[0],p.name); return h; }
+  h+=extLinks(c[1],c[0],p.name,!!p.rv); return h; }
 const spotFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return isSpot(f.properties.name);})};
 const landFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return !isSpot(f.properties.name);})};
 const CANOE_SVG='<svg viewBox="0 0 64 40"><path d="M2 20C2 13 16 10 32 10C48 10 62 13 62 20C62 27 48 30 32 30C16 30 2 27 2 20Z" fill="#fff"/><path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#cfe3f5"/><path d="M23 15.5V24.5M41 15.5V24.5" stroke="#5a9bd4" stroke-width="2.2" stroke-linecap="round"/></svg>';
@@ -882,6 +892,12 @@ const canoeLayer = L.geoJSON(landFeats, {
 function applyZoomIcons(){ const dot=map.getZoom()<Z_ICON; const f=function(m){ if(!m._kind||m._isDot===dot) return; m._isDot=dot; m.setIcon(dot?dotIcon(m._kind):fullIcon(m._kind)); };
   famousLayer.eachLayer(f); canoeLayer.eachLayer(f); }
 map.on('zoomend', applyZoomIcons);
+// 로드뷰 있는 장소 표식 레이어(기본 OFF, 토글) — 사전계산(properties.rv)
+const _rvCount=POINTS.features.filter(function(f){return f.properties.rv;}).length;
+const roadviewLayer = L.layerGroup(POINTS.features.filter(function(f){return f.properties.rv;}).map(function(f){
+  const c=f.geometry.coordinates;
+  return L.marker([c[1],c[0]],{icon:L.divIcon({className:'rv-div',html:'<span class="rv-badge">🛣️</span>',iconSize:null}),interactive:false,keyboard:false});
+}));
 
 // ---- 레이어 + 범례 통합 패널 ----
 function _sw(c){ return '<span class="sw" style="background:'+c+'"></span>'; }
@@ -890,6 +906,7 @@ _ov[_sw('rgba(229,57,53,.45)')+'상수원보호'] = protectLayer;
 _ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup;   // 코스 전체 단일 토글
 _ov[_sw('#ec407a')+'명소'] = famousLayer;
 _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
+_ov['<span class="rv-sw">🛣️</span>로드뷰 있음'] = roadviewLayer;   // 기본 OFF
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // 패널에 제목 + 토글불가 항목(코스 종류·장애물) 색상 키를 함께 표시 = 범례 통합
 (function(){ const c=_layerControl.getContainer(); if(!c) return;

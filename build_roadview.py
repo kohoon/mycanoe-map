@@ -48,7 +48,7 @@ def load_places():
 
 
 HTML = """<!doctype html><html><head><meta charset="utf-8">
-<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=%KEY%&autoload=false"></script>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=%KEY%&autoload=false"></script>
 </head><body><div id="map" style="width:1px;height:1px"></div>
 <script>
 window.__ready=false;
