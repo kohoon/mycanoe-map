@@ -708,21 +708,26 @@ function overpassOne(url,q,ms){
 const _opCache={};   // 세션 캐시(같은 영역 재측정 즉시)
 async function overpassFetch(q){
   if(_opCache[q]) return _opCache[q];
-  // 미러 동시 요청 → 가장 먼저 응답하는 것 채택(속도)
+  // 미러 동시 요청 → 데이터가 있는(elements>0) 응답을 우선 채택(빈 응답이 이기지 않게)
   const mirrors=['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.osm.ch/api/interpreter'];
+  let fallback=null;
   for(let round=0; round<3; round++){
     const got=await new Promise(function(resolve){
       let pending=mirrors.length, settled=false;
       mirrors.forEach(function(m){ overpassOne(m,q,11000).then(function(j){
-        if(settled) return; if(j){ settled=true; resolve(j); } else if(--pending===0) resolve(null); }); });
+        if(settled) return;
+        if(j && j.elements && j.elements.length>0){ settled=true; resolve(j); }   // 실제 물길 데이터
+        else { if(j) fallback=j; if(--pending===0) resolve(null); }
+      }); });
     });
     if(got){ _opCache[q]=got; return got; }
     await new Promise(function(res){ setTimeout(res,400); });
   }
+  if(fallback){ _opCache[q]=fallback; return fallback; }   // 정말 물길이 없는 영역일 때만(→직선)
   return null;
 }
 async function waterRoute(p1,p2){
-  const pad=Math.max(0.02, Math.abs(p1.lat-p2.lat)*0.3, Math.abs(p1.lng-p2.lng)*0.3);  // 작게(빠름) + 멀면 적응 확대
+  const pad=Math.max(0.035, Math.abs(p1.lat-p2.lat)*0.35, Math.abs(p1.lng-p2.lng)*0.35);  // 강 굽이 포함되게 충분히
   const r3=function(x){return Math.round(x*1000)/1000;};   // bbox 100m 라운딩(캐시 적중↑)
   const s=r3(Math.min(p1.lat,p2.lat)-pad), w=r3(Math.min(p1.lng,p2.lng)-pad), n=r3(Math.max(p1.lat,p2.lat)+pad), e=r3(Math.max(p1.lng,p2.lng)+pad);
   const q='[out:json][timeout:25];(way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+'););out geom;';
