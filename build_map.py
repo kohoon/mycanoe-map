@@ -505,9 +505,12 @@ const SAT_MAXZOOM=18;   // 위성(Esri) 고배율 미제공 줌에서 'Map data 
 const satImg = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   {maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, attribution:'Tiles © Esri'});
 map.createPane('satLabelsPane'); map.getPane('satLabelsPane').style.zIndex='350'; map.getPane('satLabelsPane').style.pointerEvents='none';
-// OSM(일반지도) 기반 지명 라벨-전용 오버레이(CARTO) — 일반지도와 같은 지명, 키 불필요
-const satLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
-  {subdomains:'abcd', maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, pane:'satLabelsPane', attribution:'© OpenStreetMap, © CARTO'});
+// 지명 라벨-전용 오버레이: VWorld Hybrid(한글 지명·도로·경계, 투명) 우선, 키 없으면 CARTO(영문 가능)
+const satLabels = VKEY
+  ? L.tileLayer('https://api.vworld.kr/req/wmts/1.0.0/'+VKEY+'/Hybrid/{z}/{y}/{x}.png',
+      {maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, pane:'satLabelsPane', attribution:'© VWorld'})
+  : L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
+      {subdomains:'abcd', maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, pane:'satLabelsPane', attribution:'© OpenStreetMap, © CARTO'});
 const baseSat = L.layerGroup([satImg, satLabels]);     // 위성+지명 하이브리드
 
 // ---- 외부 지도 딥링크 (안드로이드 intent / iOS scheme / 데스크톱 웹) ----
@@ -678,7 +681,8 @@ function courseSubcat(name){ const m=(name||'').match(/^([^#0-9]+)/); return (m?
 const _courseGroups={};   // 서브카테고리 -> features
 COURSES.features.forEach(function(f){ const sc=courseSubcat((f.properties||{}).name);
   (_courseGroups[sc]=_courseGroups[sc]||[]).push(f); });
-const courseLayers={};    // 서브카테고리 -> layerGroup
+const courseLayers={};    // 서브카테고리 -> layerGroup(전체 코스 그룹에 포함)
+const allCoursesGroup=L.layerGroup().addTo(map);   // 코스 전체 토글(단일 레이어 항목)
 let _courseLegendHtml='';
 Object.keys(_courseGroups).forEach(function(sc){
   const fc={type:'FeatureCollection',features:_courseGroups[sc]};
@@ -692,7 +696,7 @@ Object.keys(_courseGroups).forEach(function(sc){
       const html='<b>'+(p.cid?('C'+p.cid+' '):'')+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'')+(p.cid?'<br><a class="course-share" onclick="shareCourse(\''+p.cid+'\')">🔗 코스 공유</a> <a class="course-share" onclick="courseCmt(\'c\',\''+p.cid+'\')">💬 코멘트</a>':'');
       l.bindPopup(html); if(!isTouch) l.bindTooltip(html,{sticky:true,direction:'top',opacity:0.95}); }
   });
-  courseLayers[sc]=L.layerGroup([casing,line,hit]).addTo(map);
+  courseLayers[sc]=L.layerGroup([casing,line,hit]); allCoursesGroup.addLayer(courseLayers[sc]);
 });
 
 // ---- 장소 상세 모달 + 코멘트 ----
@@ -745,11 +749,10 @@ function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
   m.addTo(obstacleLayer); o._m=m; }
 function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();})
   .then(function(list){ (list||[]).forEach(renderObstacle); _syncObstacleVis(); }).catch(function(){}); }
-// 장애물 표시 = 코스 레이어가 하나라도 켜져 있을 때(별도 레이어 항목 없음)
-function _anyCourseOn(){ return Object.keys(courseLayers).some(function(sc){ return map.hasLayer(courseLayers[sc]); }); }
-function _syncObstacleVis(){ if(_anyCourseOn()){ if(!map.hasLayer(obstacleLayer)) obstacleLayer.addTo(map); }
+// 장애물 표시 = 코스 전체 레이어가 켜져 있을 때(별도 레이어 항목 없음)
+function _syncObstacleVis(){ if(map.hasLayer(allCoursesGroup)){ if(!map.hasLayer(obstacleLayer)) obstacleLayer.addTo(map); }
   else if(map.hasLayer(obstacleLayer)) map.removeLayer(obstacleLayer); }
-map.on('overlayadd overlayremove', function(e){ if(e&&e.name&&e.name.indexOf('코스')===0) _syncObstacleVis(); });
+map.on('overlayadd overlayremove', function(e){ if(e&&e.layer===allCoursesGroup) _syncObstacleVis(); });
 loadObstacles();
 // 장애물 추가(관리자 전용 버튼 — 거리측정 버튼 옆)
 let obsPlaceMode=false;
@@ -866,7 +869,7 @@ map.on('zoomend', applyZoomIcons);
 // ---- 레이어 토글 ----
 const _ov = {};
 _ov['상수원보호'] = protectLayer;
-Object.keys(courseLayers).forEach(function(sc){ _ov['코스 · '+sc]=courseLayers[sc]; });
+_ov['🛶 카누잉 코스'] = allCoursesGroup;   // 코스 전체 단일 토글
 _ov['명소'] = famousLayer;
 _ov['런칭/랜딩'] = canoeLayer;
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:true, position:'topright'}).addTo(map);
@@ -890,7 +893,7 @@ function renderKVCourse(c){
   const html='<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?'<br>약 '+c.km+'km':'')+'<br><a class="course-share" onclick="shareCourse(\'k'+c.id+'\')">🔗 코스 공유</a> <a class="course-share" onclick="courseCmt(\'k\',\''+c.id+'\')">💬 코멘트</a>'+(isAdmin()?'<br><a onclick="editCourse(\''+c.id+'\')" style="color:#1565c0;cursor:pointer">수정</a> <a onclick="deleteCourse(\''+c.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':'');
   const hit=L.polyline(coords,{color:'#000',weight:22,opacity:0}); hit.bindPopup(html); if(!isTouch) hit.bindTooltip('<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?' '+c.km+'km':''),{sticky:true,direction:'top'});
   let grp=courseLayers[sc];
-  if(!grp){ grp=L.layerGroup().addTo(map); courseLayers[sc]=grp; _courseGroups[sc]=_courseGroups[sc]||[]; if(_layerControl) _layerControl.addOverlay(grp,'코스 · '+sc); }
+  if(!grp){ grp=L.layerGroup(); courseLayers[sc]=grp; allCoursesGroup.addLayer(grp); }
   casing.addTo(grp); line.addTo(grp); hit.addTo(grp);
 }
 function loadCourses(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ (list||[]).forEach(renderKVCourse); }).catch(function(){}); }
