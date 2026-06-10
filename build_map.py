@@ -109,8 +109,13 @@ __GTAG__
   .obs-div .obs-ic{position:absolute;transform:translate(-50%,-50%)}
   #obNote{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccd;border-radius:11px;font-size:14px;resize:vertical;font-family:inherit}
   #obMsg{font-size:13px;color:#888;margin-top:9px;min-height:18px;text-align:center}
-  .lg-obs{margin-top:6px;font-size:11px;color:#556;line-height:1.9}
-  .lg-obs .obs-ic{font-size:10px;padding:1px 6px;border-width:1.5px;vertical-align:middle}
+  .lg-sub{font-weight:700;font-size:11.5px;color:#2a3b34;margin:6px 0 2px;padding-top:5px;border-top:1px solid #eee}
+  .lg-note{font-weight:400;color:#8a948e;font-size:10px}
+  .lg-row{display:flex;align-items:center;margin:2px 0;line-height:1.4}
+  .legend .ln{display:inline-block;width:16px;height:4px;border-radius:2px;margin-right:6px;flex:none}
+  .legend .sw{flex:none}
+  .lg-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+  .lg-pills .obs-ic{font-size:10px;padding:1px 6px;border-width:1.5px;box-shadow:0 1px 3px rgba(0,0,0,.3)}
   .meas-pill{background:#ff7043;color:#fff;border-radius:11px;padding:2px 8px;font:700 12px sans-serif;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;text-align:center}
   .locbtn{cursor:pointer;background:#fff;width:40px;height:40px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);user-select:none;display:flex;align-items:center;justify-content:center}
   .locbtn.loading{opacity:.45}
@@ -675,9 +680,10 @@ const protectLayer = L.geoJSON(POLYS, {
 
 // ---- 카누잉코스 (물길 따라, 에메랄드 단일색 + 외곽선) ----
 // 서브카테고리별 색상(보라 계열, 서로 구분)
-const COURSE_COLORS={'엑스페디션':'#7c4dff','초심자코스':'#d500f9'};
-function subcatColor(sc){ return COURSE_COLORS[sc]||'#7c4dff'; }
-function courseSubcat(name){ const m=(name||'').match(/^([^#0-9]+)/); return (m?m[1]:'코스').trim()||'코스'; }
+const COURSE_COLORS={'엑스페디션':'#7c4dff','초심자코스':'#d500f9','기타':'#00897b'};
+const KNOWN_CATS=['엑스페디션','초심자코스'];
+function subcatColor(sc){ return COURSE_COLORS[sc]||COURSE_COLORS['기타']; }
+function courseSubcat(name){ for(var i=0;i<KNOWN_CATS.length;i++){ if((name||'').indexOf(KNOWN_CATS[i])===0) return KNOWN_CATS[i]; } return '기타'; }
 const _courseGroups={};   // 서브카테고리 -> features
 COURSES.features.forEach(function(f){ const sc=courseSubcat((f.properties||{}).name);
   (_courseGroups[sc]=_courseGroups[sc]||[]).push(f); });
@@ -687,7 +693,6 @@ let _courseLegendHtml='';
 Object.keys(_courseGroups).forEach(function(sc){
   const fc={type:'FeatureCollection',features:_courseGroups[sc]};
   const col=subcatColor(sc);
-  _courseLegendHtml+='<br><span class="sw" style="width:16px;height:4px;background:'+col+'"></span>'+sc;
   const casing=L.geoJSON(fc,{style:{color:'#2a0a4a',weight:8,opacity:0.55},interactive:false});
   const line=L.geoJSON(fc,{style:{color:col,weight:5,opacity:0.95},interactive:false});
   // 투명 넓은 탭 영역(어디를 탭/클릭해도 정보)
@@ -1365,13 +1370,16 @@ async function deleteNotice(nid){ if(!isAdmin()) return; if(!confirm('이 공지
 // ---- 범례 ----
 const legend = L.control({position:'bottomright'});
 legend.onAdd=function(){ const d=L.DomUtil.create('div','legend legend-c');
-  d.innerHTML='<b>범례</b>'+
-    '<span class="sw" style="background:#ec407a"></span>명소<br>'+
-    '<span class="sw" style="background:#2196f3"></span>런칭/랜딩<br>'+
-    '<span class="sw" style="background:rgba(229,57,53,.4)"></span>상수원보호'+
-    _courseLegendHtml+
-    '<div class="lg-obs">⚠️ 장애물(코스와 함께 표시)<br>'
-    +'<span class="obs-ic obs-bo">🚧 보</span> <span class="obs-ic obs-jing">🪨 징검다리</span> <span class="obs-ic obs-shal">〰️ 얕음</span></div>';
+  function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
+  d.innerHTML='<b>범례</b>'
+    +'<div class="lg-sub">장소</div>'
+    +'<div class="lg-row"><span class="sw" style="background:#ec407a"></span>명소</div>'
+    +'<div class="lg-row"><span class="sw" style="background:#2196f3"></span>런칭/랜딩</div>'
+    +'<div class="lg-row"><span class="sw" style="background:rgba(229,57,53,.45)"></span>상수원보호</div>'
+    +'<div class="lg-sub">코스</div>'
+    +ln('엑스페디션')+ln('초심자코스')+ln('기타')
+    +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">코스와 함께</span></div>'
+    +'<div class="lg-pills"><span class="obs-ic obs-bo">🚧 보</span><span class="obs-ic obs-jing">🪨 징검다리</span><span class="obs-ic obs-shal">〰️ 얕음</span></div>';
   return d; };
 legend.addTo(map);
 map.addControl(new CafeCtl());   // 카페 카드: 범례 위(우하단)에 표시
