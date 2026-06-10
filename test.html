@@ -611,7 +611,7 @@ Object.keys(_courseGroups).forEach(function(sc){
   // 투명 넓은 탭 영역(어디를 탭/클릭해도 정보)
   const hit=L.geoJSON(fc,{style:{color:'#000',weight:22,opacity:0},
     onEachFeature:(f,l)=>{ const p=f.properties||{};
-      const html='<b>'+(p.cid?('C'+p.cid+' '):'')+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'')+(p.cid?'<br><a class="course-share" onclick="shareCourse(\''+p.cid+'\')">🔗 코스 공유</a>':'');
+      const html='<b>'+(p.cid?('C'+p.cid+' '):'')+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'')+(p.cid?'<br><a class="course-share" onclick="shareCourse(\''+p.cid+'\')">🔗 코스 공유</a> <a class="course-share" onclick="courseCmt(\'c\',\''+p.cid+'\')">💬 코멘트</a>':'');
       l.bindPopup(html); if(!isTouch) l.bindTooltip(html,{sticky:true,direction:'top',opacity:0.95}); }
   });
   courseLayers[sc]=L.layerGroup([casing,line,hit]).addTo(map);
@@ -636,6 +636,23 @@ function openPlaceModal(pl){
   gaEvent('place_open',{name:pl.name||''}); loadComments();
 }
 function closePlaceModal(){ document.getElementById('pmodal').classList.remove('open'); }
+// 코스 코멘트 — 장소 모달(#pmodal) 재사용, 코스별 키로 저장
+const _courseByCid={};
+COURSES.features.forEach(function(f){ const p=f.properties||{}; if(p.cid!=null) _courseByCid[String(p.cid)]={name:p.name||'코스',km:p.km||0}; });
+function openCourseComments(key,name,km,shareId){
+  _pmPlace={name:name||'코스'}; _pmSlug=key;
+  document.getElementById('pmTitle').textContent='🛶 '+(name||'코스');
+  document.getElementById('pmLinks').innerHTML=(km?'<div class="pm-memo">약 '+km+'km</div>':'')+(shareId?'<a class="course-share" onclick="shareCourse(\''+shareId+'\')">🔗 코스 공유</a>':'');
+  document.getElementById('pmAdmin').innerHTML='';
+  document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
+  document.getElementById('pmCnt').textContent=''; document.getElementById('pmInput').value=''; document.getElementById('pmMsg').textContent='';
+  document.getElementById('pmodal').classList.add('open');
+  gaEvent('course_open',{name:name||''}); loadComments();
+}
+function courseCmt(kind,id){
+  if(kind==='c'){ const c=_courseByCid[String(id)]; if(c) openCourseComments('course_c'+id, c.name, c.km, id); }
+  else { const c=_kvCourses[id]; if(c) openCourseComments('course_k'+id, c.name, c.km, 'k'+id); }
+}
 async function loadComments(){ if(!WORKER_URL||!_pmSlug) return;
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments?place='+encodeURIComponent(_pmSlug)); renderComments(await r.json()); }
   catch(e){ renderComments({}); document.getElementById('pmCmts').innerHTML='<div class="pm-empty">코멘트를 불러오지 못했어요(잠시 후 다시)</div>'; } }
@@ -720,7 +737,7 @@ function renderKVCourse(c){
   const sc=courseSubcat(c.name), col=subcatColor(sc), coords=c.coords;
   const casing=L.polyline(coords,{color:'#2a0a4a',weight:8,opacity:.55,interactive:false});
   const line=L.polyline(coords,{color:col,weight:5,opacity:.95,interactive:false});
-  const html='<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?'<br>약 '+c.km+'km':'')+'<br><a class="course-share" onclick="shareCourse(\'k'+c.id+'\')">🔗 코스 공유</a>'+(isAdmin()?' <a onclick="editCourse(\''+c.id+'\')" style="color:#1565c0;cursor:pointer">수정</a> <a onclick="deleteCourse(\''+c.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':'');
+  const html='<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?'<br>약 '+c.km+'km':'')+'<br><a class="course-share" onclick="shareCourse(\'k'+c.id+'\')">🔗 코스 공유</a> <a class="course-share" onclick="courseCmt(\'k\',\''+c.id+'\')">💬 코멘트</a>'+(isAdmin()?'<br><a onclick="editCourse(\''+c.id+'\')" style="color:#1565c0;cursor:pointer">수정</a> <a onclick="deleteCourse(\''+c.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':'');
   const hit=L.polyline(coords,{color:'#000',weight:22,opacity:0}); hit.bindPopup(html); if(!isTouch) hit.bindTooltip('<b>'+pmEsc(c.name||'코스')+'</b>'+(c.km?' '+c.km+'km':''),{sticky:true,direction:'top'});
   let grp=courseLayers[sc];
   if(!grp){ grp=L.layerGroup().addTo(map); courseLayers[sc]=grp; _courseGroups[sc]=_courseGroups[sc]||[]; if(_layerControl) _layerControl.addOverlay(grp,'코스 · '+sc); }
