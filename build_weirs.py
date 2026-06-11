@@ -22,9 +22,14 @@ def hav_km(a, b):
     h = math.sin((la2-la1)/2)**2 + math.cos(la1)*math.cos(la2)*math.sin((lo2-lo1)/2)**2
     return 2*R*math.asin(math.sqrt(h))
 
+LOCAL_KM = 1.5   # 지방하천(소하천) 보: 카누 장소·코스 바로 근처만(잡음 제거)
+
 def main():
-    rows = list(csv.DictReader(open(BASE/"_eodo.csv", encoding="cp949")))
-    print(f"어도 레코드: {len(rows)}")
+    src = next((p for p in [BASE/"_eodo.csv", BASE/"eodo_tmp.csv"] if p.exists()), None)
+    if not src:
+        raise SystemExit("[!] 어도 CSV 없음 — data.go.kr 15115610 재다운로드 필요")
+    rows = list(csv.DictReader(open(src, encoding="cp949")))
+    print(f"어도 레코드: {len(rows)} ({src.name})")
     weirs = {}
     for r in rows:
         try:
@@ -36,9 +41,10 @@ def main():
             continue
         nm = (r.get("보 명칭") or "").strip() or "보"
         river = (r.get("어도가 위치한 하천(하위)") or r.get("어도가 위치한 수계") or "").strip()
+        grade = (r.get("어도가 위치한 하천등급") or "").strip()   # 국가 / 지방
         key = nm + "|" + f"{round(lat,3)},{round(lng,3)}"   # 같은 보의 복수 어도 병합(~100m)
         if key not in weirs:
-            weirs[key] = {"nm": nm, "river": river, "lat": round(lat,5), "lng": round(lng,5)}
+            weirs[key] = {"nm": nm, "river": river, "g": grade, "lat": round(lat,5), "lng": round(lng,5)}
     print(f"보(중복 병합): {len(weirs)}")
 
     pts = []
@@ -50,8 +56,14 @@ def main():
             pts += [(c[1], c[0]) for c in f["geometry"]["coordinates"][::10]]
     except Exception:
         pass
-    sel = [w for w in weirs.values() if any(hav_km((w["lat"], w["lng"]), p) <= RADIUS_KM for p in pts)]
-    print(f"선별({RADIUS_KM}km): {len(sel)}")
+    # 국가하천(카누 가능한 큰 강) = RADIUS_KM / 지방 소하천 = LOCAL_KM(바로 근처만)
+    def keep(w):
+        rad = RADIUS_KM if w["g"] == "국가" else LOCAL_KM
+        return any(hav_km((w["lat"], w["lng"]), p) <= rad for p in pts)
+    sel = [w for w in weirs.values() if keep(w)]
+    n_nat = sum(1 for w in sel if w["g"] == "국가")
+    print(f"선별: {len(sel)} (국가 {n_nat} @{RADIUS_KM}km / 지방 {len(sel)-n_nat} @{LOCAL_KM}km)")
+    for w in sel: w.pop("g", None)
     (BASE/"weirs.json").write_text(json.dumps(sel, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
     print("[done] weirs.json")
 
