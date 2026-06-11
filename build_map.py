@@ -966,7 +966,7 @@ const roadviewLayer = L.layerGroup(POINTS.features.filter(function(f){return f.p
 function _sw(c){ return '<span class="sw" style="background:'+c+'"></span>'; }
 const _ov = {};
 _ov[_sw('rgba(229,57,53,.45)')+'상수원보호'] = protectLayer;
-_ov[_sw('rgba(255,152,0,.5)')+'수상레저 금지'] = wlzLayer;
+_ov[_sw('rgba(255,152,0,.5)')+'수상레저금지'] = wlzLayer;
 _ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup;   // 코스 전체 단일 토글
 _ov[_sw('#ec407a')+'명소'] = famousLayer;
 _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
@@ -979,7 +979,7 @@ const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':bas
   function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
   const k=L.DomUtil.create('div','lc-key');
   k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
-    +'<div class="lg-sub">⛔ 수상레저 금지 <span class="lg-note">해수면</span></div>'
+    +'<div class="lg-sub">⛔ 수상레저금지 <span class="lg-note">해수면</span></div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
     +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">코스와 함께</span></div>'
