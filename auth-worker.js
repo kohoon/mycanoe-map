@@ -250,6 +250,33 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
+    // 0-3f) 수위 조회 — HRFCO 프록시(키는 Secret HRFCO_KEY), KV 캐시 10분
+    if (url.pathname.endsWith("/waterlevel")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (!env.HRFCO_KEY) return new Response(JSON.stringify({ err: "nokey" }), { status: 503, headers: { ...cors, "Content-Type": "application/json" } });
+      const obs = (url.searchParams.get("obs") || "").replace(/[^0-9,]/g, "").slice(0, 200);
+      if (!obs) return new Response("bad", { status: 400, headers: cors });
+      const KV = env.PLACES;
+      const out = {};
+      for (const cd of obs.split(",").filter(Boolean).slice(0, 12)) {
+        const ck = "wl_" + cd;
+        let v = KV ? await KV.get(ck) : null;
+        if (!v) {
+          try {
+            const r = await fetch(`https://api.hrfco.go.kr/${env.HRFCO_KEY}/waterlevel/list/10M/${cd}.json`);
+            const j = await r.json();
+            const rec = (j.content || [])[0];
+            if (rec) v = JSON.stringify({ wl: rec.wl, t: rec.ymdhm });
+          } catch (e) {}
+          if (v && KV) await KV.put(ck, v, { expirationTtl: 600 });
+        }
+        if (v) { try { out[cd] = JSON.parse(v); } catch (e) {} }
+      }
+      return new Response(JSON.stringify(out), { headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
     // 0-3e) 코스 장애물(보/징검다리/낮은바닥) — 관리자. KV "obstacles"
     if (url.pathname.endsWith("/obstacles") || url.pathname.endsWith("/obstacle")) {
       const origin = req.headers.get("Origin") || "*";

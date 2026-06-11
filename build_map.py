@@ -51,6 +51,11 @@ _idf.write_text(json.dumps(_reg, ensure_ascii=False, indent=0), encoding="utf-8"
 _rvf = BASE / "roadview.json"
 _rv = json.loads(_rvf.read_text(encoding="utf-8")) if _rvf.exists() else {}
 
+# ---- 수위관측소(HRFCO, build_hrfco.py 선별) ----
+_wsf = BASE / "hrfco_stations.json"
+wlstn = json.loads(_wsf.read_text(encoding="utf-8")) if _wsf.exists() else []
+print(f"수위관측소 {len(wlstn)}곳")
+
 # ---- 수상레저 금지구역: 해수면(해경청 SHP) + 내수면(고시 도면 디지타이징) ----
 wlz = {"type": "FeatureCollection", "features": []}
 for _wf in ("wlz_polygons.geojson", "wlz_inland.geojson"):
@@ -141,6 +146,9 @@ __GTAG__
   .rv-sw{display:inline-block;width:14px;margin-right:6px;text-align:center;font-size:12px;flex:none}
   .leaflet-div-icon.rv-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .rv-div .rv-badge{position:absolute;transform:translate(-50%,-150%);font-size:15px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
+  .leaflet-div-icon.wl-div{background:transparent;border:0;width:auto!important;height:auto!important}
+  .wl-div .wl-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+  .wl-loading{color:#889;font-size:12.5px}
   .rv-pmodal{max-width:560px}
   #rvView{width:100%;height:58vh;max-height:440px;min-height:240px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
   #rvDate{font-size:12px;color:#778;margin-top:7px;min-height:15px;text-align:right}
@@ -425,6 +433,7 @@ __GTAG__
 const POINTS = __POINTS__;
 const POLYS = __POLYS__;
 const WLZ = __WLZ__;       // 수상레저 금지구역(해수면, 해양경찰청)
+const WLSTN = __WLSTN__;   // 수위관측소(HRFCO, 카누 장소 근처 선별)
 const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
 const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
@@ -977,6 +986,38 @@ const roadviewLayer = L.layerGroup(POINTS.features.filter(function(f){return f.p
   return m;
 }));
 
+// ---- 수위 레이어(HRFCO, 기본 OFF) — 마커 탭 시 실시간 수위 ----
+function _wlStage(wl, s){
+  const v=parseFloat(wl); const th=function(x){ const n=parseFloat(x); return isFinite(n)?n:null; };
+  const att=th(s.att), wrn=th(s.wrn), alm=th(s.alm), srs=th(s.srs);
+  if(!isFinite(v)) return ['-','#888'];
+  if(srs!=null&&v>=srs) return ['심각','#b71c1c'];
+  if(alm!=null&&v>=alm) return ['경계','#e53935'];
+  if(wrn!=null&&v>=wrn) return ['주의','#fb8c00'];
+  if(att!=null&&v>=att) return ['관심','#fbc02d'];
+  return ['정상','#2e7d32'];
+}
+function _wlTime(t){ return t&&t.length>=12 ? (+t.slice(4,6))+'.'+(+t.slice(6,8))+' '+t.slice(8,10)+':'+t.slice(10,12) : ''; }
+const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
+  const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'wl-div',html:'<span class="wl-badge">💧</span>',iconSize:null})});
+  m.bindPopup('<b>💧 '+pmEsc(s.nm)+'</b><br><span class="wl-loading">수위 조회 중…</span>',{minWidth:170});
+  m.on('click',function(){
+    fetch(WORKER_URL.replace(/\/+$/,'')+'/waterlevel?obs='+s.cd).then(function(r){return r.json();}).then(function(d){
+      const rec=d&&d[s.cd];
+      let h='<b>💧 '+pmEsc(s.nm)+'</b><br>';
+      if(rec&&rec.wl){ const st=_wlStage(rec.wl,s);
+        h+='<span style="font-size:19px;font-weight:800">'+parseFloat(rec.wl).toFixed(2)+' m</span> '
+          +'<span style="background:'+st[1]+';color:#fff;border-radius:9px;padding:1px 8px;font-size:11.5px;font-weight:700;vertical-align:3px">'+st[0]+'</span>'
+          +'<br><small style="color:#889">'+_wlTime(rec.t)+' 관측</small>';
+        const ths=[]; if(parseFloat(s.att)) ths.push('관심 '+s.att); if(parseFloat(s.alm)) ths.push('경계 '+s.alm);
+        if(ths.length) h+='<br><small style="color:#aab">기준: '+ths.join(' · ')+'m</small>';
+      } else h+='<span style="color:#999">관측값 없음</span>';
+      m.setPopupContent(h);
+    }).catch(function(){ m.setPopupContent('<b>💧 '+pmEsc(s.nm)+'</b><br><span style="color:#999">수위 서비스 연결 실패</span>'); });
+  });
+  return m;
+}));
+
 // ---- 레이어 + 범례 통합 패널 ----
 function _sw(c){ return '<span class="sw" style="background:'+c+'"></span>'; }
 const _ov = {};
@@ -986,6 +1027,7 @@ _ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup
 _ov[_sw('#ec407a')+'명소'] = famousLayer;
 _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
 _ov['<span class="rv-sw">🛣️</span>로드뷰 있음'] = roadviewLayer;   // 기본 OFF
+_ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // 패널에 제목 + 토글불가 항목(코스 종류·장애물) 색상 키를 함께 표시 = 범례 통합
 // 모바일은 기본 닫힘 + 제목 탭으로 열고 닫기(화면 점유 최소화)
@@ -1503,6 +1545,7 @@ html = (HTML
         .replace("__POINTS__", json.dumps(points, ensure_ascii=False, separators=(",", ":")))
         .replace("__POLYS__", json.dumps(polygons, ensure_ascii=False, separators=(",", ":")))
         .replace("__WLZ__", json.dumps(wlz, ensure_ascii=False, separators=(",", ":")))
+        .replace("__WLSTN__", json.dumps(wlstn, ensure_ascii=False, separators=(",", ":")))
         .replace("__COURSES__", json.dumps(courses, ensure_ascii=False, separators=(",", ":")))
         .replace("__VKEY__", VKEY)
         .replace("__KAKAO_JS_KEY__", KAKAO_JS_KEY)

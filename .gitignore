@@ -5,6 +5,7 @@ auth_state.json
 vworld_key.txt
 kakao_js_key.txt
 _rv_probe.html
+hrfco_key.txt
 
 # 로컬 상태/캐시/대용량 (재생성 가능)
 kakao_add_state.json
