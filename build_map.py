@@ -51,9 +51,13 @@ _idf.write_text(json.dumps(_reg, ensure_ascii=False, indent=0), encoding="utf-8"
 _rvf = BASE / "roadview.json"
 _rv = json.loads(_rvf.read_text(encoding="utf-8")) if _rvf.exists() else {}
 
-# ---- 수상레저 금지구역(해수면, 해양경찰청 SHP -> wlz_polygons.geojson) ----
-_wlf = BASE / "wlz_polygons.geojson"
-wlz = json.loads(_wlf.read_text(encoding="utf-8")) if _wlf.exists() else {"type": "FeatureCollection", "features": []}
+# ---- 수상레저 금지구역: 해수면(해경청 SHP) + 내수면(고시 도면 디지타이징) ----
+wlz = {"type": "FeatureCollection", "features": []}
+for _wf in ("wlz_polygons.geojson", "wlz_inland.geojson"):
+    _p = BASE / _wf
+    if _p.exists():
+        wlz["features"] += json.loads(_p.read_text(encoding="utf-8"))["features"]
+print(f"수상레저금지 {len(wlz['features'])}구역(해수면+내수면)")
 
 pfeats = [{"type": "Feature",
            "geometry": {"type": "Point", "coordinates": [v["lng"], v["lat"]]},
@@ -979,7 +983,7 @@ const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':bas
   function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
   const k=L.DomUtil.create('div','lc-key');
   k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
-    +'<div class="lg-sub">⛔ 수상레저금지 <span class="lg-note">해수면</span></div>'
+    +'<div class="lg-sub">⛔ 수상레저금지 <span class="lg-note">해수면·내수면</span></div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
     +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">코스와 함께</span></div>'
