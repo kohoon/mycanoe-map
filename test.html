@@ -762,12 +762,14 @@ function placeWeather(lat,lng){
     let h='<div class="pm-wx-now"><span>'+_wxEmoji(w.code)+' '+w.temp.toFixed(0)+'°</span>'
       +'<span style="color:'+col+';font-weight:'+(wind>=5?'700':'400')+'">바람 '+wind.toFixed(1)+'㎧ '+_wxDir(w.dir)+(wind>=8?' ⚠️강풍':wind>=5?' 주의':'')+'</span>'
       +(w.rain>0?'<span style="color:#1565c0">비 '+w.rain+'㎜</span>':'')+'</div>';
-    if(w.days&&w.days.length){   // 7일 예보 스트립
+    if(w.days&&w.days.length){   // 7일 예보 스트립: 요일/날씨/기온/바람(방향+세기)/강수량
+      const AR=['↓','↙','←','↖','↑','↗','→','↘'];   // 풍향(불어오는 방향) → 부는 쪽 화살표
       h+='<div class="pm-wx-days">'+w.days.map(function(d){
+        const ar=AR[Math.round(((d.wdir%360)+360)%360/45)%8];
         return '<div class="wxd'+(d.we?' wxd-we':'')+'"><div class="wxd-n">'+d.label+'</div><div>'+_wxEmoji(d.code)+'</div>'
           +'<div class="wxd-t">'+Math.round(d.tmax)+'°</div>'
-          +'<div class="wxd-w" style="color:'+_windCol(d.wmax)+'">'+d.wmax.toFixed(0)+'㎧</div>'
-          +'<div class="wxd-p">'+(d.pp>=20?(d.pp+'%'):'')+'</div></div>';
+          +'<div class="wxd-w" style="color:'+_windCol(d.wmax)+'">'+ar+d.wmax.toFixed(0)+'㎧</div>'
+          +'<div class="wxd-p">'+(d.rain>=0.5?(d.rain<10?d.rain.toFixed(1):Math.round(d.rain))+'㎜':'')+'</div></div>';
       }).join('')+'</div>';
     }
     el.innerHTML=h;
@@ -776,7 +778,7 @@ function placeWeather(lat,lng){
   el.innerHTML='<span class="wl-loading">날씨 조회…</span>';
   fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng
     +'&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code'
-    +'&daily=weather_code,temperature_2m_max,wind_speed_10m_max,precipitation_probability_max&forecast_days=7'
+    +'&daily=weather_code,temperature_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_sum&forecast_days=7'
     +'&wind_speed_unit=ms&timezone=Asia%2FSeoul')
     .then(function(r){return r.json();})
     .then(function(j){ const cu=j&&j.current; if(!cu){ render(null); return; }
@@ -786,7 +788,8 @@ function placeWeather(lat,lng){
         for(var i=0;i<dl.time.length;i++){ const dt=new Date(dl.time[i]+'T00:00:00');
           w.days.push({label:i===0?'오늘':WD[dt.getDay()], we:(dt.getDay()===0||dt.getDay()===6),
             code:dl.weather_code[i], tmax:dl.temperature_2m_max[i],
-            wmax:dl.wind_speed_10m_max[i], pp:dl.precipitation_probability_max[i]||0}); } }
+            wmax:dl.wind_speed_10m_max[i], wdir:dl.wind_direction_10m_dominant[i]||0,
+            rain:dl.precipitation_sum[i]||0}); } }
       _wxCache[key]={w:w,ts:Date.now()}; render(w);
     }).catch(function(){ render(null); });
 }
@@ -822,6 +825,13 @@ function courseCmt(kind,id){
   else { const c=_kvCourses[id]; if(c) openCourseComments('course_k'+id, c.name, c.km, 'k'+id); }
 }
 // ---- 코스 장애물(보/징검다리/낮은바닥) ----
+// 줌 게이팅: 마커를 전용 pane에 넣고 줌<12(런칭/랜딩 아이콘 전환 기준)에서는 pane 자체를 숨김
+// (레이어 토글과 독립 — 체크 상태 유지한 채 줌으로만 표시/숨김)
+map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
+map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='635';
+function _zoomPaneGate(){ const on=map.getZoom()>=12?'':'none';
+  map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; }
+map.on('zoomend', _zoomPaneGate);
 const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'}};
 const obstacleLayer=L.layerGroup();
 const _obstacles={};
@@ -830,24 +840,19 @@ function obsPopup(o){ const t=OBS_TYPES[o.type]||OBS_TYPES['보'];
   return '<span class="obs-ic '+t.c+'">'+t.e+' '+t.label+'</span>'+(o.note?'<div style="margin:7px 0 4px;color:#445;font-size:13px">'+linkify(o.note)+'</div>':'<br>')
     +(isAdmin()?'<a onclick="editObstacle(\''+o.id+'\')" style="color:#1565c0;cursor:pointer;margin-right:12px">✏️ 수정</a><a onclick="deleteObstacle(\''+o.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':''); }
 function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
-  const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type)});
+  const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type),pane:'obsPane'});
   if(isAdmin()) m.bindPopup(obsPopup(o));   // 관리자만 클릭 팝업(수정/삭제). 일반 사용자는 말풍선 없음(호버 툴팁도 제거)
   m.addTo(obstacleLayer); o._m=m; }
 function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();})
-  .then(function(list){ (list||[]).forEach(renderObstacle); _syncObstacleVis(); }).catch(function(){}); }
+  .then(function(list){ (list||[]).forEach(renderObstacle); }).catch(function(){}); }
 // 전국 보(어도 현황 기반, 정적) — 관리자 등록 장애물과 동일 아이콘, 관리자에게만 이름 팝업
 WEIRS.forEach(function(w){
-  const m=L.marker([w.lat,w.lng],{icon:obsIcon('보')});
+  const m=L.marker([w.lat,w.lng],{icon:obsIcon('보'),pane:'obsPane'});
   m.on('click',function(){ if(isAdmin()) m.bindPopup('<b>🚧 '+pmEsc(w.nm)+'</b>'+(w.river?'<br><small>'+pmEsc(w.river)+'</small>':'')+'<br><small style="color:#99a">어도 현황 데이터(정적)</small>').openPopup(); });
   m.addTo(obstacleLayer);
 });
-// 장애물 표시 = 코스 전체 레이어 ON + 충분히 확대(줌 ≥ OBS_MINZOOM)일 때만
-const OBS_MINZOOM=14;
-function _syncObstacleVis(){ const show=map.hasLayer(allCoursesGroup) && map.getZoom()>=OBS_MINZOOM;
-  if(show){ if(!map.hasLayer(obstacleLayer)) obstacleLayer.addTo(map); }
-  else if(map.hasLayer(obstacleLayer)) map.removeLayer(obstacleLayer); }
-map.on('overlayadd overlayremove', function(e){ if(e&&e.layer===allCoursesGroup) _syncObstacleVis(); });
-map.on('zoomend', _syncObstacleVis);
+obstacleLayer.addTo(map);   // 기본 ON — 별도 토글(통합 패널), 줌<12에서는 pane 게이팅으로 숨김
+_zoomPaneGate();
 loadObstacles();
 // 장애물 추가(관리자 전용 버튼 — 거리측정 버튼 옆)
 let obsPlaceMode=false;
@@ -893,7 +898,7 @@ async function doSaveObs(){ if(!isAdmin()||!_obLL) return;
     if(r.ok){ const d=await r.json().catch(function(){return {};}); gaEvent('obstacle_'+_obMode); closeObsModal();
       if(_obMode==='edit'&&_obCur){ if(_obCur._m) obstacleLayer.removeLayer(_obCur._m); renderObstacle(Object.assign({},_obCur,{type:type,note:note,_m:null})); }
       else { renderObstacle((d&&d.obstacle)||{id:Date.now(),lat:_obLL.lat,lng:_obLL.lng,type:type,note:note}); }
-      _syncObstacleVis(); map.closePopup();
+      map.closePopup();
     } else { msg.style.color='#c0392b'; msg.textContent=(r.status===403?'관리자 권한 확인 필요':'저장 실패'); }
   }catch(e){ msg.style.color='#c0392b'; msg.textContent='오류'; } }
 function editObstacle(id){ const o=_obstacles[id]; if(o) openObsModal('edit',o); }
@@ -1038,7 +1043,7 @@ map.on('overlayadd', function(e){ if(e&&e.layer===waterLevelLayer) _paldang(); }
     }).catch(function(){});
 })();
 const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
-  const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'wl-div',html:'<span class="wl-badge">💧</span>',iconSize:null})});
+  const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'wl-div',html:'<span class="wl-badge">💧</span>',iconSize:null}),pane:'wlPane'});
   m.bindPopup('<b>💧 '+pmEsc(s.nm)+'</b><br><span class="wl-loading">수위 조회 중…</span>',{minWidth:170});
   m.on('click',function(){
     _wlGet(s.cd).then(function(rec){
@@ -1067,8 +1072,9 @@ _ov[_sw('rgba(255,152,0,.5)')+'수상레저금지'] = wlzLayer;
 _ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup;   // 코스 전체 단일 토글
 _ov[_sw('#ec407a')+'명소'] = famousLayer;
 _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
+_ov['<span class="rv-sw">⚠️</span>장애물·보'] = obstacleLayer;     // 기본 ON, 줌≥12 표시
 _ov['<span class="rv-sw">🛣️</span>로드뷰 있음'] = roadviewLayer;   // 기본 OFF
-_ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF
+_ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF, 줌≥12 표시
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // 패널에 제목 + 토글불가 항목(코스 종류·장애물) 색상 키를 함께 표시 = 범례 통합
 // 모바일은 기본 닫힘 + 제목 탭으로 열고 닫기(화면 점유 최소화)
@@ -1080,7 +1086,7 @@ const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':bas
     +'<div class="lg-sub">⛔ 수상레저금지 <span class="lg-note">해수면·내수면</span></div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
-    +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">코스와 함께</span></div>'
+    +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">확대 시 표시</span></div>'
     +'<div class="lg-pills"><span class="obs-ic obs-bo">🚧 보</span><span class="obs-ic obs-jing">🪨 징검다리</span><span class="obs-ic obs-shal">〰️ 얕음</span></div>'
     +'<div id="pdChip" class="pd-chip"></div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
