@@ -143,6 +143,7 @@ __GTAG__
   .rv-div .rv-badge{position:absolute;transform:translate(-50%,-150%);font-size:15px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
   .rv-pmodal{max-width:560px}
   #rvView{width:100%;height:58vh;max-height:440px;min-height:240px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
+  #rvDate{font-size:12px;color:#778;margin-top:7px;min-height:15px;text-align:right}
   #rvMsg{display:none;text-align:center;color:#667;padding:26px 10px;font-size:14px}
   .lg-sub{font-weight:700;font-size:11.5px;color:#2a3b34;margin:6px 0 2px;padding-top:5px;border-top:1px solid #eee}
   .lg-note{font-weight:400;color:#8a948e;font-size:10px}
@@ -407,6 +408,7 @@ __GTAG__
   <div class="pmodal rv-pmodal"><button class="pmodal-x" onclick="closeRvModal()">✕</button>
     <h3 id="rvTitle">🛣️ 로드뷰</h3>
     <div id="rvView"></div>
+    <div id="rvDate"></div>
     <div id="rvMsg">근처에 로드뷰가 없습니다.</div>
   </div>
 </div>
@@ -589,6 +591,14 @@ let _kakaoReady=false,_rvClient=null,_rv=null;
 (function(){ try{ if(window.kakao&&kakao.maps){ kakao.maps.load(function(){ _kakaoReady=true; _rvClient=new kakao.maps.RoadviewClient(); }); } }catch(e){} })();
 function _ensureRv(){ if(!_rv&&_kakaoReady){ try{ _rv=new kakao.maps.Roadview(document.getElementById('rvView')); }catch(e){} } return _rv; }
 function closeRvModal(){ document.getElementById('rvModal').classList.remove('open'); }
+function _rvShotDate(lat,lng){   // 촬영시기(카카오 로드뷰 검색 API — SDK가 쓰는 것과 동일)
+  const el=document.getElementById('rvDate'); if(el) el.textContent='';
+  fetch('https://rv.map.kakao.com/roadview-search/v2/nodes?PX='+lng+'&PY='+lat+'&RAD=150&INPUT=wgs&PAGE_SIZE=1&SERVICE=mapjsapiv3')
+    .then(function(r){return r.json();})
+    .then(function(j){ const s=(((j||{}).street_view||{}).streetList||[])[0];
+      if(s&&s.shot_date&&el){ const d=s.shot_date.slice(0,10).split('-'); el.textContent='📷 '+d[0]+'.'+(+d[1])+'.'+(+d[2])+' 촬영'; } })
+    .catch(function(){});
+}
 function openRoadview(lat,lng,name){
   if(!window.kakao||!kakao.maps||!_rvClient){ window.open('https://map.kakao.com/link/roadview/'+lat+','+lng,'_blank'); return; }  // SDK 미동작 시 외부 폴백
   if(typeof gaEvent==='function') gaEvent('roadview_open');
@@ -597,6 +607,7 @@ function openRoadview(lat,lng,name){
   document.getElementById('rvModal').classList.add('open');
   const pos=new kakao.maps.LatLng(lat,lng), rv=_ensureRv();
   if(!rv){ document.getElementById('rvMsg').style.display='block'; return; }
+  _rvShotDate(lat,lng);
   setTimeout(function(){ rv.relayout();
     _rvClient.getNearestPanoId(pos,120,function(panoId){
       if(panoId!=null){ rv.setPanoId(panoId,pos); setTimeout(function(){ rv.relayout(); },250); }
