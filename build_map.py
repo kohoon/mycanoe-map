@@ -863,6 +863,7 @@ function placeWeather(lat,lng){
         return '<div class="wxd'+(d.we?' wxd-we':'')+'"><div class="wxd-n">'+d.label+'</div><div>'+_wxEmoji(d.code)+'</div>'
           +'<div class="wxd-t">'+Math.round(d.tmax)+'°</div>'
           +'<div class="wxd-w" style="color:'+_windCol(d.wmax)+'">'+ar+d.wmax.toFixed(0)+'㎧</div>'
+          +'<div class="wxd-p">'+(d.pp>=10?d.pp+'%':'')+'</div>'
           +'<div class="wxd-p">'+(d.rain>=0.5?(d.rain<10?d.rain.toFixed(1):Math.round(d.rain))+'㎜':'')+'</div></div>';
       }).join('')+'</div>';
     }
@@ -872,7 +873,7 @@ function placeWeather(lat,lng){
   el.innerHTML='<span class="wl-loading">날씨 조회…</span>';
   fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng
     +'&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code'
-    +'&daily=weather_code,temperature_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_sum&forecast_days=7'
+    +'&daily=weather_code,temperature_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_sum,precipitation_probability_max&forecast_days=7'
     +'&wind_speed_unit=ms&timezone=Asia%2FSeoul')
     .then(function(r){return r.json();})
     .then(function(j){ const cu=j&&j.current; if(!cu){ render(null); return; }
@@ -883,7 +884,7 @@ function placeWeather(lat,lng){
           w.days.push({label:i===0?'오늘':WD[dt.getDay()], we:(dt.getDay()===0||dt.getDay()===6),
             code:dl.weather_code[i], tmax:dl.temperature_2m_max[i],
             wmax:dl.wind_speed_10m_max[i], wdir:dl.wind_direction_10m_dominant[i]||0,
-            rain:dl.precipitation_sum[i]||0}); } }
+            rain:dl.precipitation_sum[i]||0, pp:dl.precipitation_probability_max[i]||0}); } }
       _wxCache[key]={w:w,ts:Date.now()}; render(w);
     }).catch(function(){ render(null); });
 }
@@ -1697,15 +1698,23 @@ html = (HTML
         .replace("__WORKER__", WORKER_URL)
         .replace("__GA_ID__", GA_ID))
 
-# 카누잉 기록(트립): 운영 배포됨(2026-06-11, 1단계). test.html은 신기능 실험용으로 유지.
-import sys as _sys
+# 카누잉 기록(트립): 운영 배포 보류(사용자 지시 2026-06-11 — 충분한 테스트 후 명시적 지시 시 배포).
+# test.html 에만 포함. 배포 시: 아래 _strip_trip 호출 제거.
+import re as _re, sys as _sys
 _TEST = len(_sys.argv) > 1 and _sys.argv[1] == "test"
 
+def _strip_trip(h):
+    h = _re.sub(r"/\* TRIPCSS \*/.*?/\* /TRIPCSS \*/", "", h, flags=_re.S)
+    h = _re.sub(r"<!-- TRIPHTML -->.*?<!-- /TRIPHTML -->", "", h, flags=_re.S)
+    h = _re.sub(r"/\* TRIPJS \*/.*?/\* /TRIPJS \*/", "", h, flags=_re.S)
+    return h
+
 if _TEST:
-    out = BASE / "test.html"               # 테스트 페이지(신기능 실험용)
+    out = BASE / "test.html"               # 테스트 페이지: 트립 포함
     out.write_text(html, encoding="utf-8")
-    print(f"생성: test.html ({out.stat().st_size/1024:.0f} KB)")
+    print(f"생성: test.html ({out.stat().st_size/1024:.0f} KB) — 카누잉 기록 포함(테스트)")
 else:
-    (BASE / "map.html").write_text(html, encoding="utf-8")
-    (BASE / "index.html").write_text(html, encoding="utf-8")
-    print(f"생성: map.html + index.html ({len(html)/1024:.0f} KB) — 카누잉 기록 포함(운영)")
+    prod = _strip_trip(html)               # 운영: 트립 제외
+    (BASE / "map.html").write_text(prod, encoding="utf-8")
+    (BASE / "index.html").write_text(prod, encoding="utf-8")
+    print(f"생성: map.html + index.html ({len(prod)/1024:.0f} KB) — 카누잉 기록 제외(운영)")
