@@ -153,6 +153,8 @@ __GTAG__
   .leaflet-div-icon.wl-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .wl-div .wl-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
   .wl-loading{color:#889;font-size:12.5px}
+  .pm-wx{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:#345;background:#f2f7fa;border-radius:9px;padding:7px 11px;margin-bottom:8px}
+  .pm-wx:empty{display:none}
   .pd-chip{font-size:11px;color:#445;line-height:1.5;margin-top:6px;padding-top:5px;border-top:1px solid #eee}
   .pd-chip:empty{display:none}
   #fldBanner{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:4000;background:#b71c1c;color:#fff;
@@ -824,11 +826,39 @@ function linkify(s){ return pmEsc(s||'').replace(/(https?:\/\/[^\s<]+)/g,functio
   var tail='',m=u.match(/[.,!?)\]]+$/); if(m){ tail=m[0]; u=u.slice(0,-tail.length); }
   return '<a href="'+u+'" target="_blank" rel="noopener" style="color:#1565c0;word-break:break-all">'+u+'</a>'+tail; }); }
 function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return {name:p.name||'',lat:c[1],lng:c[0],memo:p.memo||'',cat:isSpot(p.name)?'명소':'런칭랜딩',id:p.id,rv:!!p.rv}; }
+// ---- 현재 날씨(Open-Meteo, 키·CORS 불필요) — 장소 좌표 기준 ----
+const _wxCache={};
+function _wxEmoji(c){ if(c===0) return '☀️'; if(c<=2) return '🌤️'; if(c===3) return '☁️'; if(c<=48) return '🌫️';
+  if(c<=67) return '🌧️'; if(c<=77) return '❄️'; if(c<=82) return '🌦️'; if(c<=86) return '❄️'; return '⛈️'; }
+function _wxDir(d){ return ['북','북동','동','남동','남','남서','서','북서'][Math.round(((d%360)+360)%360/45)%8]; }
+function placeWeather(lat,lng){
+  const el=document.getElementById('pmWx'); if(!el) return;
+  const key=lat.toFixed(2)+','+lng.toFixed(2);
+  const c=_wxCache[key];
+  function render(w){
+    if(!w){ el.innerHTML=''; return; }
+    const wind=w.wind, col=wind>=8?'#c62828':(wind>=5?'#e65100':'#345');
+    el.innerHTML='<span>'+_wxEmoji(w.code)+' '+w.temp.toFixed(0)+'°</span>'
+      +'<span style="color:'+col+';font-weight:'+(wind>=5?'700':'400')+'">바람 '+wind.toFixed(1)+'㎧ '+_wxDir(w.dir)+(wind>=8?' ⚠️강풍':wind>=5?' 주의':'')+'</span>'
+      +(w.rain>0?'<span style="color:#1565c0">비 '+w.rain+'㎜</span>':'');
+  }
+  if(c && Date.now()-c.ts<600000){ render(c.w); return; }
+  el.innerHTML='<span class="wl-loading">날씨 조회…</span>';
+  fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng
+    +'&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code&wind_speed_unit=ms&timezone=Asia%2FSeoul')
+    .then(function(r){return r.json();})
+    .then(function(j){ const cu=j&&j.current; if(!cu){ render(null); return; }
+      const w={temp:cu.temperature_2m, wind:cu.wind_speed_10m, dir:cu.wind_direction_10m, rain:cu.precipitation||0, code:cu.weather_code};
+      _wxCache[key]={w:w,ts:Date.now()}; render(w);
+    }).catch(function(){ render(null); });
+}
 let _pmPlace=null,_pmSlug=null;
 function openPlaceModal(pl){
   _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
   document.getElementById('pmTitle').textContent=(pl.id?('#'+pl.id+' '):'')+(pl.name||'장소');
-  document.getElementById('pmLinks').innerHTML=extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
+  document.getElementById('pmLinks').innerHTML='<div id="pmWx" class="pm-wx"></div>'
+    +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
+  placeWeather(pl.lat,pl.lng);
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
   document.getElementById('pmCnt').textContent=''; document.getElementById('pmInput').value=''; document.getElementById('pmMsg').textContent='';
