@@ -410,10 +410,10 @@ function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Wor
   }catch(e){}
 }
 (function(){   // 로그인 콜백(#login=ID&nick=NICK) 처리 + 세션 복원
-  const h=location.hash||'', m=h.match(/login=([^&]+)/), nk=h.match(/nick=([^&]*)/);
+  const h=location.hash||'', m=h.match(/login=([^&]+)/), nk=h.match(/nick=([^&]*)/), tk=h.match(/tok=([^&]*)/);
   if(m){
     const uid=decodeURIComponent(m[1]), nick=nk?decodeURIComponent(nk[1]):'';
-    setUser({uid:uid, nick:nick, t:Date.now()});
+    setUser({uid:uid, nick:nick, tok:tk?decodeURIComponent(tk[1]):'', t:Date.now()});
     history.replaceState(null,'',location.pathname+location.search);
     if(window.gtag) gtag('set',{user_id:uid});
     gaEvent('login',{method:'kakao'});
@@ -927,8 +927,9 @@ async function submitComment(){ const u=getUser(); if(!u||!u.uid) return;
   const inp=document.getElementById('pmInput'); const t=(inp.value||'').trim().slice(0,100); if(!t) return;
   document.getElementById('pmMsg').textContent='등록 중…';
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,nick:u.nick||'',text:t})});
+      body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,tok:u.tok||'',nick:u.nick||'',text:t})});
     if(r.ok){ inp.value=''; document.getElementById('pmMsg').textContent=''; gaEvent('comment_add'); loadComments(); }
+    else if(r.status===401){ document.getElementById('pmMsg').textContent='보안 강화 — 로그아웃 후 다시 로그인해 주세요'; }
     else document.getElementById('pmMsg').textContent='등록 실패'; }
   catch(e){ document.getElementById('pmMsg').textContent='오류'; } }
 function editAdminComment(){ if(!isAdmin()) return; const u=getUser();
@@ -980,7 +981,7 @@ Object.keys(_favLayerIdx).forEach(function(t){ _favLayerIdx[t].forEach(function(
 let _pmTarget=null,_pmKind='p',_pmName='',_pmLL=null;
 function fapi(p){ return WORKER_URL.replace(/\/+$/,'')+p; }
 function loadFavs(){ const u=getUser(); if(!u||!u.uid){ _favLoaded=true; return Promise.resolve(); }
-  return fetch(fapi('/fav?uid='+encodeURIComponent(u.uid))).then(function(r){return r.json();})
+  return fetch(fapi('/fav?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))).then(function(r){return r.json();})
     .then(function(list){ _favList=list||[]; _favSet=new Set(_favList.map(function(x){return x.t;})); _favLoaded=true;
       if(_favOnly) applyFavFilter(); })
     .catch(function(){ _favLoaded=true; });
@@ -1012,19 +1013,20 @@ function _paintStars(avg,n,my){
   if(mine) mine.querySelectorAll('a').forEach(function(a,i){ a.textContent=(i<my)?'★':'☆'; a.classList.toggle('on',i<my); });
 }
 function fetchRate(uid){
-  fetch(fapi('/rate?targets='+encodeURIComponent(_pmTarget)+(uid?'&uid='+encodeURIComponent(uid):'')))
+  fetch(fapi('/rate?targets='+encodeURIComponent(_pmTarget)+(uid?'&uid='+encodeURIComponent(uid)+'&tok='+encodeURIComponent((getUser()||{}).tok||''):'')))
     .then(function(r){return r.json();}).then(function(d){ const x=d&&d[_pmTarget]; if(x) _paintStars(x.avg,x.n,x.my||0); }).catch(function(){});
 }
 function setRate(stars){ const u=getUser(); if(!u||!u.uid) return;
   fetch(fapi('/rate'),{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({id:u.uid,target:_pmTarget,stars:stars})})
-    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok){ gaEvent('rate',{stars:stars}); _paintStars(d.avg,d.n,d.my); } }).catch(function(){});
+    body:JSON.stringify({id:u.uid,tok:u.tok||'',target:_pmTarget,stars:stars})})
+    .then(function(r){ if(r.status===401){ alert('보안 강화 — 로그아웃 후 다시 로그인해 주세요'); throw 0; } return r.json(); })
+    .then(function(d){ if(d&&d.ok){ gaEvent('rate',{stars:stars}); _paintStars(d.avg,d.n,d.my); } }).catch(function(){});
 }
 function toggleFav(){ const u=getUser(); if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; }
   const on=!_favSet.has(_pmTarget);
   fetch(fapi('/fav'),{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({id:u.uid,target:_pmTarget,on:on,name:_pmName,kind:_pmKind,lat:_pmLL?_pmLL[0]:null,lng:_pmLL?_pmLL[1]:null})})
-    .then(function(r){ if(!r.ok) throw 0;
+    body:JSON.stringify({id:u.uid,tok:u.tok||'',target:_pmTarget,on:on,name:_pmName,kind:_pmKind,lat:_pmLL?_pmLL[0]:null,lng:_pmLL?_pmLL[1]:null})})
+    .then(function(r){ if(r.status===401){ alert('보안 강화 — 로그아웃 후 다시 로그인해 주세요'); throw 0; } if(!r.ok) throw 0;
       if(on){ _favSet.add(_pmTarget); _favList.unshift({t:_pmTarget,n:_pmName,k:_pmKind,lat:_pmLL?_pmLL[0]:null,lng:_pmLL?_pmLL[1]:null}); }
       else { _favSet.delete(_pmTarget); _favList=_favList.filter(function(x){return x.t!==_pmTarget;}); }
       gaEvent('fav_'+(on?'add':'del'));
@@ -1051,7 +1053,7 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
     body.querySelectorAll('.mf-del').forEach(function(a){ a.onclick=function(){
       const x=_favList[+a.getAttribute('data-i')];
       fetch(fapi('/fav'),{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({id:u.uid,target:x.t,on:false})}).then(function(r){ if(r.ok){
+        body:JSON.stringify({id:u.uid,tok:u.tok||'',target:x.t,on:false})}).then(function(r){ if(r.ok){
           _favSet.delete(x.t); _favList=_favList.filter(function(y){return y.t!==x.t;}); if(_favOnly) applyFavFilter(); render(); } });
     }; });
   }

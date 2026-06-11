@@ -559,10 +559,10 @@ function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Wor
   }catch(e){}
 }
 (function(){   // 로그인 콜백(#login=ID&nick=NICK) 처리 + 세션 복원
-  const h=location.hash||'', m=h.match(/login=([^&]+)/), nk=h.match(/nick=([^&]*)/);
+  const h=location.hash||'', m=h.match(/login=([^&]+)/), nk=h.match(/nick=([^&]*)/), tk=h.match(/tok=([^&]*)/);
   if(m){
     const uid=decodeURIComponent(m[1]), nick=nk?decodeURIComponent(nk[1]):'';
-    setUser({uid:uid, nick:nick, t:Date.now()});
+    setUser({uid:uid, nick:nick, tok:tk?decodeURIComponent(tk[1]):'', t:Date.now()});
     history.replaceState(null,'',location.pathname+location.search);
     if(window.gtag) gtag('set',{user_id:uid});
     gaEvent('login',{method:'kakao'});
@@ -1076,8 +1076,9 @@ async function submitComment(){ const u=getUser(); if(!u||!u.uid) return;
   const inp=document.getElementById('pmInput'); const t=(inp.value||'').trim().slice(0,100); if(!t) return;
   document.getElementById('pmMsg').textContent='등록 중…';
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,nick:u.nick||'',text:t})});
+      body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,tok:u.tok||'',nick:u.nick||'',text:t})});
     if(r.ok){ inp.value=''; document.getElementById('pmMsg').textContent=''; gaEvent('comment_add'); loadComments(); }
+    else if(r.status===401){ document.getElementById('pmMsg').textContent='보안 강화 — 로그아웃 후 다시 로그인해 주세요'; }
     else document.getElementById('pmMsg').textContent='등록 실패'; }
   catch(e){ document.getElementById('pmMsg').textContent='오류'; } }
 function editAdminComment(){ if(!isAdmin()) return; const u=getUser();
@@ -1129,7 +1130,7 @@ Object.keys(_favLayerIdx).forEach(function(t){ _favLayerIdx[t].forEach(function(
 let _pmTarget=null,_pmKind='p',_pmName='',_pmLL=null;
 function fapi(p){ return WORKER_URL.replace(/\/+$/,'')+p; }
 function loadFavs(){ const u=getUser(); if(!u||!u.uid){ _favLoaded=true; return Promise.resolve(); }
-  return fetch(fapi('/fav?uid='+encodeURIComponent(u.uid))).then(function(r){return r.json();})
+  return fetch(fapi('/fav?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))).then(function(r){return r.json();})
     .then(function(list){ _favList=list||[]; _favSet=new Set(_favList.map(function(x){return x.t;})); _favLoaded=true;
       if(_favOnly) applyFavFilter(); })
     .catch(function(){ _favLoaded=true; });
@@ -1161,19 +1162,20 @@ function _paintStars(avg,n,my){
   if(mine) mine.querySelectorAll('a').forEach(function(a,i){ a.textContent=(i<my)?'★':'☆'; a.classList.toggle('on',i<my); });
 }
 function fetchRate(uid){
-  fetch(fapi('/rate?targets='+encodeURIComponent(_pmTarget)+(uid?'&uid='+encodeURIComponent(uid):'')))
+  fetch(fapi('/rate?targets='+encodeURIComponent(_pmTarget)+(uid?'&uid='+encodeURIComponent(uid)+'&tok='+encodeURIComponent((getUser()||{}).tok||''):'')))
     .then(function(r){return r.json();}).then(function(d){ const x=d&&d[_pmTarget]; if(x) _paintStars(x.avg,x.n,x.my||0); }).catch(function(){});
 }
 function setRate(stars){ const u=getUser(); if(!u||!u.uid) return;
   fetch(fapi('/rate'),{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({id:u.uid,target:_pmTarget,stars:stars})})
-    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok){ gaEvent('rate',{stars:stars}); _paintStars(d.avg,d.n,d.my); } }).catch(function(){});
+    body:JSON.stringify({id:u.uid,tok:u.tok||'',target:_pmTarget,stars:stars})})
+    .then(function(r){ if(r.status===401){ alert('보안 강화 — 로그아웃 후 다시 로그인해 주세요'); throw 0; } return r.json(); })
+    .then(function(d){ if(d&&d.ok){ gaEvent('rate',{stars:stars}); _paintStars(d.avg,d.n,d.my); } }).catch(function(){});
 }
 function toggleFav(){ const u=getUser(); if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; }
   const on=!_favSet.has(_pmTarget);
   fetch(fapi('/fav'),{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({id:u.uid,target:_pmTarget,on:on,name:_pmName,kind:_pmKind,lat:_pmLL?_pmLL[0]:null,lng:_pmLL?_pmLL[1]:null})})
-    .then(function(r){ if(!r.ok) throw 0;
+    body:JSON.stringify({id:u.uid,tok:u.tok||'',target:_pmTarget,on:on,name:_pmName,kind:_pmKind,lat:_pmLL?_pmLL[0]:null,lng:_pmLL?_pmLL[1]:null})})
+    .then(function(r){ if(r.status===401){ alert('보안 강화 — 로그아웃 후 다시 로그인해 주세요'); throw 0; } if(!r.ok) throw 0;
       if(on){ _favSet.add(_pmTarget); _favList.unshift({t:_pmTarget,n:_pmName,k:_pmKind,lat:_pmLL?_pmLL[0]:null,lng:_pmLL?_pmLL[1]:null}); }
       else { _favSet.delete(_pmTarget); _favList=_favList.filter(function(x){return x.t!==_pmTarget;}); }
       gaEvent('fav_'+(on?'add':'del'));
@@ -1200,7 +1202,7 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
     body.querySelectorAll('.mf-del').forEach(function(a){ a.onclick=function(){
       const x=_favList[+a.getAttribute('data-i')];
       fetch(fapi('/fav'),{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({id:u.uid,target:x.t,on:false})}).then(function(r){ if(r.ok){
+        body:JSON.stringify({id:u.uid,tok:u.tok||'',target:x.t,on:false})}).then(function(r){ if(r.ok){
           _favSet.delete(x.t); _favList=_favList.filter(function(y){return y.t!==x.t;}); if(_favOnly) applyFavFilter(); render(); } });
     }; });
   }
@@ -1752,7 +1754,7 @@ async function saveTrip(){ if(!_pendTrip) return; const u=getUser(); if(!u||!u.u
   const title=(document.getElementById('tmTitle').value||'카누잉').trim().slice(0,40); const shared=document.getElementById('tmShare').checked;
   document.getElementById('tmMsg').textContent='저장 중…';
   try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'save',id:u.uid,nick:u.nick||'',title:title,shared:shared,start:_pendTrip.startMs,end:_pendTrip.endMs,durSec:_pendTrip.durSec,track:_pendTrip.track,launch:_pendTrip.launch,landing:_pendTrip.landing})});
+    body:JSON.stringify({action:'save',id:u.uid,tok:u.tok||'',nick:u.nick||'',title:title,shared:shared,start:_pendTrip.startMs,end:_pendTrip.endMs,durSec:_pendTrip.durSec,track:_pendTrip.track,launch:_pendTrip.launch,landing:_pendTrip.landing})});
     if(r.ok){ gaEvent('trip_save',{km:Math.round(_pendTrip.km*10)/10,shared:shared}); tripBackupClear(); if(_pendTrip.line) map.removeLayer(_pendTrip.line); _pendTrip=null; openTModal('trips'); }
     else document.getElementById('tmMsg').textContent='저장 실패';
   }catch(e){ document.getElementById('tmMsg').textContent='오류'; } }
@@ -1767,17 +1769,17 @@ function tripItem(x, mine){ const dt=x.start?new Date(x.start):null; const ds=dt
   let h='<div class="tm-item"><div class="ti-main" onclick="viewTrip(\''+x.id+'\')"><div class="ti-t">'+pmEsc(x.title||'카누잉')+'</div><div class="ti-s">'+ds+' · '+(x.distKm||0).toFixed(2)+'km · '+fmtDur(x.durSec||0)+(x.nick?' · '+pmEsc(x.nick):'')+'</div></div>';
   if(mine){ h+='<button class="tm-btn tm-share'+(x.shared?' on':'')+'" onclick="toggleShare(\''+x.id+'\','+(x.shared?'true':'false')+')">'+(x.shared?'공유중':'공유')+'</button><button class="tm-btn del" onclick="deleteTrip(\''+x.id+'\')">삭제</button>'; }
   return h+'</div>'; }
-async function renderTrips(){ const u=getUser(); const r=await fetch(wapi('/trips?uid='+encodeURIComponent(u.uid))); const list=await r.json();
+async function renderTrips(){ const u=getUser(); const r=await fetch(wapi('/trips?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))); const list=await r.json();
   document.getElementById('tmBody').innerHTML=tabBar('trips')+(list.length?list.map(function(x){return tripItem(x,true);}).join(''):'<div class="tm-empty">아직 기록이 없어요. 하단 ▶ 카누잉 시작!</div>'); }
 async function renderFeed(){ const r=await fetch(wapi('/feed')); const list=await r.json();
   document.getElementById('tmBody').innerHTML=tabBar('feed')+(list.length?list.map(function(x){return tripItem(x,false);}).join(''):'<div class="tm-empty">아직 공유된 코스가 없어요</div>'); }
-async function renderBoard(){ const r=await fetch(wapi('/board')); const list=await r.json(); const u=getUser();
-  document.getElementById('tmBody').innerHTML=tabBar('board')+(list.length?list.map(function(x,i){ return '<div class="tm-rank"><span class="rk">'+(i+1)+'</span><div style="flex:1"><b>'+pmEsc(x.nick||'익명')+'</b>'+(String(x.uid)===String(u.uid)?' (나)':'')+'</div><div>'+(x.totalKm||0).toFixed(1)+'km · '+(x.trips||0)+'회</div></div>'; }).join(''):'<div class="tm-empty">랭킹 데이터가 없어요</div>'); }
-async function renderStats(){ const u=getUser(); const r=await fetch(wapi('/trips?uid='+encodeURIComponent(u.uid))); const list=await r.json();
+async function renderBoard(){ const u=getUser(); const r=await fetch(wapi('/board?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))); const list=await r.json();
+  document.getElementById('tmBody').innerHTML=tabBar('board')+(list.length?list.map(function(x,i){ return '<div class="tm-rank"><span class="rk">'+(i+1)+'</span><div style="flex:1"><b>'+pmEsc(x.nick||'익명')+'</b>'+(x.me?' (나)':'')+'</div><div>'+(x.totalKm||0).toFixed(1)+'km · '+(x.trips||0)+'회</div></div>'; }).join(''):'<div class="tm-empty">랭킹 데이터가 없어요</div>'); }
+async function renderStats(){ const u=getUser(); const r=await fetch(wapi('/trips?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))); const list=await r.json();
   const n=list.length, km=list.reduce(function(s,x){return s+(x.distKm||0);},0), sec=list.reduce(function(s,x){return s+(x.durSec||0);},0);
   document.getElementById('tmBody').innerHTML=tabBar('stats')+'<div class="tm-stat"><div><b>'+n+'</b><span>회</span></div><div><b>'+km.toFixed(1)+'</b><span>총 km</span></div><div><b>'+(n?(km/n).toFixed(1):'0')+'</b><span>평균 km</span></div></div><div class="tm-empty">총 카누잉 시간 '+fmtDur(sec)+'</div>'; }
 async function viewTrip(id){ const u=getUser(); closeTModal();
-  try{ const r=await fetch(wapi('/trip?id='+encodeURIComponent(id)+'&viewer='+encodeURIComponent(u.uid))); if(!r.ok){ toastMsg('불러오지 못했어요'); return; }
+  try{ const r=await fetch(wapi('/trip?id='+encodeURIComponent(id)+'&viewer='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))); if(!r.ok){ toastMsg('불러오지 못했어요'); return; }
     const trip=await r.json(); if(_viewLine) map.removeLayer(_viewLine);
     _viewLine=L.polyline(trip.track.map(function(p){return [p[0],p[1]];}),{color:'#ff3d00',weight:5,opacity:.9}).addTo(map);
     const a=trip.track[0], b=trip.track[trip.track.length-1];
@@ -1788,9 +1790,9 @@ async function viewTrip(id){ const u=getUser(); closeTModal();
     gaEvent('trip_view');
   }catch(e){ toastMsg('오류'); } }
 async function toggleShare(id,cur){ const u=getUser();
-  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'share',id:u.uid,tripId:id,shared:!cur})}); if(r.ok){ gaEvent('trip_share'); renderTrips(); } }catch(e){} }
+  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'share',id:u.uid,tok:u.tok||'',tripId:id,shared:!cur})}); if(r.ok){ gaEvent('trip_share'); renderTrips(); } }catch(e){} }
 async function deleteTrip(id){ if(!confirm('이 기록을 삭제할까요?')) return; const u=getUser();
-  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',id:u.uid,adminKey:adminKey(),tripId:id})}); if(r.ok) renderTrips(); }catch(e){} }
+  try{ const r=await fetch(wapi('/trip'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',id:u.uid,tok:u.tok||'',adminKey:adminKey(),tripId:id})}); if(r.ok) renderTrips(); }catch(e){} }
 (function(){ const s=document.getElementById('tripStart'); if(s) s.onclick=tripStartStop; const l=document.getElementById('tripLog'); if(l) l.onclick=function(){ openTModal('trips'); };
   const u=getUser(); if(!u||!u.uid) return; let bk=null; try{ bk=JSON.parse(localStorage.getItem('mc_trk')||'null'); }catch(e){}
   if(bk&&bk.track&&bk.track.length>1){ setTimeout(function(){

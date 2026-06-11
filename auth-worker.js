@@ -22,6 +22,27 @@ function _hav(a, b) {
 }
 function _trackKm(t) { let d = 0; for (let i = 1; i < t.length; i++) d += _hav(t[i - 1], t[i]); return d / 1000; }
 
+// ---- 신원 서명 토큰(HMAC) — 클라이언트 자기신고 uid 스푸핑 방지 ----
+// 로그인 콜백에서 발급(#login=...&tok=...) → 쓰기 API가 검증. 비밀키는 ADMIN_KEY 재사용(서버 전용).
+async function _hmacHex(msg, secret) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(secret)),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(String(msg)));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function _tokFor(env, uid) {
+  if (!env.ADMIN_KEY) return "";
+  return (await _hmacHex("mc1|" + uid, env.ADMIN_KEY)).slice(0, 32);
+}
+async function _tokOk(env, uid, tok) {
+  if (!env.ADMIN_KEY) return true;     // 키 미설정(개발) 시 통과
+  if (!uid || !tok) return false;
+  return (await _tokFor(env, uid)) === String(tok);
+}
+async function _uidHash(env, uid) {    // 공개 응답용 가명(원 uid 비노출)
+  return (await _hmacHex("uh|" + uid, env.ADMIN_KEY || "x")).slice(0, 10);
+}
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
@@ -165,6 +186,7 @@ export default {
           }
         } else {
           if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
+          if (!(await _tokOk(env, String(b.id), b.tok))) return new Response("relogin", { status: 401, headers: cors });
           const text = String(b.text || "").trim().slice(0, 100);
           if (!text) return new Response("bad", { status: 400, headers: cors });
           const cnick = String(b.nick || "익명").slice(0, 20);
@@ -259,7 +281,8 @@ export default {
       const J = (o) => new Response(JSON.stringify(o), { headers: { ...cors, "Content-Type": "application/json" } });
       if (!KV) return new Response("no-store", { status: 500, headers: cors });
       if (req.method === "GET") {
-        const uid = (url.searchParams.get("uid") || "").slice(0, 40);
+        let uid = (url.searchParams.get("uid") || "").slice(0, 40);
+        if (uid && !(await _tokOk(env, uid, url.searchParams.get("tok")))) uid = "";   // 무효 토큰이면 내 별점만 비표시
         const targets = (url.searchParams.get("targets") || "").split(",").filter(Boolean).slice(0, 30);
         const out = {};
         for (const t of targets) {
@@ -275,6 +298,7 @@ export default {
         const uid = String(b.id || "").slice(0, 40); const t = String(b.target || "").slice(0, 60);
         const stars = Math.round(Number(b.stars));
         if (!uid || !t || !(stars >= 1 && stars <= 5)) return new Response("bad", { status: 400, headers: cors });
+        if (!(await _tokOk(env, uid, b.tok))) return new Response("relogin", { status: 401, headers: cors });
         const key = "rate_" + t;
         let m = {}; try { m = JSON.parse((await KV.get(key)) || "{}"); } catch (e) {}
         m[uid] = stars;
@@ -295,7 +319,7 @@ export default {
       if (!KV) return new Response("no-store", { status: 500, headers: cors });
       if (req.method === "GET") {
         const uid = (url.searchParams.get("uid") || "").slice(0, 40);
-        if (!uid) return J([]);
+        if (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok")))) return J([]);   // 본인만 열람
         let a = []; try { a = JSON.parse((await KV.get("favs_" + uid)) || "[]"); } catch (e) {}
         return J(a);
       }
@@ -303,6 +327,7 @@ export default {
         let b = {}; try { b = await req.json(); } catch (e) {}
         const uid = String(b.id || "").slice(0, 40); const t = String(b.target || "").slice(0, 60);
         if (!uid || !t) return new Response("bad", { status: 400, headers: cors });
+        if (!(await _tokOk(env, uid, b.tok))) return new Response("relogin", { status: 401, headers: cors });
         let a = []; try { a = JSON.parse((await KV.get("favs_" + uid)) || "[]"); } catch (e) {}
         a = a.filter((x) => x && x.t !== t);
         if (b.on) a.unshift({ t: t, n: String(b.name || "").slice(0, 60), k: String(b.kind || "p").slice(0, 1), lat: Number(b.lat) || null, lng: Number(b.lng) || null });
@@ -434,30 +459,38 @@ export default {
         const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
         const TXT = (s, st) => new Response(s, { status: st || 200, headers: cors });
 
-        if (tp.endsWith("/trips")) {            // 내 트립 목록
+        if (tp.endsWith("/trips")) {            // 내 트립 목록(본인만 — 토큰 필수)
           const uid = url.searchParams.get("uid") || "";
-          const data = KV && uid ? await KV.get("utrips:" + uid) : null;
+          if (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok")))) return J("[]");
+          const data = KV ? await KV.get("utrips:" + uid) : null;
           return J(data || "[]");
         }
-        if (tp.endsWith("/feed")) {             // 공유 트립 목록
-          const data = KV ? await KV.get("feed") : null;
-          return J(data || "[]");
+        if (tp.endsWith("/feed")) {             // 공유 트립 목록(uid 비노출)
+          let feed = []; try { feed = JSON.parse((KV ? await KV.get("feed") : null) || "[]"); } catch (e) {}
+          return J(JSON.stringify(feed.map((x) => ({ id: x.id, nick: x.nick, title: x.title, distKm: x.distKm, start: x.start }))));
         }
-        if (tp.endsWith("/board")) {            // 랭킹(총거리)
+        if (tp.endsWith("/board")) {            // 랭킹(uid → 가명 해시, 본인 행은 me 표시)
           let obj = {};
           try { obj = JSON.parse((KV ? await KV.get("board") : null) || "{}"); } catch (e) {}
-          const arr = Object.keys(obj).map((k) => ({ uid: k, nick: obj[k].nick, totalKm: obj[k].totalKm, trips: obj[k].trips }))
-            .sort((a, b) => b.totalKm - a.totalKm).slice(0, 50);
-          return J(JSON.stringify(arr));
+          let me = url.searchParams.get("uid") || "";
+          if (me && !(await _tokOk(env, me, url.searchParams.get("tok")))) me = "";
+          const arr = [];
+          for (const k of Object.keys(obj)) {
+            arr.push({ h: await _uidHash(env, k), nick: obj[k].nick, totalKm: obj[k].totalKm, trips: obj[k].trips, me: String(k) === String(me) });
+          }
+          arr.sort((a, b) => b.totalKm - a.totalKm);
+          return J(JSON.stringify(arr.slice(0, 50)));
         }
         // /trip
-        if (req.method === "GET") {             // 트립 1건(공유이거나 소유자/관리자)
+        if (req.method === "GET") {             // 트립 1건(공유 = 공개 / 비공유 = 소유자 토큰 필수)
           const id = url.searchParams.get("id") || "", viewer = url.searchParams.get("viewer") || "";
           const t = KV ? await KV.get("trip:" + id) : null;
           if (!t) return TXT("not found", 404);
           const trip = JSON.parse(t);
-          if (!trip.shared && String(viewer) !== String(trip.uid))
-            return TXT("forbidden", 403);
+          if (!trip.shared) {
+            const ok = String(viewer) === String(trip.uid) && (await _tokOk(env, viewer, url.searchParams.get("tok")));
+            if (!ok) return TXT("forbidden", 403);
+          }
           return J(t);
         }
         if (req.method === "POST") {
@@ -465,6 +498,8 @@ export default {
           try { b = await req.json(); } catch (e) {}
           const action = b.action || "save";
           if (!b.id) return TXT("forbidden", 403);
+          const isAdminReq = !!env.ADMIN_KEY && String(b.adminKey) === String(env.ADMIN_KEY);
+          if (!isAdminReq && !(await _tokOk(env, String(b.id), b.tok))) return TXT("relogin", 401);
           if (!KV) return TXT("no-store", 500);
 
           if (action === "save") {
@@ -587,7 +622,8 @@ export default {
     }
 
     const site = env.SITE_URL || "https://kohoon.github.io/mycanoe-map/";
-    const back = site + "#login=" + encodeURIComponent(id) + "&nick=" + encodeURIComponent(nick);
+    const idTok = await _tokFor(env, String(id));
+    const back = site + "#login=" + encodeURIComponent(id) + "&nick=" + encodeURIComponent(nick) + "&tok=" + encodeURIComponent(idTok);
     return Response.redirect(back, 302);
   },
 };
