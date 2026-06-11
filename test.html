@@ -1078,7 +1078,7 @@ _ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup
 _ov[_sw('#ec407a')+'명소'] = famousLayer;
 _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
 _ov['<span class="rv-sw">⚠️</span>장애물·보'] = obstacleLayer;     // 기본 ON, 줌≥12 표시
-_ov['<span class="rv-sw">🛣️</span>로드뷰 있음'] = roadviewLayer;   // 기본 OFF
+_ov['<span class="rv-sw">🛣️</span>로드뷰'] = roadviewLayer;   // 기본 OFF
 _ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF, 줌≥12 표시
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // 패널에 제목 + 토글불가 항목(코스 종류·장애물) 색상 키를 함께 표시 = 범례 통합
