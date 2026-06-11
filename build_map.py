@@ -23,6 +23,10 @@ VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
 # 카카오 JS 키(로드뷰 인앱 임베드). 도메인잠금이라 공개되어도 등록 도메인에서만 동작.
 _kjf = BASE / "kakao_js_key.txt"
 KAKAO_JS_KEY = (_kjf.read_text(encoding="utf-8").strip() if _kjf.exists() else "7dfaf9d396a83c4be5e67285dc805c88")
+# HRFCO 수위 키: API가 해외 IP(워커)를 차단해 브라우저 직접 호출(CORS 허용 확인).
+# 도메인잠금이 없는 키라 노출됨 — 남용 시 재발급으로 교체.
+_hkf = BASE / "hrfco_key.txt"
+HRFCO_KEY = (_hkf.read_text(encoding="utf-8").strip() if _hkf.exists() else "")
 
 # 카카오 로그인 OAuth Worker (Redirect URI 와 동일, 끝 슬래시 포함)
 WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/"
@@ -434,6 +438,7 @@ const POINTS = __POINTS__;
 const POLYS = __POLYS__;
 const WLZ = __WLZ__;       // 수상레저 금지구역(해수면, 해양경찰청)
 const WLSTN = __WLSTN__;   // 수위관측소(HRFCO, 카누 장소 근처 선별)
+const HRFCO_KEY = "__HRFCO_KEY__";   // 수위 API(도메인잠금 없음 — 남용 시 재발급)
 const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
 const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
@@ -998,12 +1003,24 @@ function _wlStage(wl, s){
   return ['정상','#2e7d32'];
 }
 function _wlTime(t){ return t&&t.length>=12 ? (+t.slice(4,6))+'.'+(+t.slice(6,8))+' '+t.slice(8,10)+':'+t.slice(10,12) : ''; }
+const _wlCache={};   // cd -> {rec, ts} (10분 클라이언트 캐시)
+function _wlGet(cd){
+  const c=_wlCache[cd]; if(c && Date.now()-c.ts<600000) return Promise.resolve(c.rec);
+  const direct = HRFCO_KEY
+    ? fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/10M/'+cd+'.json')
+        .then(function(r){return r.json();})
+        .then(function(j){ const rec=(j.content||[])[0]; return rec?{wl:rec.wl,t:rec.ymdhm}:null; })
+    : Promise.reject('nokey');
+  return direct.catch(function(){   // 직접 호출 실패 시 워커 폴백
+      return fetch(WORKER_URL.replace(/\/+$/,'')+'/waterlevel?obs='+cd)
+        .then(function(r){return r.json();}).then(function(d){ return (d&&d[cd])||null; });
+    }).then(function(rec){ _wlCache[cd]={rec:rec,ts:Date.now()}; return rec; });
+}
 const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
   const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'wl-div',html:'<span class="wl-badge">💧</span>',iconSize:null})});
   m.bindPopup('<b>💧 '+pmEsc(s.nm)+'</b><br><span class="wl-loading">수위 조회 중…</span>',{minWidth:170});
   m.on('click',function(){
-    fetch(WORKER_URL.replace(/\/+$/,'')+'/waterlevel?obs='+s.cd).then(function(r){return r.json();}).then(function(d){
-      const rec=d&&d[s.cd];
+    _wlGet(s.cd).then(function(rec){
       let h='<b>💧 '+pmEsc(s.nm)+'</b><br>';
       if(rec&&rec.wl){ const st=_wlStage(rec.wl,s);
         h+='<span style="font-size:19px;font-weight:800">'+parseFloat(rec.wl).toFixed(2)+' m</span> '
@@ -1546,6 +1563,7 @@ html = (HTML
         .replace("__POLYS__", json.dumps(polygons, ensure_ascii=False, separators=(",", ":")))
         .replace("__WLZ__", json.dumps(wlz, ensure_ascii=False, separators=(",", ":")))
         .replace("__WLSTN__", json.dumps(wlstn, ensure_ascii=False, separators=(",", ":")))
+        .replace("__HRFCO_KEY__", HRFCO_KEY)
         .replace("__COURSES__", json.dumps(courses, ensure_ascii=False, separators=(",", ":")))
         .replace("__VKEY__", VKEY)
         .replace("__KAKAO_JS_KEY__", KAKAO_JS_KEY)
