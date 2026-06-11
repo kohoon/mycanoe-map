@@ -1691,22 +1691,15 @@ html = (HTML
         .replace("__WORKER__", WORKER_URL)
         .replace("__GA_ID__", GA_ID))
 
-# 카누잉 기록(트립) 기능: 기본 빌드는 제외(운영), `python build_map.py test` 만 포함(테스트 페이지)
-import re as _re, sys as _sys
+# 카누잉 기록(트립): 운영 배포됨(2026-06-11, 1단계). test.html은 신기능 실험용으로 유지.
+import sys as _sys
 _TEST = len(_sys.argv) > 1 and _sys.argv[1] == "test"
 
-def _strip_trip(h):
-    h = _re.sub(r"/\* TRIPCSS \*/.*?/\* /TRIPCSS \*/", "", h, flags=_re.S)
-    h = _re.sub(r"<!-- TRIPHTML -->.*?<!-- /TRIPHTML -->", "", h, flags=_re.S)
-    h = _re.sub(r"/\* TRIPJS \*/.*?/\* /TRIPJS \*/", "", h, flags=_re.S)
-    return h
-
 if _TEST:
-    out = BASE / "test.html"               # 테스트 페이지: 트립 포함
+    out = BASE / "test.html"               # 테스트 페이지(신기능 실험용)
     out.write_text(html, encoding="utf-8")
-    print(f"생성: test.html ({out.stat().st_size/1024:.0f} KB) — 카누잉 기록 포함(테스트)")
+    print(f"생성: test.html ({out.stat().st_size/1024:.0f} KB)")
 else:
-    prod = _strip_trip(html)               # 운영: 트립 제외
-    (BASE / "map.html").write_text(prod, encoding="utf-8")
-    (BASE / "index.html").write_text(prod, encoding="utf-8")
-    print(f"생성: map.html + index.html ({len(prod)/1024:.0f} KB) — 카누잉 기록 제외(운영)")
+    (BASE / "map.html").write_text(html, encoding="utf-8")
+    (BASE / "index.html").write_text(html, encoding="utf-8")
+    print(f"생성: map.html + index.html ({len(html)/1024:.0f} KB) — 카누잉 기록 포함(운영)")
