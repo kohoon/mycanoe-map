@@ -1002,7 +1002,8 @@ function _wlYear(cd, cur){   // 지난 1년(1D) 분포에서 현재 수위 위�
     return '<div style="margin-top:7px">'
       +'<div style="position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,#90caf9,#a5d6a7,#ffcc80,#ef9a9a)">'
       +'<span style="position:absolute;left:'+pos.toFixed(1)+'%;top:-3px;transform:translateX(-50%);width:3px;height:14px;background:#263238;border-radius:2px"></span></div>'
-      +'<small style="color:#889">최근 1년 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m · 하위 '+pct+'% <b style="color:'+lab[1]+'">'+lab[0]+'</b></small></div>';
+      +'<small style="color:#889;display:block;margin-top:2px;white-space:nowrap">최근 1년 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m</small>'
+      +'<small style="display:block;white-space:nowrap;color:#889">하위 '+pct+'% · <b style="color:'+lab[1]+'">'+lab[0]+'</b></small></div>';
   };
   const c=_wlYrCache[cd];
   if(c && Date.now()-c.ts<3600000) return Promise.resolve(build(c.vals));
