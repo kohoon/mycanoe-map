@@ -55,6 +55,11 @@ _idf.write_text(json.dumps(_reg, ensure_ascii=False, indent=0), encoding="utf-8"
 _rvf = BASE / "roadview.json"
 _rv = json.loads(_rvf.read_text(encoding="utf-8")) if _rvf.exists() else {}
 
+# ---- 전국 보 위치(해수부 어도 현황 기반, build_weirs.py 선별) ----
+_wrf = BASE / "weirs.json"
+weirs = json.loads(_wrf.read_text(encoding="utf-8")) if _wrf.exists() else []
+print(f"보(어도 기반) {len(weirs)}곳")
+
 # ---- 수위관측소(HRFCO, build_hrfco.py 선별) ----
 _wsf = BASE / "hrfco_stations.json"
 wlstn = json.loads(_wsf.read_text(encoding="utf-8")) if _wsf.exists() else []
@@ -444,6 +449,7 @@ const POINTS = __POINTS__;
 const POLYS = __POLYS__;
 const WLZ = __WLZ__;       // 수상레저 금지구역(해수면, 해양경찰청)
 const WLSTN = __WLSTN__;   // 수위관측소(HRFCO, 카누 장소 근처 선별)
+const WEIRS = __WEIRS__;   // 전국 보 위치(해수부 어도 현황 기반, 근처 선별)
 const HRFCO_KEY = "__HRFCO_KEY__";   // 수위 API(도메인잠금 없음 — 남용 시 재발급)
 const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
@@ -897,6 +903,12 @@ function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
   m.addTo(obstacleLayer); o._m=m; }
 function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();})
   .then(function(list){ (list||[]).forEach(renderObstacle); _syncObstacleVis(); }).catch(function(){}); }
+// 전국 보(어도 현황 기반, 정적) — 관리자 등록 장애물과 동일 아이콘, 관리자에게만 이름 팝업
+WEIRS.forEach(function(w){
+  const m=L.marker([w.lat,w.lng],{icon:obsIcon('보')});
+  m.on('click',function(){ if(isAdmin()) m.bindPopup('<b>🚧 '+pmEsc(w.nm)+'</b>'+(w.river?'<br><small>'+pmEsc(w.river)+'</small>':'')+'<br><small style="color:#99a">어도 현황 데이터(정적)</small>').openPopup(); });
+  m.addTo(obstacleLayer);
+});
 // 장애물 표시 = 코스 전체 레이어 ON + 충분히 확대(줌 ≥ OBS_MINZOOM)일 때만
 const OBS_MINZOOM=14;
 function _syncObstacleVis(){ const show=map.hasLayer(allCoursesGroup) && map.getZoom()>=OBS_MINZOOM;
@@ -1644,6 +1656,7 @@ html = (HTML
         .replace("__POLYS__", json.dumps(polygons, ensure_ascii=False, separators=(",", ":")))
         .replace("__WLZ__", json.dumps(wlz, ensure_ascii=False, separators=(",", ":")))
         .replace("__WLSTN__", json.dumps(wlstn, ensure_ascii=False, separators=(",", ":")))
+        .replace("__WEIRS__", json.dumps(weirs, ensure_ascii=False, separators=(",", ":")))
         .replace("__HRFCO_KEY__", HRFCO_KEY)
         .replace("__COURSES__", json.dumps(courses, ensure_ascii=False, separators=(",", ":")))
         .replace("__VKEY__", VKEY)
