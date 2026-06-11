@@ -989,6 +989,31 @@ function _wlTrend(cd){   // 최근 24시간 1H 수위 → 스파크라인 SVG
         +'<small style="color:#889">24시간 추이 '+arrow+'</small></div>';
     }).catch(function(){ return ''; });
 }
+const _wlYrCache={};
+function _wlYear(cd, cur){   // 지난 1년(1D) 분포에서 현재 수위 위치 — 게이지 + 백분위
+  if(!HRFCO_KEY||!isFinite(cur)) return Promise.resolve('');
+  const build=function(vals){
+    if(!vals||vals.length<60) return '';
+    const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+    if(mx-mn<0.01) return '';
+    const pct=Math.round(vals.filter(function(v){return v<=cur;}).length/vals.length*100);
+    const pos=Math.max(0,Math.min(100,(cur-mn)/(mx-mn)*100));
+    const lab=pct>=80?['연중 높음','#e53935']:pct>=60?['다소 높음','#fb8c00']:pct>=20?['평년 수준','#2e7d32']:['연중 낮음','#1565c0'];
+    return '<div style="margin-top:7px">'
+      +'<div style="position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,#90caf9,#a5d6a7,#ffcc80,#ef9a9a)">'
+      +'<span style="position:absolute;left:'+pos.toFixed(1)+'%;top:-3px;transform:translateX(-50%);width:3px;height:14px;background:#263238;border-radius:2px"></span></div>'
+      +'<small style="color:#889">최근 1년 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m · 하위 '+pct+'% <b style="color:'+lab[1]+'">'+lab[0]+'</b></small></div>';
+  };
+  const c=_wlYrCache[cd];
+  if(c && Date.now()-c.ts<3600000) return Promise.resolve(build(c.vals));
+  function ymd(d){ return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+  const now=new Date(), from=new Date(now.getTime()-365*86400000);
+  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/1D/'+cd+'/'+ymd(from)+'/'+ymd(now)+'.json')
+    .then(function(r){return r.json();})
+    .then(function(j){ const vals=(j.content||[]).map(function(x){return parseFloat(x.wl);}).filter(isFinite);
+      _wlYrCache[cd]={vals:vals,ts:Date.now()}; return build(vals); })
+    .catch(function(){ return ''; });
+}
 // 팔당댐 방류량 + 한강(서울) 무동력 운항 기준(1,500/3,000 m³/s — 서울시 운항규칙)
 function _paldang(){
   if(!HRFCO_KEY) return;
@@ -1027,10 +1052,11 @@ const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
         h+='<br><small style="color:#889">'+_wlTime(rec.t)+' 관측</small>';
         const ths=[]; if(parseFloat(s.att)) ths.push('관심 '+s.att); if(parseFloat(s.alm)) ths.push('경계 '+s.alm);
         if(ths.length) h+='<br><small style="color:#aab">기준: '+ths.join(' · ')+'m</small>';
-        h+='<div id="wlTrend_'+s.cd+'"></div>';
+        h+='<div id="wlTrend_'+s.cd+'"></div><div id="wlYr_'+s.cd+'"></div>';
       } else h+='<span style="color:#999">관측값 없음</span>';
       m.setPopupContent(h);
       _wlTrend(s.cd).then(function(svg){ const el=document.getElementById('wlTrend_'+s.cd); if(el&&svg) el.innerHTML=svg; });
+      if(rec) _wlYear(s.cd, parseFloat(rec.wl)).then(function(html){ const el=document.getElementById('wlYr_'+s.cd); if(el&&html) el.innerHTML=html; });
     }).catch(function(){ m.setPopupContent('<b>💧 '+pmEsc(s.nm)+'</b><br><span style="color:#999">수위 서비스 연결 실패</span>'); });
   });
   return m;
