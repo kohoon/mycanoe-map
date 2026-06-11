@@ -33,9 +33,10 @@
         background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
         font:12px sans-serif;transition:opacity .6s;pointer-events:none}
   .leaflet-control-zoom a{width:40px;height:40px;line-height:40px;font-size:22px}
-  .measbtn{cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none}
+  .measbtn{cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none;width:104px;box-sizing:border-box;text-align:center}
+  .measbtn.on{width:auto}
   .measbtn.on{background:#ff7043;color:#fff}
-  .measmode{font-size:12.5px;padding:7px 11px;display:none}
+  .measmode{font-size:12.5px;padding:7px 11px;display:none;width:auto}
   .measbtn .mx{margin-left:8px;background:rgba(255,255,255,.35);border-radius:8px;padding:1px 7px;cursor:pointer}
   .obsbtn.on{background:#e53935;color:#fff}
   .obs-ic{display:inline-flex;align-items:center;gap:3px;padding:3px 8px 3px 6px;border-radius:12px;font:700 12px sans-serif;color:#fff;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #fff}
@@ -173,7 +174,7 @@
   .cm-note b{color:#d500f9}
   #cmMsg{font-size:13px;color:#c0392b;margin-top:9px;min-height:18px;text-align:center}
   .pm-cid{font-size:11px;color:#aab;font-weight:400}
-  .noticebtn{position:relative;cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none}
+  .noticebtn{position:relative;cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none;width:104px;box-sizing:border-box;text-align:center}
   .nt-badge{position:absolute;top:-7px;right:-7px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#e53935;color:#fff;font:700 10px/17px sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.35)}
   #ntBody h3{margin:0 30px 10px 0;font-size:18px;color:#1b3a2b}
   .nt-write{background:#f3f7f4;border-radius:10px;padding:11px;margin-bottom:14px}
@@ -866,8 +867,7 @@ const ObstacleCtl=L.Control.extend({ options:{position:'topleft'},
     L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
     L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); toggleObsPlace(); });
     return d; } });
-map.addControl(new ObstacleCtl());
-(function(){ const ob=document.getElementById('obsBtnBox'); if(ob&&isAdmin()) ob.style.display='block'; })();
+// (버튼 추가는 공지 버튼 다음 — 거리측정/공지/장애물 순서)
 function toggleObsPlace(){ obsPlaceMode=!obsPlaceMode; const b=document.getElementById('obsBtnBox');
   if(b){ b.classList.toggle('on',obsPlaceMode); b.innerHTML=obsPlaceMode?'🚧 지점 탭…':'🚧 장애물'; }
   map.getContainer().style.cursor=obsPlaceMode?'crosshair':'';
@@ -1552,6 +1552,8 @@ const NoticeCtl=L.Control.extend({ options:{position:'topleft'},
   onAdd:function(){ const d=L.DomUtil.create('div','noticebtn'); d.innerHTML='📢 공지'; d.title='공지사항';
     L.DomEvent.disableClickPropagation(d); L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); openNotices(); }); return d; } });
 map.addControl(new NoticeCtl());
+map.addControl(new ObstacleCtl());   // 장애물(관리자) — 공지 아래
+(function(){ const ob=document.getElementById('obsBtnBox'); if(ob&&isAdmin()) ob.style.display='block'; })();
 function napi(){ return WORKER_URL.replace(/\/+$/,'')+'/notices'; }
 function closeNotices(){ document.getElementById('noticeModal').classList.remove('open'); }
 function ntDate(t){ try{ const d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate(); }catch(e){ return ''; } }
