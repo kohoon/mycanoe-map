@@ -56,16 +56,17 @@ def main():
             pts += [(c[1], c[0]) for c in f["geometry"]["coordinates"][::10]]
     except Exception:
         pass
-    # 국가하천(카누 가능한 큰 강) = RADIUS_KM / 지방 소하천 = LOCAL_KM(바로 근처만)
+    # 전체 목록(등급 포함)을 저장 — build_map.py가 빌드 때마다 현재 장소·코스 기준으로 자동 선별
+    allw = list(weirs.values())
+    (BASE/"weirs_all.json").write_text(json.dumps(allw, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+    # 참고용 선별 결과도 출력
     def keep(w):
         rad = RADIUS_KM if w["g"] == "국가" else LOCAL_KM
         return any(hav_km((w["lat"], w["lng"]), p) <= rad for p in pts)
-    sel = [w for w in weirs.values() if keep(w)]
+    sel = [w for w in allw if keep(w)]
     n_nat = sum(1 for w in sel if w["g"] == "국가")
-    print(f"선별: {len(sel)} (국가 {n_nat} @{RADIUS_KM}km / 지방 {len(sel)-n_nat} @{LOCAL_KM}km)")
-    for w in sel: w.pop("g", None)
-    (BASE/"weirs.json").write_text(json.dumps(sel, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
-    print("[done] weirs.json")
+    print(f"현 기준 선별: {len(sel)} (국가 {n_nat} @{RADIUS_KM}km / 지방 {len(sel)-n_nat} @{LOCAL_KM}km)")
+    print(f"[done] weirs_all.json {len(allw)}건 — 빌드 시 자동 선별됨")
 
 if __name__ == "__main__":
     main()

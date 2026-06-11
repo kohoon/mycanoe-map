@@ -55,10 +55,32 @@ _idf.write_text(json.dumps(_reg, ensure_ascii=False, indent=0), encoding="utf-8"
 _rvf = BASE / "roadview.json"
 _rv = json.loads(_rvf.read_text(encoding="utf-8")) if _rvf.exists() else {}
 
-# ---- 전국 보 위치(해수부 어도 현황 기반, build_weirs.py 선별) ----
-_wrf = BASE / "weirs.json"
-weirs = json.loads(_wrf.read_text(encoding="utf-8")) if _wrf.exists() else []
-print(f"보(어도 기반) {len(weirs)}곳")
+# ---- 전국 보 위치(해수부 어도 현황) — 빌드 시 현재 장소·코스 기준 자동 선별 ----
+# weirs_all.json(전체, build_weirs.py가 생성)에서 국가하천 8km / 지방 소하천 1.5km 규칙으로 필터.
+# 장소(synced_seqs)나 코스가 늘면 다음 빌드에서 근처 보가 자동 포함된다.
+import math as _math
+def _hav_km(a, b):
+    R = 6371.0
+    la1, lo1, la2, lo2 = map(_math.radians, [a[0], a[1], b[0], b[1]])
+    h = _math.sin((la2-la1)/2)**2 + _math.cos(la1)*_math.cos(la2)*_math.sin((lo2-lo1)/2)**2
+    return 2*R*_math.asin(_math.sqrt(h))
+weirs = []
+_waf = BASE / "weirs_all.json"
+if _waf.exists():
+    _allw = json.loads(_waf.read_text(encoding="utf-8"))
+    _wpts = [(v["lat"], v["lng"]) for v in items.values() if v.get("lat") is not None]
+    try:
+        _cgj = json.loads((BASE / "courses.geojson").read_text(encoding="utf-8"))
+        _wpts += [(c[1], c[0]) for f in _cgj["features"] for c in f["geometry"]["coordinates"][::10]]
+    except Exception:
+        pass
+    for _w in _allw:
+        _rad = 8.0 if _w.get("g") == "국가" else 1.5
+        if any(_hav_km((_w["lat"], _w["lng"]), p) <= _rad for p in _wpts):
+            weirs.append({k: _w[k] for k in ("nm", "river", "lat", "lng")})
+elif (BASE / "weirs.json").exists():
+    weirs = json.loads((BASE / "weirs.json").read_text(encoding="utf-8"))
+print(f"보(어도 기반) {len(weirs)}곳 (빌드 시 자동 선별)")
 
 # ---- 수위관측소(HRFCO, build_hrfco.py 선별) ----
 _wsf = BASE / "hrfco_stations.json"
