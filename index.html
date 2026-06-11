@@ -64,6 +64,19 @@
   .leaflet-div-icon.wl-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .wl-div .wl-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
   .wl-loading{color:#889;font-size:12.5px}
+  #pmRate{display:flex;align-items:center;gap:10px;margin:2px 0 9px;flex-wrap:wrap}
+  .rate-avg{font-weight:800;color:#f59f00;font-size:15px}
+  .rate-avg small{color:#99a;font-weight:400}
+  .rate-mine a{font-size:19px;color:#ccd;cursor:pointer;padding:0 1px;text-decoration:none}
+  .rate-mine a.on{color:#f59f00}
+  .fav-btn{margin-left:auto;border:1.5px solid #e5808f;background:#fff;color:#d6336c;border-radius:14px;padding:4px 11px;font:700 12.5px sans-serif;cursor:pointer}
+  .fav-btn.on{background:#d6336c;color:#fff;border-color:#d6336c}
+  #myBody h3{margin:2px 30px 10px 0;font-size:18px;color:#1b3a2b}
+  .my-toggle{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#345;cursor:pointer}
+  .my-fav{display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid #f0f2f4;font-size:14px}
+  .my-fav .mf-go{flex:1;color:#1b3a2b;cursor:pointer}
+  .my-fav .mf-del{color:#bbb;cursor:pointer;padding:0 6px}
+  .authbox .who a#mypageA{color:#0d47a1;font-weight:700;text-decoration:none;cursor:pointer}
   .pm-wx{font-size:13px;color:#345;background:#f2f7fa;border-radius:9px;padding:7px 11px;margin-bottom:8px}
   .pm-wx:empty{display:none}
   .pm-wx-now{display:flex;gap:12px;flex-wrap:wrap}
@@ -282,6 +295,7 @@
   <div class="pmodal">
     <button class="pmodal-x" onclick="closePlaceModal()">✕</button>
     <h3 id="pmTitle"></h3>
+    <div id="pmRate"></div>
     <div id="pmLinks"></div>
     <div id="pmAdmin"></div>
     <div class="pm-cmts-h">코멘트 <span id="pmCnt"></span></div>
@@ -312,6 +326,10 @@
 <div id="courseModal" class="pmodal-wrap">
   <div class="pmodal-bg" onclick="closeCourseModal()"></div>
   <div class="pmodal"><button class="pmodal-x" onclick="closeCourseModal()">✕</button><div id="cmBody"></div></div>
+</div>
+<div id="myModal" class="pmodal-wrap">
+  <div class="pmodal-bg" onclick="closeMyPage()"></div>
+  <div class="pmodal"><button class="pmodal-x" onclick="closeMyPage()">✕</button><div id="myBody"></div></div>
 </div>
 <div id="obsModal" class="pmodal-wrap">
   <div class="pmodal-bg" onclick="closeObsModal()"></div>
@@ -433,7 +451,8 @@ function renderAuth(){
   const d=document.getElementById('authbox'); if(!d) return;
   const u=getUser();
   if(u&&u.uid){
-    d.innerHTML='<span class="who"><span class="dot"></span>로그인됨 <a id="logoutA">로그아웃</a></span>';
+    d.innerHTML='<span class="who"><span class="dot"></span><a id="mypageA" title="마이페이지">'+pmEsc(u.nick||'회원')+'</a> <a id="logoutA">로그아웃</a></span>';
+    const my=document.getElementById('mypageA'); if(my) L.DomEvent.on(my,'click',function(e){ L.DomEvent.stop(e); openMyPage(); });
     const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); gaEvent('logout'); renderAuth(); showGate(); });
   } else {
     d.innerHTML='<button id="loginA">카카오 로그인</button>';
@@ -695,18 +714,28 @@ COURSES.features.forEach(function(f){ const sc=courseSubcat((f.properties||{}).n
   (_courseGroups[sc]=_courseGroups[sc]||[]).push(f); });
 const courseLayers={};    // 서브카테고리 -> layerGroup(전체 코스 그룹에 포함)
 const allCoursesGroup=L.layerGroup().addTo(map);   // 코스 전체 토글(단일 레이어 항목)
+const _favLayerIdx={};   // 즐겨찾기 필터용: target -> [{l,parent}]
+function _favReg(target,l,parent){ (_favLayerIdx[target]=_favLayerIdx[target]||[]).push({l:l,parent:parent}); }
+let _favList=[], _favSet=new Set(), _favLoaded=false;
+let _favOnly=false; try{ _favOnly=localStorage.getItem('mc_favonly')==='1'; }catch(e){}
 let _courseLegendHtml='';
 Object.keys(_courseGroups).forEach(function(sc){
   const fc={type:'FeatureCollection',features:_courseGroups[sc]};
   const col=subcatColor(sc);
-  const casing=L.geoJSON(fc,{style:{color:'#2a0a4a',weight:8,opacity:0.55},interactive:false});
-  const line=L.geoJSON(fc,{style:{color:col,weight:5,opacity:0.95},interactive:false});
+  const reg=function(f,l,parent){ const cid=(f.properties||{}).cid; if(cid!=null) _favReg('course_c'+cid,l,parent); };
+  const casing=L.geoJSON(fc,{style:{color:'#2a0a4a',weight:8,opacity:0.55},interactive:false,
+    onEachFeature:function(f,l){ reg(f,l,null); }});
+  const line=L.geoJSON(fc,{style:{color:col,weight:5,opacity:0.95},interactive:false,
+    onEachFeature:function(f,l){ reg(f,l,null); }});
   // 투명 넓은 탭 영역(어디를 탭/클릭해도 정보)
   const hit=L.geoJSON(fc,{style:{color:'#000',weight:22,opacity:0},
     onEachFeature:(f,l)=>{ const p=f.properties||{};
       const html='<b>'+(p.cid?('C'+p.cid+' '):'')+(p.name||'카누잉코스')+'</b>'+(p.km?'<br>약 '+p.km+'km':'')+(p.cid?'<br><a class="course-share" onclick="shareCourse(\''+p.cid+'\')">🔗 코스 공유</a> <a class="course-share" onclick="courseCmt(\'c\',\''+p.cid+'\')">💬 코멘트</a>':'');
-      l.bindPopup(html); if(!isTouch) l.bindTooltip(html,{sticky:true,direction:'top',opacity:0.95}); }
+      l.bindPopup(html); if(!isTouch) l.bindTooltip(html,{sticky:true,direction:'top',opacity:0.95});
+      reg(f,l,null); }
   });
+  // 등록 시 parent 지정(제거/복원용)
+  Object.keys(_favLayerIdx).forEach(function(t){ _favLayerIdx[t].forEach(function(e){ if(!e.parent){ e.parent=(casing.hasLayer(e.l)?casing:(line.hasLayer(e.l)?line:hit)); } }); });
   courseLayers[sc]=L.layerGroup([casing,line,hit]); allCoursesGroup.addLayer(courseLayers[sc]);
 });
 
@@ -768,7 +797,9 @@ function placeWeather(lat,lng){
 let _pmPlace=null,_pmSlug=null;
 function openPlaceModal(pl){
   _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
+  _pmTarget=_pmSlug; _pmKind='p'; _pmName=pl.name||'장소'; _pmLL=[pl.lat,pl.lng];
   document.getElementById('pmTitle').textContent=(pl.id?('#'+pl.id+' '):'')+(pl.name||'장소');
+  renderRateRow();
   document.getElementById('pmLinks').innerHTML='<div id="pmWx" class="pm-wx"></div>'
     +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
   placeWeather(pl.lat,pl.lng);
@@ -784,7 +815,9 @@ const _courseByCid={};
 COURSES.features.forEach(function(f){ const p=f.properties||{}; if(p.cid!=null) _courseByCid[String(p.cid)]={name:p.name||'코스',km:p.km||0}; });
 function openCourseComments(key,name,km,shareId){
   _pmPlace={name:name||'코스'}; _pmSlug=key;
+  _pmTarget=key; _pmKind='c'; _pmName=name||'코스'; _pmLL=null;
   document.getElementById('pmTitle').textContent='🛶 '+(name||'코스');
+  renderRateRow();
   document.getElementById('pmLinks').innerHTML=(km?'<div class="pm-memo">약 '+km+'km</div>':'')+(shareId?'<a class="course-share" onclick="shareCourse(\''+shareId+'\')">🔗 코스 공유</a>':'');
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
@@ -928,15 +961,112 @@ function fullIcon(kind){ return kind==='spot'?boathouseIcon():kind==='wreck'?wre
 function makeMarker(ll,kind){ const dot=map.getZoom()<Z_ICON; const m=L.marker(ll,{icon:dot?dotIcon(kind):fullIcon(kind)}); m._kind=kind; m._isDot=dot; return m; }
 const famousLayer = L.geoJSON(spotFeats, {
   pointToLayer:(f,ll)=>makeMarker(ll,'spot'),
-  onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
+  onEachFeature:(f,l)=>{ l.on('click',function(){ openPlaceModal(featPlace(f)); });
+    const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null); }
 }).addTo(map);
 const canoeLayer = L.geoJSON(landFeats, {
   pointToLayer:(f,ll)=>makeMarker(ll, isWreck((f.properties||{}).name)?'wreck':'canoe'),
-  onEachFeature:(f,l)=>l.on('click',function(){ openPlaceModal(featPlace(f)); })
+  onEachFeature:(f,l)=>{ l.on('click',function(){ openPlaceModal(featPlace(f)); });
+    const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null); }
 }).addTo(map);
 function applyZoomIcons(){ const dot=map.getZoom()<Z_ICON; const f=function(m){ if(!m._kind||m._isDot===dot) return; m._isDot=dot; m.setIcon(dot?dotIcon(m._kind):fullIcon(m._kind)); };
   famousLayer.eachLayer(f); canoeLayer.eachLayer(f); }
 map.on('zoomend', applyZoomIcons);
+// 장소 마커 parent 연결(즐겨찾기 필터용)
+Object.keys(_favLayerIdx).forEach(function(t){ _favLayerIdx[t].forEach(function(e){
+  if(!e.parent){ e.parent = famousLayer.hasLayer(e.l)?famousLayer:(canoeLayer.hasLayer(e.l)?canoeLayer:e.parent); } }); });
+
+// ==== 별점 + 즐겨찾기 + 마이페이지 ====
+let _pmTarget=null,_pmKind='p',_pmName='',_pmLL=null;
+function fapi(p){ return WORKER_URL.replace(/\/+$/,'')+p; }
+function loadFavs(){ const u=getUser(); if(!u||!u.uid){ _favLoaded=true; return Promise.resolve(); }
+  return fetch(fapi('/fav?uid='+encodeURIComponent(u.uid))).then(function(r){return r.json();})
+    .then(function(list){ _favList=list||[]; _favSet=new Set(_favList.map(function(x){return x.t;})); _favLoaded=true;
+      if(_favOnly) applyFavFilter(); })
+    .catch(function(){ _favLoaded=true; });
+}
+function applyFavFilter(){
+  Object.keys(_favLayerIdx).forEach(function(t){
+    const keep=!_favOnly || _favSet.has(t);
+    _favLayerIdx[t].forEach(function(e){ if(!e.parent) return;
+      if(keep){ if(!e.parent.hasLayer(e.l)) e.parent.addLayer(e.l); }
+      else { if(e.parent.hasLayer(e.l)) e.parent.removeLayer(e.l); } });
+  });
+}
+function setFavOnly(on){ _favOnly=!!on; try{ localStorage.setItem('mc_favonly',_favOnly?'1':'0'); }catch(e){} applyFavFilter(); }
+// 별점/하트 줄 — 장소·코스 모달 공용
+function renderRateRow(){
+  const el=document.getElementById('pmRate'); if(!el||!_pmTarget) return;
+  const u=getUser(), heart=_favSet.has(_pmTarget);
+  el.innerHTML='<span id="rateAvg" class="rate-avg">★ -</span>'
+    +'<span id="rateMine" class="rate-mine">'+[1,2,3,4,5].map(function(i){return '<a data-s="'+i+'">☆</a>';}).join('')+'</span>'
+    +'<button id="favBtn" class="fav-btn'+(heart?' on':'')+'">'+(heart?'♥ 즐겨찾기':'♡ 즐겨찾기')+'</button>';
+  const mine=document.getElementById('rateMine');
+  mine.querySelectorAll('a').forEach(function(a){ a.onclick=function(){ if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; } setRate(+a.getAttribute('data-s')); }; });
+  document.getElementById('favBtn').onclick=toggleFav;
+  if(!u||!u.uid){ fetchRate(0); } else fetchRate(u.uid);
+}
+function _paintStars(avg,n,my){
+  const av=document.getElementById('rateAvg'); if(av) av.innerHTML='★ '+(n?avg.toFixed(1):'-')+' <small>('+n+')</small>';
+  const mine=document.getElementById('rateMine');
+  if(mine) mine.querySelectorAll('a').forEach(function(a,i){ a.textContent=(i<my)?'★':'☆'; a.classList.toggle('on',i<my); });
+}
+function fetchRate(uid){
+  fetch(fapi('/rate?targets='+encodeURIComponent(_pmTarget)+(uid?'&uid='+encodeURIComponent(uid):'')))
+    .then(function(r){return r.json();}).then(function(d){ const x=d&&d[_pmTarget]; if(x) _paintStars(x.avg,x.n,x.my||0); }).catch(function(){});
+}
+function setRate(stars){ const u=getUser(); if(!u||!u.uid) return;
+  fetch(fapi('/rate'),{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:u.uid,target:_pmTarget,stars:stars})})
+    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok){ gaEvent('rate',{stars:stars}); _paintStars(d.avg,d.n,d.my); } }).catch(function(){});
+}
+function toggleFav(){ const u=getUser(); if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; }
+  const on=!_favSet.has(_pmTarget);
+  fetch(fapi('/fav'),{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:u.uid,target:_pmTarget,on:on,name:_pmName,kind:_pmKind,lat:_pmLL?_pmLL[0]:null,lng:_pmLL?_pmLL[1]:null})})
+    .then(function(r){ if(!r.ok) throw 0;
+      if(on){ _favSet.add(_pmTarget); _favList.unshift({t:_pmTarget,n:_pmName,k:_pmKind,lat:_pmLL?_pmLL[0]:null,lng:_pmLL?_pmLL[1]:null}); }
+      else { _favSet.delete(_pmTarget); _favList=_favList.filter(function(x){return x.t!==_pmTarget;}); }
+      gaEvent('fav_'+(on?'add':'del'));
+      const b=document.getElementById('favBtn'); if(b){ b.classList.toggle('on',on); b.textContent=(on?'♥ 즐겨찾기':'♡ 즐겨찾기'); }
+      if(_favOnly) applyFavFilter();
+    }).catch(function(){ alert('저장 실패'); });
+}
+// 마이페이지
+function closeMyPage(){ document.getElementById('myModal').classList.remove('open'); }
+function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
+  document.getElementById('myModal').classList.add('open');
+  const body=document.getElementById('myBody');
+  function render(){
+    let h='<h3>👤 '+pmEsc(u.nick||'회원')+'</h3>'
+      +'<label class="my-toggle"><input type="checkbox" id="favOnlyChk"'+(_favOnly?' checked':'')+'> 지도에 즐겨찾기만 표시</label>'
+      +'<div class="lg-sub" style="margin-top:10px">⭐ 즐겨찾기 ('+_favList.length+')</div>';
+    if(!_favList.length) h+='<div class="pm-empty">장소·코스 모달에서 ♡ 를 눌러 추가하세요</div>';
+    else h+=_favList.map(function(x,i){
+      return '<div class="my-fav"><a class="mf-go" data-i="'+i+'">'+(x.k==='c'?'〰️':'📍')+' '+pmEsc(x.n||x.t)+'</a><a class="mf-del" data-i="'+i+'">✕</a></div>';
+    }).join('');
+    body.innerHTML=h;
+    document.getElementById('favOnlyChk').onchange=function(){ setFavOnly(this.checked); };
+    body.querySelectorAll('.mf-go').forEach(function(a){ a.onclick=function(){ gotoFav(_favList[+a.getAttribute('data-i')]); }; });
+    body.querySelectorAll('.mf-del').forEach(function(a){ a.onclick=function(){
+      const x=_favList[+a.getAttribute('data-i')];
+      fetch(fapi('/fav'),{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:u.uid,target:x.t,on:false})}).then(function(r){ if(r.ok){
+          _favSet.delete(x.t); _favList=_favList.filter(function(y){return y.t!==x.t;}); if(_favOnly) applyFavFilter(); render(); } });
+    }; });
+  }
+  body.innerHTML='<div class="pm-empty">불러오는 중…</div>';
+  loadFavs().then(render);
+}
+function gotoFav(x){ if(!x) return; closeMyPage();
+  if(x.k==='c'){
+    if(x.t.indexOf('course_c')===0){ const cid=x.t.slice(8);
+      const f=COURSES.features.find(function(y){return String((y.properties||{}).cid)===String(cid);});
+      if(f) _fitAndPop(f.geometry.coordinates.map(function(c){return [c[1],c[0]];}), f.properties.name, f.properties.km); }
+    else { const kid=x.t.slice(8); const c=_kvCourses[kid]; if(c) _fitAndPop(c.coords, c.name, c.km); }
+  } else if(x.lat!=null){ map.setView([x.lat,x.lng],15); }
+}
+loadFavs();
 // 로드뷰 있는 장소 표식 레이어(기본 OFF, 토글) — 사전계산(properties.rv)
 const _rvCount=POINTS.features.filter(function(f){return f.properties.rv;}).length;
 const roadviewLayer = L.layerGroup(POINTS.features.filter(function(f){return f.properties.rv;}).map(function(f){
@@ -1112,6 +1242,8 @@ function renderKVCourse(c){
   let grp=courseLayers[sc];
   if(!grp){ grp=L.layerGroup(); courseLayers[sc]=grp; allCoursesGroup.addLayer(grp); }
   casing.addTo(grp); line.addTo(grp); hit.addTo(grp);
+  _favReg('course_k'+c.id,casing,grp); _favReg('course_k'+c.id,line,grp); _favReg('course_k'+c.id,hit,grp);
+  if(_favOnly) applyFavFilter();
 }
 function loadCourses(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ (list||[]).forEach(renderKVCourse); }).catch(function(){}); }
 loadCourses();

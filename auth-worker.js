@@ -250,6 +250,69 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
+    // 0-3g) 별점(장소/코스) — KV "rate_<target>" = {uid:별점}
+    if (url.pathname.endsWith("/rate")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const J = (o) => new Response(JSON.stringify(o), { headers: { ...cors, "Content-Type": "application/json" } });
+      if (!KV) return new Response("no-store", { status: 500, headers: cors });
+      if (req.method === "GET") {
+        const uid = (url.searchParams.get("uid") || "").slice(0, 40);
+        const targets = (url.searchParams.get("targets") || "").split(",").filter(Boolean).slice(0, 30);
+        const out = {};
+        for (const t of targets) {
+          const key = "rate_" + t.slice(0, 60);
+          let m = {}; try { m = JSON.parse((await KV.get(key)) || "{}"); } catch (e) {}
+          const vals = Object.values(m).map(Number).filter((v) => v >= 1 && v <= 5);
+          out[t] = { n: vals.length, avg: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : 0, my: (uid && m[uid]) || 0 };
+        }
+        return J(out);
+      }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        const uid = String(b.id || "").slice(0, 40); const t = String(b.target || "").slice(0, 60);
+        const stars = Math.round(Number(b.stars));
+        if (!uid || !t || !(stars >= 1 && stars <= 5)) return new Response("bad", { status: 400, headers: cors });
+        const key = "rate_" + t;
+        let m = {}; try { m = JSON.parse((await KV.get(key)) || "{}"); } catch (e) {}
+        m[uid] = stars;
+        await KV.put(key, JSON.stringify(m));
+        const vals = Object.values(m).map(Number).filter((v) => v >= 1 && v <= 5);
+        return J({ ok: true, n: vals.length, avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10, my: stars });
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
+    // 0-3h) 즐겨찾기 — KV "favs_<uid>" = [{t,n,k}] (target, 이름, 종류 p/c)
+    if (url.pathname.endsWith("/fav")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const J = (o) => new Response(JSON.stringify(o), { headers: { ...cors, "Content-Type": "application/json" } });
+      if (!KV) return new Response("no-store", { status: 500, headers: cors });
+      if (req.method === "GET") {
+        const uid = (url.searchParams.get("uid") || "").slice(0, 40);
+        if (!uid) return J([]);
+        let a = []; try { a = JSON.parse((await KV.get("favs_" + uid)) || "[]"); } catch (e) {}
+        return J(a);
+      }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        const uid = String(b.id || "").slice(0, 40); const t = String(b.target || "").slice(0, 60);
+        if (!uid || !t) return new Response("bad", { status: 400, headers: cors });
+        let a = []; try { a = JSON.parse((await KV.get("favs_" + uid)) || "[]"); } catch (e) {}
+        a = a.filter((x) => x && x.t !== t);
+        if (b.on) a.unshift({ t: t, n: String(b.name || "").slice(0, 60), k: String(b.kind || "p").slice(0, 1), lat: Number(b.lat) || null, lng: Number(b.lng) || null });
+        if (a.length > 200) a = a.slice(0, 200);
+        await KV.put("favs_" + uid, JSON.stringify(a));
+        return J({ ok: true, n: a.length });
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
     // 0-3f) 수위 조회 — HRFCO 프록시(키는 Secret HRFCO_KEY), KV 캐시 10분
     if (url.pathname.endsWith("/waterlevel")) {
       const origin = req.headers.get("Origin") || "*";
