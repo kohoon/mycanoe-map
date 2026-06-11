@@ -48,7 +48,11 @@
   #obMsg{font-size:13px;color:#888;margin-top:9px;min-height:18px;text-align:center}
   .leaflet-control-layers{padding:8px 11px!important;border-radius:8px!important;box-shadow:0 1px 5px rgba(0,0,0,.3)!important;font:13px/1.55 sans-serif}
   .leaflet-control-layers-expanded{width:162px;color:#222}
-  .lc-title{font-weight:700;font-size:13px;color:#13312a;margin-bottom:5px}
+  .lc-title{font-weight:700;font-size:13px;color:#13312a;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none}
+  .lc-arrow{font-size:11px;color:#789;transition:transform .15s}
+  .lc-collapsed .lc-arrow{transform:rotate(-90deg)}
+  .lc-collapsed .lc-title{margin-bottom:0}
+  .lc-collapsed .leaflet-control-layers-list,.lc-collapsed .lc-key{display:none}
   .leaflet-control-layers label{margin:3px 0;cursor:pointer}
   .leaflet-control-layers-separator{margin:6px 0}
   .lc-key{margin-top:2px}
@@ -875,14 +879,17 @@ _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
 _ov['<span class="rv-sw">🛣️</span>로드뷰 있음'] = roadviewLayer;   // 기본 OFF
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // 패널에 제목 + 토글불가 항목(코스 종류·장애물) 색상 키를 함께 표시 = 범례 통합
+// 모바일은 기본 닫힘 + 제목 탭으로 열고 닫기(화면 점유 최소화)
 (function(){ const c=_layerControl.getContainer(); if(!c) return;
-  const h=L.DomUtil.create('div','lc-title'); h.innerHTML='🗺️ 레이어 · 범례'; c.insertBefore(h, c.firstChild);
+  const h=L.DomUtil.create('div','lc-title'); h.innerHTML='<span>🗺️ 레이어 · 범례</span><span class="lc-arrow">▾</span>'; c.insertBefore(h, c.firstChild);
   function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
   const k=L.DomUtil.create('div','lc-key');
   k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
     +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">코스와 함께</span></div>'
     +'<div class="lg-pills"><span class="obs-ic obs-bo">🚧 보</span><span class="obs-ic obs-jing">🪨 징검다리</span><span class="obs-ic obs-shal">〰️ 얕음</span></div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
+  L.DomEvent.on(h,'click',function(e){ L.DomEvent.stop(e); c.classList.toggle('lc-collapsed'); });
+  if(isTouch) c.classList.add('lc-collapsed');   // 모바일: 기본 닫힘
 })();
 // 위성지도일 때 최대 줌 제한 + 선택 저장(다음 접속에 유지)
 map.on('baselayerchange', function(e){ const mz=(e.name==='위성지도')?SAT_MAXZOOM:19; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz);
