@@ -194,6 +194,10 @@ __GTAG__
   .addform #apMsg{font-size:12px;color:#666;margin-left:6px}
   .canoe-pin-in{width:26px;height:26px;border-radius:50%;background:#2196f3;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
   .canoe-pin-in svg{width:17px;height:auto}
+  .loc-canoe-in{display:flex;align-items:center;justify-content:center;width:40px;height:40px;
+    filter:drop-shadow(0 2px 4px rgba(13,71,161,.65));animation:locbob 2.4s ease-in-out infinite}
+  .loc-canoe-in svg{width:38px;height:auto}
+  @keyframes locbob{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
   .cafecard{display:flex;align-items:center;gap:8px;width:150px;box-sizing:border-box;background:#fff;padding:7px 12px 7px 7px;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.2);text-decoration:none;cursor:pointer}
   .cafecard .cf-badge{width:30px;height:30px;flex:none;border-radius:8px;background:#03C75A;display:flex;align-items:center;justify-content:center}
   .cafecard .cf-badge svg{width:20px;height:auto}
@@ -1181,8 +1185,7 @@ const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':bas
     +'<div class="lg-sub">⛔ 수상레저금지 <span class="lg-note">해수면·내수면</span></div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
-    +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">확대 시 표시</span></div>'
-    +'<div class="lg-pills"><span class="obs-ic obs-bo">🚧 보</span><span class="obs-ic obs-jing">🪨 징검다리</span><span class="obs-ic obs-shal">〰️ 얕음</span></div>'
+    +'<div class="lg-pills" style="margin-top:7px;padding-top:6px;border-top:1px solid #eee"><span class="obs-ic obs-bo">🚧 보</span><span class="obs-ic obs-jing">🪨 징검다리</span><span class="obs-ic obs-shal">〰️ 얕음</span></div>'
     +'<div id="pdChip" class="pd-chip"></div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
   L.DomEvent.on(h,'click',function(e){ L.DomEvent.stop(e); c.classList.toggle('lc-collapsed'); });
@@ -1502,7 +1505,8 @@ map.on('locationfound', function(e){
   const b=document.getElementById('locBtn'); if(b) b.classList.remove('loading');
   if(_locMarker) map.removeLayer(_locMarker); if(_locCircle) map.removeLayer(_locCircle);
   _locCircle=L.circle(e.latlng,{radius:Math.min(e.accuracy,2000),color:'#1976d2',weight:1,fillColor:'#42a5f5',fillOpacity:.15}).addTo(map);
-  _locMarker=L.circleMarker(e.latlng,{radius:7,color:'#fff',weight:3,fillColor:'#1976d2',fillOpacity:1,className:'loc-dot'}).addTo(map);
+  // 내 위치 = 마이카누 듀오2 한 대(파란점 대신)
+  _locMarker=L.marker(e.latlng,{icon:L.divIcon({className:'loc-canoe',html:'<span class="loc-canoe-in">'+CANOE_SVG+'</span>',iconSize:[40,40],iconAnchor:[20,20]}),zIndexOffset:1000,interactive:false}).addTo(map);
   gaEvent('locate');
 });
 map.on('locationerror', function(){
