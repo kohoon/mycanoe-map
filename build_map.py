@@ -51,6 +51,10 @@ _idf.write_text(json.dumps(_reg, ensure_ascii=False, indent=0), encoding="utf-8"
 _rvf = BASE / "roadview.json"
 _rv = json.loads(_rvf.read_text(encoding="utf-8")) if _rvf.exists() else {}
 
+# ---- 수상레저 금지구역(해수면, 해양경찰청 SHP -> wlz_polygons.geojson) ----
+_wlf = BASE / "wlz_polygons.geojson"
+wlz = json.loads(_wlf.read_text(encoding="utf-8")) if _wlf.exists() else {"type": "FeatureCollection", "features": []}
+
 pfeats = [{"type": "Feature",
            "geometry": {"type": "Point", "coordinates": [v["lng"], v["lat"]]},
            "properties": {"name": v.get("name", ""), "memo": v.get("memo", ""), "id": _ids.get(k),
@@ -414,6 +418,7 @@ __GTAG__
 <script>
 const POINTS = __POINTS__;
 const POLYS = __POLYS__;
+const WLZ = __WLZ__;       // 수상레저 금지구역(해수면, 해양경찰청)
 const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
 const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
@@ -737,6 +742,22 @@ const protectLayer = L.geoJSON(POLYS, {
   onEachFeature:(f,l)=>{ if(f.properties&&f.properties.s) l.bindPopup('<b>상수원보호구역</b><br>'+f.properties.s); }
 }).addTo(map);
 
+// ---- 수상레저 금지구역(해수면, 해양경찰청 고시) ----
+// 금지대상에 따라: 카누(무동력) 포함 금지 = 주황 / 동력 기구만 금지(카누 가능) = 회청
+function wlzBansCanoe(t){ t=t||''; return t.indexOf('모든 수상')>=0 || t.indexOf('모든 기구')>=0 || t.indexOf('무동력')>=0; }
+const wlzLayer = L.geoJSON(WLZ, {
+  style:function(f){ const ban=wlzBansCanoe((f.properties||{}).target);
+    return ban? {color:'#e65100', weight:1.2, fillColor:'#ff9800', fillOpacity:0.35}
+              : {color:'#546e7a', weight:1.2, dashArray:'4 3', fillColor:'#90a4ae', fillOpacity:0.22}; },
+  onEachFeature:function(f,l){ const p=f.properties||{};
+    const ban=wlzBansCanoe(p.target);
+    l.bindPopup('<b>⛔ 수상레저 금지구역</b><br><b>'+pmEsc(p.name||'')+'</b>'
+      +'<br>금지대상: '+pmEsc(p.target||'')+(ban?' <span style="color:#e65100;font-weight:700">(카누 포함)</span>':' <span style="color:#546e7a">(동력만, 카누 가능)</span>')
+      +(p.period?'<br>기간: '+pmEsc(p.period):'')
+      +(p.note?'<br><small>'+pmEsc(p.note)+'</small>':'')
+      +(p.office?'<br><small>'+pmEsc(p.office)+'</small>':'')); }
+}).addTo(map);
+
 // ---- 카누잉코스 (물길 따라, 에메랄드 단일색 + 외곽선) ----
 // 서브카테고리별 색상(보라 계열, 서로 구분)
 const COURSE_COLORS={'엑스페디션':'#7c4dff','초심자코스':'#d500f9','기타':'#00897b'};
@@ -945,6 +966,7 @@ const roadviewLayer = L.layerGroup(POINTS.features.filter(function(f){return f.p
 function _sw(c){ return '<span class="sw" style="background:'+c+'"></span>'; }
 const _ov = {};
 _ov[_sw('rgba(229,57,53,.45)')+'상수원보호'] = protectLayer;
+_ov[_sw('rgba(255,152,0,.5)')+'수상레저 금지'] = wlzLayer;
 _ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup;   // 코스 전체 단일 토글
 _ov[_sw('#ec407a')+'명소'] = famousLayer;
 _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
@@ -957,6 +979,9 @@ const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':bas
   function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
   const k=L.DomUtil.create('div','lc-key');
   k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
+    +'<div class="lg-sub">⛔ 수상레저 금지 <span class="lg-note">해수면</span></div>'
+    +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
+    +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
     +'<div class="lg-sub">⚠️ 장애물 <span class="lg-note">코스와 함께</span></div>'
     +'<div class="lg-pills"><span class="obs-ic obs-bo">🚧 보</span><span class="obs-ic obs-jing">🪨 징검다리</span><span class="obs-ic obs-shal">〰️ 얕음</span></div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
@@ -1462,6 +1487,7 @@ map.addControl(new CafeCtl());   // 카페 카드: 우하단
 html = (HTML
         .replace("__POINTS__", json.dumps(points, ensure_ascii=False, separators=(",", ":")))
         .replace("__POLYS__", json.dumps(polygons, ensure_ascii=False, separators=(",", ":")))
+        .replace("__WLZ__", json.dumps(wlz, ensure_ascii=False, separators=(",", ":")))
         .replace("__COURSES__", json.dumps(courses, ensure_ascii=False, separators=(",", ":")))
         .replace("__VKEY__", VKEY)
         .replace("__KAKAO_JS_KEY__", KAKAO_JS_KEY)
