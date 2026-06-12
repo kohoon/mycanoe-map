@@ -201,6 +201,9 @@ __GTAG__
   .pm-wx-tabs a{font-size:11.5px;font-weight:700;color:#789;cursor:pointer;padding:2px 9px;border-radius:11px;background:#e8eef3}
   .pm-wx-tabs a.on{background:#1565c0;color:#fff}
   .pm-wx-days{display:flex;gap:2px;margin-top:6px;padding-top:6px;border-top:1px solid #e2eaf0}
+  .pm-wx-hscroll{overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch}
+  .pm-wx-hscroll .wxd{flex:0 0 auto;min-width:38px}
+  .wxd-day{flex:0 0 auto;writing-mode:vertical-rl;text-align:center;font:700 9.5px sans-serif;color:#1565c0;background:#eef4fb;border-radius:5px;padding:3px 1px;margin:0 1px;align-self:stretch}
   .wxd{flex:1;text-align:center;font-size:11px;line-height:1.45;color:#456;border-radius:7px;padding:2px 0}
   .wxd-we{background:#eaf1f8}
   .wxd-n{font-weight:700;color:#667;font-size:10.5px}
@@ -919,10 +922,11 @@ function placeWeather(lat,lng){
       +(w.rain>0?'<span style="color:#1565c0">비 '+w.rain+'㎜</span>':'')+'</div>';
     // 탭: 시간대별 / 주간
     h+='<div class="pm-wx-tabs"><a data-v="h" class="'+(_wxView==='h'?'on':'')+'">시간대별</a><a data-v="d" class="'+(_wxView==='d'?'on':'')+'">주간</a></div>';
-    if(_wxView==='h' && w.hours && w.hours.length){   // 시간대별(현재~24h, 3시간 간격)
-      h+='<div class="pm-wx-days">'+w.hours.map(function(d){
+    if(_wxView==='h' && w.hours && w.hours.length){   // 시간대별(현재~48h, 3시간 간격, 2일치 가로 스크롤)
+      h+='<div class="pm-wx-days pm-wx-hscroll">'+w.hours.map(function(d){
         const ar=AR[Math.round(((d.wdir%360)+360)%360/45)%8];
-        return '<div class="wxd"><div class="wxd-n">'+d.label+'</div><div>'+_wxEmoji(d.code)+'</div>'
+        return (d.day?'<div class="wxd-day">'+d.day+'</div>':'')
+          +'<div class="wxd"><div class="wxd-n">'+d.label+'</div><div>'+_wxEmoji(d.code)+'</div>'
           +'<div class="wxd-t">'+Math.round(d.temp)+'°</div>'
           +'<div class="wxd-w" style="color:'+_windCol(d.wind)+'">'+ar+d.wind.toFixed(0)+'㎧</div>'
           +'<div class="wxd-p">'+(d.pp>=10?d.pp+'%':'')+'</div>'
@@ -945,7 +949,7 @@ function placeWeather(lat,lng){
   el.innerHTML='<span class="wl-loading">날씨 조회…</span>';
   fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng
     +'&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code'
-    +'&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,weather_code&forecast_hours=27'
+    +'&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,weather_code&forecast_hours=51'
     +'&daily=weather_code,temperature_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_sum,precipitation_probability_max&forecast_days=7'
     +'&wind_speed_unit=ms&timezone=Asia%2FSeoul')
     .then(function(r){return r.json();})
@@ -958,12 +962,14 @@ function placeWeather(lat,lng){
             code:dl.weather_code[i], tmax:dl.temperature_2m_max[i],
             wmax:dl.wind_speed_10m_max[i], wdir:dl.wind_direction_10m_dominant[i]||0,
             rain:dl.precipitation_sum[i]||0, pp:dl.precipitation_probability_max[i]||0}); } }
-      const hl=j.hourly, nowH=new Date().getHours();
-      if(hl&&hl.time){
-        // 현재 시각 이후 첫 인덱스 찾아 3시간 간격으로 8개
+      const hl=j.hourly;
+      if(hl&&hl.time){ const WD2=['일','월','화','수','목','금','토']; let prevDay=null;
+        // 현재 시각 이후 첫 인덱스 찾아 3시간 간격으로 2일치(16개)
         var start=0; for(var k=0;k<hl.time.length;k++){ if(new Date(hl.time[k]).getTime()>=Date.now()-1800000){ start=k; break; } }
-        for(var i2=start;i2<hl.time.length && w.hours.length<8;i2+=3){ const ht=new Date(hl.time[i2]);
-          w.hours.push({label:ht.getHours()+'시', code:hl.weather_code[i2], temp:hl.temperature_2m[i2],
+        for(var i2=start;i2<hl.time.length && w.hours.length<16;i2+=3){ const ht=new Date(hl.time[i2]);
+          const dk=ht.getDate(), newDay=(prevDay!==null && dk!==prevDay); prevDay=dk;
+          w.hours.push({label:ht.getHours()+'시', day:newDay?((ht.getMonth()+1)+'/'+dk+'('+WD2[ht.getDay()]+')'):'',
+            code:hl.weather_code[i2], temp:hl.temperature_2m[i2],
             wind:hl.wind_speed_10m[i2], wdir:hl.wind_direction_10m[i2]||0,
             rain:hl.precipitation[i2]||0, pp:hl.precipitation_probability[i2]||0}); } }
       _wxCache[key]={w:w,ts:Date.now()}; render(w);
