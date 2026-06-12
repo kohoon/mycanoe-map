@@ -186,6 +186,9 @@ __GTAG__
   .rate-avg small{color:#99a;font-weight:400}
   .rate-mine a{font-size:19px;color:#ccd;cursor:pointer;padding:0 1px;text-decoration:none}
   .rate-mine a.on{color:#f59f00}
+  .pm-compose{margin-top:6px}
+  .pm-rateline{font-size:12.5px;color:#778;margin-bottom:3px;display:flex;align-items:center;gap:4px}
+  .pm-cmt-stars{color:#f59f00;font-size:11px;letter-spacing:-1px}
   .fav-btn{margin-left:auto;border:1.5px solid #e5808f;background:#fff;color:#d6336c;border-radius:14px;padding:4px 11px;font:700 12.5px sans-serif;cursor:pointer}
   .fav-btn.on{background:#d6336c;color:#fff;border-color:#d6336c}
   #myBody h3{margin:2px 30px 10px 0;font-size:18px;color:#1b3a2b}
@@ -450,7 +453,10 @@ __GTAG__
     <div id="pmAdmin"></div>
     <div class="pm-cmts-h">코멘트 <span id="pmCnt"></span></div>
     <div id="pmCmts" class="pm-cmts"></div>
-    <div class="pm-form"><input id="pmInput" maxlength="100" placeholder="한줄 코멘트 (최대 100자)"><button id="pmSend">등록</button></div>
+    <div class="pm-compose">
+      <div class="pm-rateline">평가 <span id="pmStars" class="rate-mine"></span></div>
+      <div class="pm-form"><input id="pmInput" maxlength="100" placeholder="한줄 코멘트 (최대 100자)"><button id="pmSend">등록</button></div>
+    </div>
     <div id="pmMsg"></div>
   </div>
 </div>
@@ -1100,15 +1106,17 @@ function renderComments(d){ d=d||{}; let ah='';
   document.getElementById('pmAdmin').innerHTML=ah; window._pmAdminCur=d.admin||'';
   const list=d.list||[]; document.getElementById('pmCnt').textContent='('+list.length+')';
   document.getElementById('pmCmts').innerHTML = list.length? list.slice().reverse().map(function(c){
-    return '<div class="pm-cmt"><div class="pm-cmt-h"><b>'+pmEsc(c.nick||'익명')+'</b>'+(c.id?' <span class="pm-cid">#'+c.id+'</span>':'')+'</div><div class="pm-cmt-b">'+linkify(c.text)+'</div></div>';
+    const stars=(c.stars>=1&&c.stars<=5)?' <span class="pm-cmt-stars">'+'★'.repeat(c.stars)+'</span>':'';
+    return '<div class="pm-cmt"><div class="pm-cmt-h"><b>'+pmEsc(c.nick||'익명')+'</b>'+stars+(c.id?' <span class="pm-cid">#'+c.id+'</span>':'')+'</div><div class="pm-cmt-b">'+linkify(c.text)+'</div></div>';
   }).join('') : '<div class="pm-empty">첫 코멘트를 남겨보세요</div>';
 }
-async function submitComment(){ const u=getUser(); if(!u||!u.uid) return;
+async function submitComment(){ const u=getUser(); if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; }
   const inp=document.getElementById('pmInput'); const t=(inp.value||'').trim().slice(0,100); if(!t) return;
   document.getElementById('pmMsg').textContent='등록 중…';
-  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,tok:u.tok||'',nick:u.nick||'',text:t})});
-    if(r.ok){ inp.value=''; document.getElementById('pmMsg').textContent=''; gaEvent('comment_add'); loadComments(); }
+  const body={place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,tok:u.tok||'',nick:u.nick||'',text:t};
+  if(_composeStars>=1) body.stars=_composeStars;   // 별점 함께(작성란에서 고른 경우)
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){ inp.value=''; document.getElementById('pmMsg').textContent=''; gaEvent('comment_add',{stars:_composeStars||0}); loadComments(); fetchRate(u.uid); }
     else if(r.status===401){ document.getElementById('pmMsg').textContent='보안 강화 — 로그아웃 후 다시 로그인해 주세요'; }
     else document.getElementById('pmMsg').textContent='등록 실패'; }
   catch(e){ document.getElementById('pmMsg').textContent='오류'; } }
@@ -1176,21 +1184,24 @@ function applyFavFilter(){
 }
 function setFavOnly(on){ _favOnly=!!on; try{ localStorage.setItem('mc_favonly',_favOnly?'1':'0'); }catch(e){} applyFavFilter(); }
 // 별점/하트 줄 — 장소·코스 모달 공용
+let _composeStars=0;   // 코멘트 작성란에서 고른 별점
 function renderRateRow(){
   const el=document.getElementById('pmRate'); if(!el||!_pmTarget) return;
   const u=getUser(), heart=_favSet.has(_pmTarget);
   el.innerHTML='<span id="rateAvg" class="rate-avg">★ -</span>'
-    +'<span id="rateMine" class="rate-mine">'+[1,2,3,4,5].map(function(i){return '<a data-s="'+i+'">☆</a>';}).join('')+'</span>'
     +'<button id="favBtn" class="fav-btn'+(heart?' on':'')+'">'+(heart?'♥ 즐겨찾기':'♡ 즐겨찾기')+'</button>';
-  const mine=document.getElementById('rateMine');
-  mine.querySelectorAll('a').forEach(function(a){ a.onclick=function(){ if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; } setRate(+a.getAttribute('data-s')); }; });
   document.getElementById('favBtn').onclick=toggleFav;
+  // 작성란 별점(인터랙티브) — 내 기존 별점 프리필
+  _composeStars=0;
+  const st=document.getElementById('pmStars');
+  if(st){ st.innerHTML=[1,2,3,4,5].map(function(i){return '<a data-s="'+i+'">☆</a>';}).join('');
+    st.querySelectorAll('a').forEach(function(a){ a.onclick=function(){ if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; } _composeStars=+a.getAttribute('data-s'); _paintCompose(); }; }); }
   if(!u||!u.uid){ fetchRate(0); } else fetchRate(u.uid);
 }
+function _paintCompose(){ const st=document.getElementById('pmStars'); if(st) st.querySelectorAll('a').forEach(function(a,i){ a.textContent=(i<_composeStars)?'★':'☆'; a.classList.toggle('on',i<_composeStars); }); }
 function _paintStars(avg,n,my){
   const av=document.getElementById('rateAvg'); if(av) av.innerHTML='★ '+(n?avg.toFixed(1):'-')+' <small>('+n+')</small>';
-  const mine=document.getElementById('rateMine');
-  if(mine) mine.querySelectorAll('a').forEach(function(a,i){ a.textContent=(i<my)?'★':'☆'; a.classList.toggle('on',i<my); });
+  if(my && !_composeStars){ _composeStars=my; _paintCompose(); }   // 내 기존 별점을 작성란에 반영
 }
 function fetchRate(uid){
   fetch(fapi('/rate?targets='+encodeURIComponent(_pmTarget)+(uid?'&uid='+encodeURIComponent(uid)+'&tok='+encodeURIComponent((getUser()||{}).tok||''):'')))

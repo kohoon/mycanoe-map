@@ -194,8 +194,16 @@ export default {
           let cseq = 0; try { cseq = parseInt((await KV.get("cmt_seq")) || "0", 10) || 0; } catch (e) {}
           cseq++; await KV.put("cmt_seq", String(cseq));   // 코멘트 전역 ID
           const ct = Date.now();
-          obj.list.push({ id: cseq, nick: cnick, text: text, t: ct });
+          const stars = Math.round(Number(b.stars));
+          const item = { id: cseq, nick: cnick, text: text, t: ct };
+          if (stars >= 1 && stars <= 5) item.stars = stars;
+          obj.list.push(item);
           if (obj.list.length > 500) obj.list = obj.list.slice(-500);
+          if (stars >= 1 && stars <= 5) {   // 별점도 함께 반영(평균용 rate_<slug>)
+            const rk = "rate_" + slug;
+            let rm = {}; try { rm = JSON.parse((await KV.get(rk)) || "{}"); } catch (e) {}
+            rm[String(b.id)] = stars; await KV.put(rk, JSON.stringify(rm));
+          }
           // 새 코멘트 → 시트(중복 방지)
           if (env.LOG_WEBHOOK) {
             const sig = "cmt:" + slug + "#" + ct + "#" + text, pl = String(b.name || slug).slice(0, 60);
