@@ -197,7 +197,10 @@ __GTAG__
   .pm-wx{font-size:13px;color:#345;background:#f2f7fa;border-radius:9px;padding:7px 11px;margin-bottom:8px}
   .pm-wx:empty{display:none}
   .pm-wx-now{display:flex;gap:12px;flex-wrap:wrap}
-  .pm-wx-days{display:flex;gap:2px;margin-top:7px;padding-top:6px;border-top:1px solid #e2eaf0}
+  .pm-wx-tabs{display:flex;gap:6px;margin-top:8px}
+  .pm-wx-tabs a{font-size:11.5px;font-weight:700;color:#789;cursor:pointer;padding:2px 9px;border-radius:11px;background:#e8eef3}
+  .pm-wx-tabs a.on{background:#1565c0;color:#fff}
+  .pm-wx-days{display:flex;gap:2px;margin-top:6px;padding-top:6px;border-top:1px solid #e2eaf0}
   .wxd{flex:1;text-align:center;font-size:11px;line-height:1.45;color:#456;border-radius:7px;padding:2px 0}
   .wxd-we{background:#eaf1f8}
   .wxd-n{font-weight:700;color:#667;font-size:10.5px}
@@ -902,18 +905,30 @@ function _wxEmoji(c){ if(c===0) return '☀️'; if(c<=2) return '🌤️'; if(c
   if(c<=67) return '🌧️'; if(c<=77) return '❄️'; if(c<=82) return '🌦️'; if(c<=86) return '❄️'; return '⛈️'; }
 function _wxDir(d){ return ['북','북동','동','남동','남','남서','서','북서'][Math.round(((d%360)+360)%360/45)%8]; }
 function _windCol(v){ return v>=8?'#c62828':(v>=5?'#e65100':'#667'); }
+let _wxView='h'; try{ _wxView=localStorage.getItem('mc_wxview')||'h'; }catch(e){}
 function placeWeather(lat,lng){
   const el=document.getElementById('pmWx'); if(!el) return;
   const key=lat.toFixed(2)+','+lng.toFixed(2);
   const c=_wxCache[key];
+  const AR=['↓','↙','←','↖','↑','↗','→','↘'];   // 풍향(불어오는 방향) → 부는 쪽 화살표
   function render(w){
     if(!w){ el.innerHTML=''; return; }
     const wind=w.wind, col=_windCol(wind);
     let h='<div class="pm-wx-now"><span>'+_wxEmoji(w.code)+' '+w.temp.toFixed(0)+'°</span>'
       +'<span style="color:'+col+';font-weight:'+(wind>=5?'700':'400')+'">바람 '+wind.toFixed(1)+'㎧ '+_wxDir(w.dir)+(wind>=8?' ⚠️강풍':wind>=5?' 주의':'')+'</span>'
       +(w.rain>0?'<span style="color:#1565c0">비 '+w.rain+'㎜</span>':'')+'</div>';
-    if(w.days&&w.days.length){   // 7일 예보 스트립: 요일/날씨/기온/바람(방향+세기)/강수량
-      const AR=['↓','↙','←','↖','↑','↗','→','↘'];   // 풍향(불어오는 방향) → 부는 쪽 화살표
+    // 탭: 시간대별 / 주간
+    h+='<div class="pm-wx-tabs"><a data-v="h" class="'+(_wxView==='h'?'on':'')+'">시간대별</a><a data-v="d" class="'+(_wxView==='d'?'on':'')+'">주간</a></div>';
+    if(_wxView==='h' && w.hours && w.hours.length){   // 시간대별(현재~24h, 3시간 간격)
+      h+='<div class="pm-wx-days">'+w.hours.map(function(d){
+        const ar=AR[Math.round(((d.wdir%360)+360)%360/45)%8];
+        return '<div class="wxd"><div class="wxd-n">'+d.label+'</div><div>'+_wxEmoji(d.code)+'</div>'
+          +'<div class="wxd-t">'+Math.round(d.temp)+'°</div>'
+          +'<div class="wxd-w" style="color:'+_windCol(d.wind)+'">'+ar+d.wind.toFixed(0)+'㎧</div>'
+          +'<div class="wxd-p">'+(d.pp>=10?d.pp+'%':'')+'</div>'
+          +'<div class="wxd-p">'+(d.rain>=0.3?(d.rain<10?d.rain.toFixed(1):Math.round(d.rain))+'㎜':'')+'</div></div>';
+      }).join('')+'</div>';
+    } else if(w.days&&w.days.length){   // 주간(요일/날씨/기온/바람/강수)
       h+='<div class="pm-wx-days">'+w.days.map(function(d){
         const ar=AR[Math.round(((d.wdir%360)+360)%360/45)%8];
         return '<div class="wxd'+(d.we?' wxd-we':'')+'"><div class="wxd-n">'+d.label+'</div><div>'+_wxEmoji(d.code)+'</div>'
@@ -924,16 +939,18 @@ function placeWeather(lat,lng){
       }).join('')+'</div>';
     }
     el.innerHTML=h;
+    el.querySelectorAll('.pm-wx-tabs a').forEach(function(a){ a.onclick=function(){ _wxView=a.getAttribute('data-v'); try{localStorage.setItem('mc_wxview',_wxView);}catch(e){} render(w); }; });
   }
   if(c && Date.now()-c.ts<600000){ render(c.w); return; }
   el.innerHTML='<span class="wl-loading">날씨 조회…</span>';
   fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng
     +'&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code'
+    +'&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,weather_code&forecast_hours=27'
     +'&daily=weather_code,temperature_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_sum,precipitation_probability_max&forecast_days=7'
     +'&wind_speed_unit=ms&timezone=Asia%2FSeoul')
     .then(function(r){return r.json();})
     .then(function(j){ const cu=j&&j.current; if(!cu){ render(null); return; }
-      const w={temp:cu.temperature_2m, wind:cu.wind_speed_10m, dir:cu.wind_direction_10m, rain:cu.precipitation||0, code:cu.weather_code, days:[]};
+      const w={temp:cu.temperature_2m, wind:cu.wind_speed_10m, dir:cu.wind_direction_10m, rain:cu.precipitation||0, code:cu.weather_code, days:[], hours:[]};
       const dl=j.daily;
       if(dl&&dl.time){ const WD=['일','월','화','수','목','금','토'];
         for(var i=0;i<dl.time.length;i++){ const dt=new Date(dl.time[i]+'T00:00:00');
@@ -941,6 +958,14 @@ function placeWeather(lat,lng){
             code:dl.weather_code[i], tmax:dl.temperature_2m_max[i],
             wmax:dl.wind_speed_10m_max[i], wdir:dl.wind_direction_10m_dominant[i]||0,
             rain:dl.precipitation_sum[i]||0, pp:dl.precipitation_probability_max[i]||0}); } }
+      const hl=j.hourly, nowH=new Date().getHours();
+      if(hl&&hl.time){
+        // 현재 시각 이후 첫 인덱스 찾아 3시간 간격으로 8개
+        var start=0; for(var k=0;k<hl.time.length;k++){ if(new Date(hl.time[k]).getTime()>=Date.now()-1800000){ start=k; break; } }
+        for(var i2=start;i2<hl.time.length && w.hours.length<8;i2+=3){ const ht=new Date(hl.time[i2]);
+          w.hours.push({label:ht.getHours()+'시', code:hl.weather_code[i2], temp:hl.temperature_2m[i2],
+            wind:hl.wind_speed_10m[i2], wdir:hl.wind_direction_10m[i2]||0,
+            rain:hl.precipitation[i2]||0, pp:hl.precipitation_probability[i2]||0}); } }
       _wxCache[key]={w:w,ts:Date.now()}; render(w);
     }).catch(function(){ render(null); });
 }
