@@ -157,11 +157,28 @@
   .pm-cmts{margin:8px 0}
   .pm-cmt{padding:7px 0;border-bottom:1px solid #f0f0f0}
   .pm-cmt-h b{font-size:12.5px;color:#1565c0}
+  .pm-cmt-t{font-size:10.5px;color:#aab}
   .pm-cmt-b{font-size:13.5px;color:#222;margin-top:2px;word-break:break-word}
+  .pm-cmt-img{margin-top:5px}
+  .pm-cmt-img img{max-width:130px;max-height:130px;border-radius:8px;cursor:pointer;border:1px solid #e3e3e3}
+  .pm-cmt-adm{float:right}
+  .pm-cmt-adm a{font-size:11px;cursor:pointer;margin-left:8px}
   .pm-empty{color:#999;font-size:13px;padding:10px 0}
-  .pm-form{display:flex;gap:6px;margin-top:8px}
-  .pm-form input{flex:1;min-width:0;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:14px}
+  .pm-form{display:flex;gap:6px;margin-top:8px;align-items:center}
+  .pm-form input[type=text],.pm-form #pmInput{flex:1;min-width:0;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:14px}
   .pm-form button{background:#1565c0;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
+  .pm-photo{flex:none;cursor:pointer;font-size:18px;padding:6px 8px;border:1px solid #ccc;border-radius:8px;background:#fafafa}
+  .pm-photo.on{background:#e3f0fc;border-color:#1565c0}
+  .pm-photo input{display:none}
+  #pmPhotoPrev,#sgPhotoPrev{margin-top:6px}
+  .pm-prev{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#667}
+  .pm-prev img{width:42px;height:42px;object-fit:cover;border-radius:6px}
+  .pm-prev a{color:#c62828;cursor:pointer;font-weight:700}
+  .sg-photo{display:inline-block;margin-top:10px;cursor:pointer;font-size:13px;color:#1565c0;border:1px dashed #9bc;border-radius:9px;padding:8px 12px}
+  .sg-photo.on{background:#e8f1fc;border-style:solid}
+  .sg-photo input{display:none}
+  #imgLightbox{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;cursor:zoom-out}
+  #imgLightbox img{max-width:94vw;max-height:92vh;border-radius:8px}
   #pmMsg{font-size:12px;color:#888;margin-top:6px;min-height:14px}
   #sgBody h3{margin:0 30px 8px 0;font-size:18px;color:#1b3a2b}
   .sg-addr{font-size:13px;color:#445;background:#f3f7f4;border-radius:9px;padding:9px 12px;margin:4px 0 14px;word-break:break-all}
@@ -339,7 +356,8 @@
     <div id="pmCmts" class="pm-cmts"></div>
     <div class="pm-compose">
       <div class="pm-rateline">평가 <span id="pmStars" class="rate-mine"></span></div>
-      <div class="pm-form"><input id="pmInput" maxlength="100" placeholder="한줄 코멘트 (최대 100자)"><button id="pmSend">등록</button></div>
+      <div class="pm-form"><input id="pmInput" maxlength="100" placeholder="한줄 코멘트 (최대 100자)"><label class="pm-photo" id="pmPhotoBtn" title="사진 첨부">📷<input type="file" id="pmPhoto" accept="image/*"></label><button id="pmSend">등록</button></div>
+      <div id="pmPhotoPrev"></div>
     </div>
     <div id="pmMsg"></div>
   </div>
@@ -650,26 +668,38 @@ function closeSg(){ document.getElementById('sgmodal').classList.remove('open');
 function suggestPlace(){
   const a=window._curAddr; if(!a) return; const u=getUser(); if(!u||!u.uid) return;
   map.closePopup();
+  let _sgPhoto=null;
   document.getElementById('sgBody').innerHTML=
-    '<h3>장소 제안</h3>'
+    '<h3>제안하기</h3>'
     +'<div class="sg-addr">📍 '+pmEsc(a.name||'선택한 위치')+'</div>'
     +'<div class="sg-label">유형 선택</div>'
-    +'<div class="seg" id="sgSeg"><button type="button" class="seg-b on" data-v="런칭/랜딩">🛶 런칭/랜딩</button><button type="button" class="seg-b" data-v="기타">📍 기타</button></div>'
-    +'<textarea id="sgText" rows="3" maxlength="200" placeholder="설명/코멘트 (예: 진입로·주차 정보)"></textarea>'
+    +'<div class="seg" id="sgSeg"><button type="button" class="seg-b on" data-v="런칭/랜딩">🛶 런칭/랜딩</button><button type="button" class="seg-b" data-v="장애물">🚧 장애물</button><button type="button" class="seg-b" data-v="기타">📍 기타</button></div>'
+    +'<textarea id="sgText" rows="3" maxlength="200" placeholder="설명/코멘트 (예: 진입로·주차 정보 / 보·징검다리 등 주의사항)"></textarea>'
+    +'<label class="sg-photo" id="sgPhotoBtn">📷 사진 첨부<input type="file" id="sgPhoto" accept="image/*"></label><div id="sgPhotoPrev"></div>'
     +'<button class="sg-submit" id="sgSave">제안 보내기</button><div id="sgMsg"></div>';
   document.getElementById('sgmodal').classList.add('open');
   const seg=document.getElementById('sgSeg');
   seg.onclick=function(e){ const t=e.target.closest('.seg-b'); if(!t) return;
     Array.prototype.forEach.call(seg.children,function(c){c.classList.remove('on');}); t.classList.add('on'); };
+  document.getElementById('sgPhoto').addEventListener('change',function(){ const f=this.files&&this.files[0];
+    _sgPhoto=(f&&f.type.indexOf('image')===0)?f:null;
+    const pv=document.getElementById('sgPhotoPrev'), bt=document.getElementById('sgPhotoBtn');
+    if(_sgPhoto){ pv.innerHTML='<span class="pm-prev"><img src="'+URL.createObjectURL(_sgPhoto)+'"> 사진 1장</span>'; bt.classList.add('on'); }
+    else { pv.innerHTML=''; bt.classList.remove('on'); } });
   document.getElementById('sgSave').onclick=async function(){
     const on=seg.querySelector('.seg-b.on'); const cat=on?on.getAttribute('data-v'):'런칭/랜딩';
     const text=(document.getElementById('sgText').value||'').trim().slice(0,200);
-    const msg=document.getElementById('sgMsg'); msg.textContent='보내는 중…';
-    try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/suggest',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id:u.uid,nick:u.nick||'',cat:cat,text:text,addr:a.name||'',lat:a.lat,lng:a.lng})});
-      if(r.ok){ msg.textContent='✅ 감사합니다! 제안이 접수됐어요'; gaEvent('place_suggest',{cat:cat}); setTimeout(closeSg,1100); }
+    const msg=document.getElementById('sgMsg'); msg.textContent=_sgPhoto?'사진 올리는 중…':'보내는 중…';
+    try{
+      let imgU='';
+      if(_sgPhoto){ const k=await uploadImg(_sgPhoto); imgU=imgUrl(k); }
+      msg.textContent='보내는 중…';
+      const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/suggest',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:u.uid,tok:u.tok||'',nick:u.nick||'',cat:cat,text:text,addr:a.name||'',lat:a.lat,lng:a.lng,img:imgU})});
+      if(r.ok){ msg.textContent='✅ 감사합니다! 제안이 접수됐어요'; gaEvent('place_suggest',{cat:cat,photo:imgU?1:0}); setTimeout(closeSg,1100); }
+      else if(r.status===401){ msg.textContent='재로그인이 필요해요'; }
       else msg.textContent='전송 실패'; }
-    catch(e){ msg.textContent='오류'; } };
+    catch(e){ msg.textContent=(typeof e==='string'?e:'오류'); } };
 }
 // 등록장소는 별도 레이어 없이 카테고리(명소/런칭·랜딩) 레이어에 합쳐 표시
 function addPlaceMarker(pl){ const k=(pl.cat==='명소')?'spot':'canoe';
@@ -870,7 +900,7 @@ function openPlaceModal(pl){
   _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
   _pmTarget=_pmSlug; _pmKind='p'; _pmName=pl.name||'장소'; _pmLL=[pl.lat,pl.lng];
   document.getElementById('pmTitle').textContent=(pl.id?('#'+pl.id+' '):'')+(pl.name||'장소');
-  renderRateRow();
+  _clearPhoto(); renderRateRow();
   document.getElementById('pmLinks').innerHTML='<div id="pmWx" class="pm-wx"></div>'
     +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
   placeWeather(pl.lat,pl.lng);
@@ -888,7 +918,7 @@ function openCourseComments(key,name,km,shareId){
   _pmPlace={name:name||'코스'}; _pmSlug=key;
   _pmTarget=key; _pmKind='c'; _pmName=name||'코스'; _pmLL=null;
   document.getElementById('pmTitle').textContent='🛶 '+(name||'코스');
-  renderRateRow();
+  _clearPhoto(); renderRateRow();
   document.getElementById('pmLinks').innerHTML=(km?'<div class="pm-memo">약 '+km+'km</div>':'')+(shareId?'<a class="course-share" onclick="shareCourse(\''+shareId+'\')">🔗 코스 공유</a>':'');
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
@@ -991,26 +1021,51 @@ function renderComments(d){ d=d||{}; let ah='';
   const list=d.list||[]; document.getElementById('pmCnt').textContent='('+list.length+')';
   document.getElementById('pmCmts').innerHTML = list.length? list.slice().reverse().map(function(c){
     const stars=(c.stars>=1&&c.stars<=5)?' <span class="pm-cmt-stars">'+'★'.repeat(c.stars)+'</span>':'';
-    return '<div class="pm-cmt"><div class="pm-cmt-h"><b>'+pmEsc(c.nick||'익명')+'</b>'+stars+(c.id?' <span class="pm-cid">#'+c.id+'</span>':'')+'</div><div class="pm-cmt-b">'+linkify(c.text)+'</div></div>';
+    const tm=c.t?' <span class="pm-cmt-t">'+_cmtTime(c.t)+'</span>':'';
+    const im=c.img?'<div class="pm-cmt-img"><img src="'+imgUrl(c.img)+'" loading="lazy" onclick="openImg(\''+c.img+'\')"></div>':'';
+    const adm=isAdmin()?'<span class="pm-cmt-adm"><a style="color:#1565c0" onclick="editCmt('+c.id+')">수정</a><a style="color:#c62828" onclick="delCmt('+c.id+')">삭제</a></span>':'';
+    return '<div class="pm-cmt"><div class="pm-cmt-h">'+adm+'<b>'+pmEsc(c.nick||'익명')+'</b>'+stars+tm+(c.id?' <span class="pm-cid">#'+c.id+'</span>':'')+'</div>'
+      +(c.text?'<div class="pm-cmt-b">'+linkify(c.text)+'</div>':'')+im+'</div>';
   }).join('') : '<div class="pm-empty">첫 코멘트를 남겨보세요</div>';
 }
+async function delCmt(cid){ if(!isAdmin()) return; if(!confirm('이 코멘트(첨부 사진 포함)를 삭제할까요?')) return;
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'cmtdel',adminKey:adminKey(),place:_pmSlug,cid:cid})});
+    if(r.ok){ loadComments(); fetchRate((getUser()||{}).uid); } }catch(e){} }
+async function editCmt(cid){ if(!isAdmin()) return; const nt=prompt('코멘트 수정'); if(nt===null) return;
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'cmtedit',adminKey:adminKey(),place:_pmSlug,cid:cid,text:nt.slice(0,100)})});
+    if(r.ok) loadComments(); }catch(e){} }
+function _cmtTime(t){ if(!t) return ''; const d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+let _pmPhotoFile=null;
+function _setPhotoPrev(){ const el=document.getElementById('pmPhotoPrev'); const btn=document.getElementById('pmPhotoBtn'); if(!el) return;
+  if(_pmPhotoFile){ const u=URL.createObjectURL(_pmPhotoFile);
+    el.innerHTML='<span class="pm-prev"><img src="'+u+'"><a onclick="_clearPhoto()">✕</a> 사진 1장</span>'; if(btn) btn.classList.add('on'); }
+  else { el.innerHTML=''; if(btn) btn.classList.remove('on'); } }
+function _clearPhoto(){ _pmPhotoFile=null; const f=document.getElementById('pmPhoto'); if(f) f.value=''; _setPhotoPrev(); }
 async function submitComment(){ const u=getUser(); if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; }
-  const inp=document.getElementById('pmInput'); const t=(inp.value||'').trim().slice(0,100); if(!t) return;
-  document.getElementById('pmMsg').textContent='등록 중…';
+  const inp=document.getElementById('pmInput'); const t=(inp.value||'').trim().slice(0,100);
+  if(!t && !_pmPhotoFile){ return; }
+  const msg=document.getElementById('pmMsg'); msg.textContent=_pmPhotoFile?'사진 올리는 중…':'등록 중…';
   const body={place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,tok:u.tok||'',nick:u.nick||'',text:t};
-  if(_composeStars>=1) body.stars=_composeStars;   // 별점 함께(작성란에서 고른 경우)
-  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(r.ok){ inp.value=''; document.getElementById('pmMsg').textContent=''; gaEvent('comment_add',{stars:_composeStars||0}); loadComments(); fetchRate(u.uid); }
-    else if(r.status===401){ document.getElementById('pmMsg').textContent='보안 강화 — 로그아웃 후 다시 로그인해 주세요'; }
-    else document.getElementById('pmMsg').textContent='등록 실패'; }
-  catch(e){ document.getElementById('pmMsg').textContent='오류'; } }
+  if(_composeStars>=1) body.stars=_composeStars;
+  try{
+    if(_pmPhotoFile){ body.img=await uploadImg(_pmPhotoFile); }
+    msg.textContent='등록 중…';
+    const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){ inp.value=''; _clearPhoto(); msg.textContent=''; gaEvent('comment_add',{stars:_composeStars||0,photo:body.img?1:0}); loadComments(); fetchRate(u.uid); }
+    else if(r.status===401){ msg.textContent='보안 강화 — 로그아웃 후 다시 로그인해 주세요'; }
+    else msg.textContent='등록 실패'; }
+  catch(e){ msg.textContent=(typeof e==='string'?e:'오류'); } }
 function editAdminComment(){ if(!isAdmin()) return; const u=getUser();
   const t=prompt('관리자 코멘트 (이 장소 설명)', window._pmAdminCur||''); if(t===null) return;
   fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,adminKey:adminKey(),nick:u.nick||'',admin:true,text:t.slice(0,300)})})
     .then(function(r){ if(r.ok) loadComments(); }).catch(function(){}); }
 (function(){ const s=document.getElementById('pmSend'); if(s) s.onclick=submitComment;
-  const i=document.getElementById('pmInput'); if(i) i.addEventListener('keydown',function(e){ if(e.key==='Enter') submitComment(); }); })();
+  const i=document.getElementById('pmInput'); if(i) i.addEventListener('keydown',function(e){ if(e.key==='Enter') submitComment(); });
+  const ph=document.getElementById('pmPhoto'); if(ph) ph.addEventListener('change',function(){ const f=this.files&&this.files[0];
+    if(f && f.type.indexOf('image')===0){ _pmPhotoFile=f; } else { _pmPhotoFile=null; } _setPhotoPrev(); }); })();
 
 // ---- 카누 점: 명소(핑크) vs 런칭/랜딩(파랑) ----
 const SPOTS=['마이카누','라온카누','캐나디언카누클럽','장자늪카누체험장','올리버보트'];
@@ -1052,6 +1107,26 @@ Object.keys(_favLayerIdx).forEach(function(t){ _favLayerIdx[t].forEach(function(
 // ==== 별점 + 즐겨찾기 + 마이페이지 ====
 let _pmTarget=null,_pmKind='p',_pmName='',_pmLL=null;
 function fapi(p){ return WORKER_URL.replace(/\/+$/,'')+p; }
+// ---- 이미지: 클라 압축 → 업로드 → /img 서빙 ----
+function imgUrl(key){ return WORKER_URL.replace(/\/+$/,'')+'/img?k='+encodeURIComponent(key); }
+function _compressImg(file, maxDim, q){ return new Promise(function(resolve,reject){
+  const img=new Image(), url=URL.createObjectURL(file);
+  img.onload=function(){ URL.revokeObjectURL(url);
+    let w=img.width,h=img.height; const s=Math.min(1,(maxDim||1280)/Math.max(w,h));
+    w=Math.round(w*s); h=Math.round(h*s);
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+    cv.getContext('2d').drawImage(img,0,0,w,h);
+    resolve(cv.toDataURL('image/jpeg', q||0.7)); };
+  img.onerror=function(){ URL.revokeObjectURL(url); reject('이미지를 읽지 못했어요'); };
+  img.src=url; }); }
+async function uploadImg(file){ const u=getUser(); if(!u||!u.uid) throw '로그인 필요';
+  const dataUrl=await _compressImg(file,1280,0.7);
+  const r=await fetch(fapi('/upload'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:u.uid,tok:u.tok||'',img:dataUrl})});
+  if(!r.ok){ throw (r.status===413?'사진 용량이 커요(다시 시도)':r.status===401?'재로그인이 필요해요':'업로드 실패'); }
+  return (await r.json()).key; }
+function openImg(key){ let o=document.getElementById('imgLightbox');
+  if(!o){ o=document.createElement('div'); o.id='imgLightbox'; o.onclick=function(){ o.style.display='none'; }; document.body.appendChild(o); }
+  o.innerHTML='<img src="'+imgUrl(key)+'">'; o.style.display='flex'; }
 function loadFavs(){ const u=getUser(); if(!u||!u.uid){ _favLoaded=true; return Promise.resolve(); }
   return fetch(fapi('/fav?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))).then(function(r){return r.json();})
     .then(function(list){ _favList=list||[]; _favSet=new Set(_favList.map(function(x){return x.t;})); _favLoaded=true;

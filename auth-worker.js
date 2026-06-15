@@ -154,8 +154,9 @@ export default {
               for (const c of (o.list || [])) {
                 const sig = k.name + "#" + (c.t || "") + "#" + (c.text || "");
                 if (!sent[sig]) {
+                  const imgU = c.img ? (url.origin + "/img?k=" + c.img) : "";
                   await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ type: "comment", place: String(place).slice(0, 60), nick: c.nick || "", text: c.text || "" }) }).catch(function () {});
+                    body: JSON.stringify({ type: "comment", cid: c.id || "", place: String(place).slice(0, 60), nick: c.nick || "", text: c.text || "", stars: c.stars || "", img: imgU }) }).catch(function () {});
                   sent[sig] = 1; n++;
                 }
               }
@@ -170,6 +171,20 @@ export default {
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
         let obj = { admin: "", list: [] };
         try { obj = JSON.parse((await KV.get("cmt:" + slug)) || EMPTY); } catch (e) {}
+        if (b.action === "cmtdel" || b.action === "cmtedit") {   // 어드민: 코멘트 삭제/수정
+          if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+          const cid = Number(b.cid);
+          if (b.action === "cmtdel") {
+            const victim = (obj.list || []).find((c) => c.id === cid);
+            if (victim && victim.img) ctx.waitUntil(KV.delete("img:" + victim.img));   // 첨부 사진도 삭제
+            obj.list = (obj.list || []).filter((c) => c.id !== cid);
+          } else {
+            const it = (obj.list || []).find((c) => c.id === cid);
+            if (it) it.text = String(b.text || "").slice(0, 100);
+          }
+          await KV.put("cmt:" + slug, JSON.stringify(obj));
+          return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, "Content-Type": "application/json" } });
+        }
         if (b.admin) {
           if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
           obj.admin = String(b.text || "").slice(0, 300);
@@ -188,7 +203,8 @@ export default {
           if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
           if (!(await _tokOk(env, String(b.id), b.tok))) return new Response("relogin", { status: 401, headers: cors });
           const text = String(b.text || "").trim().slice(0, 100);
-          if (!text) return new Response("bad", { status: 400, headers: cors });
+          const imgKey = String(b.img || "").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 40);
+          if (!text && !imgKey) return new Response("bad", { status: 400, headers: cors });
           const cnick = String(b.nick || "익명").slice(0, 20);
           if (b.name) obj.name = String(b.name).slice(0, 60);   // 장소명 저장(백필/표시용)
           let cseq = 0; try { cseq = parseInt((await KV.get("cmt_seq")) || "0", 10) || 0; } catch (e) {}
@@ -197,6 +213,7 @@ export default {
           const stars = Math.round(Number(b.stars));
           const item = { id: cseq, nick: cnick, text: text, t: ct };
           if (stars >= 1 && stars <= 5) item.stars = stars;
+          if (imgKey) item.img = imgKey;
           obj.list.push(item);
           if (obj.list.length > 500) obj.list = obj.list.slice(-500);
           if (stars >= 1 && stars <= 5) {   // 별점도 함께 반영(평균용 rate_<slug>)
@@ -223,6 +240,38 @@ export default {
     }
 
     // 0-3b) 일반 사용자 장소 제안 → Google Sheet(suggestions 탭)
+    // 0-2c) 이미지 업로드(로그인 사용자) — KV에 base64 저장(클라가 압축). 추후 R2 이전(8c).
+    if (url.pathname.endsWith("/upload")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (req.method !== "POST") return new Response("method", { status: 405, headers: cors });
+      let b = {}; try { b = await req.json(); } catch (e) {}
+      if (!b.id || !(await _tokOk(env, String(b.id), b.tok))) return new Response("relogin", { status: 401, headers: cors });
+      const KV = env.PLACES; if (!KV) return new Response("no-store", { status: 500, headers: cors });
+      const m = String(b.img || "").match(/^data:image\/(?:jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+      if (!m) return new Response("bad-image", { status: 400, headers: cors });
+      const b64 = m[1];
+      if (b64.length > 950000) return new Response("too-large", { status: 413, headers: cors });   // ~700KB
+      const key = String(b.id).replace(/[^a-zA-Z0-9]/g, "").slice(0, 24) + "_" + Date.now().toString(36);
+      await KV.put("img:" + key, b64);
+      return new Response(JSON.stringify({ ok: true, key: key }), { headers: { ...cors, "Content-Type": "application/json" } });
+    }
+    // 0-2d) 이미지 서빙 — /img?k=<key> (엣지 캐시 + 장기 캐시헤더)
+    if (url.pathname.endsWith("/img")) {
+      const key = (url.searchParams.get("k") || "").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 40);
+      const KV = env.PLACES;
+      if (!key || !KV) return new Response("not found", { status: 404 });
+      const cache = caches.default; const ck = new Request(url.toString());
+      let hit = await cache.match(ck); if (hit) return hit;
+      const b64 = await KV.get("img:" + key);
+      if (!b64) return new Response("not found", { status: 404 });
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const resp = new Response(bytes, { headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=31536000, immutable", "Access-Control-Allow-Origin": "*" } });
+      ctx.waitUntil(cache.put(ck, resp.clone()));
+      return resp;
+    }
+
     if (url.pathname.endsWith("/suggest")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = {
@@ -235,12 +284,14 @@ export default {
         let b = {};
         try { b = await req.json(); } catch (e) {}
         if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
+        if (!(await _tokOk(env, String(b.id), b.tok))) return new Response("relogin", { status: 401, headers: cors });
         if (env.LOG_WEBHOOK) ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "suggest", cat: String(b.cat || "기타").slice(0, 10),
             place: String(b.addr || "").slice(0, 80), nick: String(b.nick || "").slice(0, 20),
             text: String(b.text || "").slice(0, 200), lat: Number(b.lat) || "", lng: Number(b.lng) || "",
+            img: String(b.img || "").slice(0, 200),
           }),
         }).catch(function () {}));
         return new Response("ok", { headers: cors });
