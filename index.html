@@ -28,6 +28,7 @@
   .search button{padding:5px 9px;margin-left:3px;cursor:pointer;font-size:13px}
   .sr-item{margin-top:5px;font-size:12px}
   .sr-item a{color:#1565c0;text-decoration:none}
+  .sr-head{margin-top:7px;font-size:10.5px;font-weight:700;color:#99a}
   .course-share{color:#1565c0;cursor:pointer;text-decoration:none;font-weight:600}
   #hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:1000;
         background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
@@ -1436,21 +1437,36 @@ const SearchCtl = L.Control.extend({ options:{position:'topleft'},
 });
 map.addControl(new SearchCtl());
 let _res=[];
+// 우리 데이터(장소·코스) 이름 검색 — 외부 지오코더보다 먼저
+function _localSearch(q){
+  const nq=q.replace(/\s/g,'').toLowerCase(); const out=[];
+  POINTS.features.forEach(function(f){ const p=f.properties||{}; const nm=p.name||'';
+    if(nm.replace(/\s/g,'').toLowerCase().indexOf(nq)>=0){ const c=f.geometry.coordinates;
+      out.push({kind:'place', label:(isSpot(nm)?'📍 ':'🛶 ')+nm, lat:c[1], lng:c[0], feat:f}); } });
+  COURSES.features.forEach(function(f){ const p=f.properties||{}; const nm=p.name||'';
+    if(nm.replace(/\s/g,'').toLowerCase().indexOf(nq)>=0){ const cs=f.geometry.coordinates; const m=cs[Math.floor(cs.length/2)];
+      out.push({kind:'course', label:'〰️ '+nm, lat:m[1], lng:m[0], feat:f}); } });
+  return out.slice(0,8);
+}
 document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   ev.preventDefault();
   const q=document.getElementById('srchQ').value.trim(); const box=document.getElementById('srchRes');
   if(!q) return; box.textContent='검색 중…'; gaEvent('search',{q:q.slice(0,40)});
-  try{
-    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=kr&accept-language=ko&limit=6&q='+encodeURIComponent(q));
-    _res=await r.json();
-    if(!_res.length){ box.textContent='결과 없음'; return; }
-    box.innerHTML=_res.map((x,i)=>'<div class="sr-item"><a href="#" data-i="'+i+'">'+x.display_name.slice(0,38)+'</a></div>').join('');
-    box.querySelectorAll('a').forEach(a=>a.addEventListener('click',(ze)=>{
-      ze.preventDefault(); const x=_res[a.dataset.i]; const lat=+x.lat,lng=+x.lon;
-      map.setView([lat,lng],14);
-      L.popup().setLatLng([lat,lng]).setContent('<b>'+x.display_name.slice(0,50)+'</b>'+extLinks(lat,lng,q)).openOn(map);
-    }));
-  }catch(err){ box.textContent='검색 실패'; }
+  // 1) 내 지도 결과 먼저
+  const local=_localSearch(q);
+  // 2) 외부 지오코더
+  let geo=[]; try{ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=kr&accept-language=ko&limit=6&q='+encodeURIComponent(q)); geo=await r.json(); }catch(e){}
+  _res=local.concat(geo.map(function(x){ return {kind:'geo', label:'🔎 '+x.display_name.slice(0,34), lat:+x.lat, lng:+x.lon, disp:x.display_name}; }));
+  if(!_res.length){ box.textContent='결과 없음'; return; }
+  box.innerHTML=(local.length?'<div class="sr-head">내 지도</div>':'')
+    + _res.map(function(x,i){ return (x.kind==='geo'&&(i===0||_res[i-1].kind!=='geo')?'<div class="sr-head">일반 검색</div>':'')
+        +'<div class="sr-item"><a href="#" data-i="'+i+'">'+x.label+'</a></div>'; }).join('');
+  box.querySelectorAll('a').forEach(function(a){ a.addEventListener('click',function(ze){
+    ze.preventDefault(); const x=_res[a.dataset.i];
+    if(x.kind==='place'){ map.setView([x.lat,x.lng],15); openPlaceModal(featPlace(x.feat)); }
+    else if(x.kind==='course'){ const cs=x.feat.geometry.coordinates.map(function(c){return [c[1],c[0]];}); _fitAndPop(cs, x.feat.properties.name, x.feat.properties.km); }
+    else { map.setView([x.lat,x.lng],14); L.popup().setLatLng([x.lat,x.lng]).setContent('<b>'+(x.disp||q).slice(0,50)+'</b>'+extLinks(x.lat,x.lng,q)).openOn(map); }
+  }); });
 });
 
 // ---- 물길 거리측정 (두 점 클릭 → 강 따라 거리) ----
