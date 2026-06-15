@@ -40,7 +40,8 @@ def sheet_report(status, added, detail):
     body = json.dumps({"adminKey": key, "status": status, "added": added, "detail": detail}).encode("utf-8")
     try:
         req = urllib.request.Request(WORKER + "/report", data=body,
-                                     headers={"Content-Type": "application/json", "Origin": "https://kohoon.github.io"})
+                                     headers={"Content-Type": "application/json", "Origin": "https://kohoon.github.io",
+                                              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) mycanoe-daily"})
         urllib.request.urlopen(req, timeout=20).read()
         return "시트 기록됨"
     except Exception as e:
