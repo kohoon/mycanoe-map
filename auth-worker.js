@@ -271,6 +271,29 @@ export default {
     }
 
     // 0-3b) 일반 사용자 장소 제안 → Google Sheet(suggestions 탭)
+    // 0-2e) 장소 카테고리 오버라이드(관리자) — KV "placecat" = {placeId: 'spot'|'canoe'}
+    if (url.pathname.endsWith("/placecat")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
+      if (req.method === "GET") { const d = KV ? await KV.get("placecat") : null; return J(d || "{}"); }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+        if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        let m = {}; try { m = JSON.parse((await KV.get("placecat")) || "{}"); } catch (e) {}
+        const id = String(b.id || "").slice(0, 20);
+        if (!id) return new Response("bad", { status: 400, headers: cors });
+        const cat = (b.cat === "spot" || b.cat === "canoe") ? b.cat : null;
+        if (cat) m[id] = cat; else delete m[id];   // null = 기본 분류 복원
+        await KV.put("placecat", JSON.stringify(m));
+        return J(JSON.stringify({ ok: true }));
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
     // 0-1d) 수집 결과 보고 → 시트(LOG_WEBHOOK, type:collect). ADMIN_KEY 필수.
     if (url.pathname.endsWith("/report")) {
       const origin = req.headers.get("Origin") || "*";

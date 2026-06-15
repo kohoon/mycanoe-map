@@ -65,6 +65,11 @@
   .leaflet-div-icon.wl-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .wl-div .wl-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
   .wl-loading{color:#889;font-size:12.5px}
+  #pmCat{display:flex;align-items:center;gap:7px;margin:0 0 8px;flex-wrap:wrap}
+  #pmCat:empty{display:none}
+  .pm-catlbl{font-size:11.5px;color:#889}
+  #pmCat a{font-size:12.5px;font-weight:700;color:#789;cursor:pointer;border:1px solid #d6dee2;border-radius:13px;padding:3px 10px}
+  #pmCat a.on{background:#1565c0;color:#fff;border-color:#1565c0}
   #pmRate{display:flex;align-items:center;gap:10px;margin:2px 0 9px;flex-wrap:wrap}
   .rate-avg{font-weight:800;color:#f59f00;font-size:15px}
   .rate-avg small{color:#99a;font-weight:400}
@@ -350,6 +355,7 @@
     <button class="pmodal-x" onclick="closePlaceModal()">✕</button>
     <h3 id="pmTitle"></h3>
     <div id="pmRate"></div>
+    <div id="pmCat"></div>
     <div id="pmLinks"></div>
     <div id="pmAdmin"></div>
     <div class="pm-cmts-h">코멘트 <span id="pmCnt"></span></div>
@@ -900,6 +906,7 @@ function openPlaceModal(pl){
   _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
   _pmTarget=_pmSlug; _pmKind='p'; _pmName=pl.name||'장소'; _pmLL=[pl.lat,pl.lng];
   document.getElementById('pmTitle').textContent=(pl.id?('#'+pl.id+' '):'')+(pl.name||'장소');
+  renderPmCat(pl);
   _clearPhoto(); renderRateRow();
   document.getElementById('pmLinks').innerHTML='<div id="pmWx" class="pm-wx"></div>'
     +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
@@ -918,6 +925,7 @@ function openCourseComments(key,name,km,shareId){
   _pmPlace={name:name||'코스'}; _pmSlug=key;
   _pmTarget=key; _pmKind='c'; _pmName=name||'코스'; _pmLL=null;
   document.getElementById('pmTitle').textContent='🛶 '+(name||'코스');
+  document.getElementById('pmCat').innerHTML='';
   _clearPhoto(); renderRateRow();
   document.getElementById('pmLinks').innerHTML=(km?'<div class="pm-memo">약 '+km+'km</div>':'')+(shareId?'<a class="course-share" onclick="shareCourse(\''+shareId+'\')">🔗 코스 공유</a>':'');
   document.getElementById('pmAdmin').innerHTML='';
@@ -1068,7 +1076,7 @@ function editAdminComment(){ if(!isAdmin()) return; const u=getUser();
     if(f && f.type.indexOf('image')===0){ _pmPhotoFile=f; } else { _pmPhotoFile=null; } _setPhotoPrev(); }); })();
 
 // ---- 카누 점: 명소(핑크) vs 런칭/랜딩(파랑) ----
-const SPOTS=['마이카누','라온카누','캐나디언카누클럽','장자늪카누체험장','올리버보트'];
+const SPOTS=['마이카누','라온카누','캐나디언카누클럽','장자늪카누체험장','올리버보트','카페벌곡'];
 function isSpot(nm){ nm=(nm||'').replace(/\s/g,''); return SPOTS.some(function(s){ return nm.indexOf(s.replace(/\s/g,''))>=0; }); }
 function ptPopup(f){ const p=f.properties, c=f.geometry.coordinates;
   let h='<b>'+(p.name||'(이름없음)')+'</b>'; if(p.memo) h+='<br>'+p.memo;
@@ -1087,16 +1095,32 @@ const Z_ICON=12;
 function dotIcon(kind){ const c=kind==='spot'?'dot-spot':kind==='wreck'?'dot-wreck':'dot-canoe'; return L.divIcon({className:'dotpin '+c,html:'',iconSize:[10,10],iconAnchor:[5,5]}); }
 function fullIcon(kind){ return kind==='spot'?boathouseIcon():kind==='wreck'?wreckIcon():canoeIcon(); }
 function makeMarker(ll,kind){ const dot=map.getZoom()<Z_ICON; const m=L.marker(ll,{icon:dot?dotIcon(kind):fullIcon(kind)}); m._kind=kind; m._isDot=dot; return m; }
+const _placeMarkerById={};   // id -> {m, cat:'spot'|'canoe', name}
 const famousLayer = L.geoJSON(spotFeats, {
   pointToLayer:(f,ll)=>makeMarker(ll,'spot'),
-  onEachFeature:(f,l)=>{ l.on('click',function(){ openPlaceModal(featPlace(f)); });
-    const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null); }
+  onEachFeature:(f,l)=>{ const p=f.properties||{}; l.on('click',function(){ openPlaceModal(featPlace(f)); });
+    const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null);
+    if(p.id!=null) _placeMarkerById[p.id]={m:l,cat:'spot',name:p.name||''}; }
 }).addTo(map);
 const canoeLayer = L.geoJSON(landFeats, {
   pointToLayer:(f,ll)=>makeMarker(ll, isWreck((f.properties||{}).name)?'wreck':'canoe'),
-  onEachFeature:(f,l)=>{ l.on('click',function(){ openPlaceModal(featPlace(f)); });
-    const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null); }
+  onEachFeature:(f,l)=>{ const p=f.properties||{}; l.on('click',function(){ openPlaceModal(featPlace(f)); });
+    const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null);
+    if(p.id!=null) _placeMarkerById[p.id]={m:l,cat:'canoe',name:p.name||''}; }
 }).addTo(map);
+// 카테고리 오버라이드(관리자가 바꾼 분류) — KV에서 로드해 적용
+function setPlaceKind(id, cat, save){
+  const e=_placeMarkerById[id]; if(!e || (cat!=='spot'&&cat!=='canoe')) return;
+  if(e.cat!==cat){
+    (e.cat==='spot'?famousLayer:canoeLayer).removeLayer(e.m);
+    const ik=(cat==='spot')?'spot':(isWreck(e.name)?'wreck':'canoe');
+    e.m._kind=ik; const dot=map.getZoom()<Z_ICON; e.m._isDot=dot; e.m.setIcon(dot?dotIcon(ik):fullIcon(ik));
+    (cat==='spot'?famousLayer:canoeLayer).addLayer(e.m); e.cat=cat;
+  }
+  if(save){ fetch(fapi('/placecat'),{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({adminKey:adminKey(),id:String(id),cat:cat})}).catch(function(){}); gaEvent('placecat',{cat:cat}); }
+}
+fetch(fapi('/placecat')).then(function(r){return r.json();}).then(function(m){ Object.keys(m||{}).forEach(function(id){ setPlaceKind(id,m[id],false); }); }).catch(function(){});
 function applyZoomIcons(){ const dot=map.getZoom()<Z_ICON; const f=function(m){ if(!m._kind||m._isDot===dot) return; m._isDot=dot; m.setIcon(dot?dotIcon(m._kind):fullIcon(m._kind)); };
   famousLayer.eachLayer(f); canoeLayer.eachLayer(f); }
 map.on('zoomend', applyZoomIcons);
@@ -1143,6 +1167,17 @@ function applyFavFilter(){
 }
 function setFavOnly(on){ _favOnly=!!on; try{ localStorage.setItem('mc_favonly',_favOnly?'1':'0'); }catch(e){} applyFavFilter(); }
 // 별점/하트 줄 — 장소·코스 모달 공용
+function renderPmCat(pl){   // 관리자 전용: 장소 분류(명소/런칭·랜딩) 토글
+  const el=document.getElementById('pmCat'); if(!el) return;
+  if(!isAdmin() || pl.id==null || !_placeMarkerById[pl.id]){ el.innerHTML=''; return; }
+  const cur=_placeMarkerById[pl.id].cat;
+  el.innerHTML='<span class="pm-catlbl">분류(관리자)</span>'
+    +'<a data-k="spot" class="pm-cat'+(cur==='spot'?' on':'')+'">📍 명소</a>'
+    +'<a data-k="canoe" class="pm-cat'+(cur==='canoe'?' on':'')+'">🛶 런칭/랜딩</a>';
+  el.querySelectorAll('a').forEach(function(a){ a.onclick=function(){ const k=a.getAttribute('data-k');
+    setPlaceKind(pl.id,k,true);
+    el.querySelectorAll('a').forEach(function(x){ x.classList.toggle('on',x===a); }); }; });
+}
 let _composeStars=0;   // 코멘트 작성란에서 고른 별점
 function renderRateRow(){
   const el=document.getElementById('pmRate'); if(!el||!_pmTarget) return;
