@@ -585,7 +585,7 @@ function devType(){ return (('ontouchstart' in window)||navigator.maxTouchPoints
 function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Worker → 시트
   try{ const u=getUser(); if(!u||!u.uid) return;
     fetch(WORKER_URL.replace(/\/+$/,'')+'/log',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id:u.uid, nick:u.nick||'', type:'visit', dev:devType()})}).catch(function(){});
+      body:JSON.stringify({id:u.uid, tok:u.tok||'', nick:u.nick||'', type:'visit', dev:devType()})}).catch(function(){});
   }catch(e){}
 }
 (function(){   // 로그인 콜백(#login=ID&nick=NICK) 처리 + 세션 복원

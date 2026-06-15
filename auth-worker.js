@@ -42,12 +42,35 @@ async function _tokOk(env, uid, tok) {
 async function _uidHash(env, uid) {    // 공개 응답용 가명(원 uid 비노출)
   return (await _hmacHex("uh|" + uid, env.ADMIN_KEY || "x")).slice(0, 10);
 }
+// 허용 Origin(우리 사이트)만 — 비브라우저 클라이언트는 Origin 위조 가능하나 캐주얼 남용 차단
+function _allowedOrigin(req, env) {
+  const o = req.headers.get("Origin") || "";
+  if (!o) return true;   // 동일 출처/비-CORS(이미지 src 등) 허용
+  const site = (env.SITE_URL || "https://kohoon.github.io/").replace(/\/$/, "");
+  try { const oh = new URL(o).host; return oh === new URL(site).host || oh === "localhost" || oh.startsWith("localhost:") || oh === "127.0.0.1"; }
+  catch (e) { return false; }
+}
+// 단순 속도 제한(KV 카운터, 분 단위) — true면 차단
+async function _rateLimited(env, bucket, ip, max) {
+  const KV = env.PLACES; if (!KV) return false;
+  const minute = Math.floor(Date.now() / 60000);
+  const k = "rl_" + bucket + "_" + ip + "_" + minute;
+  let n = 0; try { n = parseInt((await KV.get(k)) || "0", 10) || 0; } catch (e) {}
+  if (n >= max) return true;
+  await KV.put(k, String(n + 1), { expirationTtl: 120 });
+  return false;
+}
 
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const REDIRECT = url.origin + url.pathname;   // = 카카오에 등록할 Redirect URI
     const code = url.searchParams.get("code");
+
+    // B: 쓰기성 POST는 우리 사이트 Origin에서만(타 사이트 브라우저 JS 차단). Origin 없으면 통과(이미지/툴).
+    if (req.method === "POST" && !_allowedOrigin(req, env)) {
+      return new Response("forbidden-origin", { status: 403, headers: { "Access-Control-Allow-Origin": req.headers.get("Origin") || "*" } });
+    }
 
     // 0) 활동 로그(자동로그인 재접속 등) → 브라우저가 호출, Worker가 Sheet 로 전달
     if (url.pathname.endsWith("/log")) {
@@ -61,13 +84,17 @@ export default {
       if (req.method === "POST" && env.LOG_WEBHOOK) {
         let b = {};
         try { b = await req.json(); } catch (e) {}
-        ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: b.id || "", nick: b.nick || "", type: b.type || "visit", dev: b.dev || "" }),
-        }).catch(() => {}));
+        // A: 진짜 카카오 id(숫자) + 유효 서명토큰만 기록 — 봇/가짜 id 차단
+        const idOk = /^[0-9]+$/.test(String(b.id || ""));
+        if (idOk && (await _tokOk(env, String(b.id), b.tok)) && _allowedOrigin(req, env)) {
+          ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: b.id || "", nick: b.nick || "", type: b.type || "visit", dev: b.dev || "" }),
+          }).catch(() => {}));
+        }
       }
-      return new Response("ok", { headers: cors });
+      return new Response("ok", { headers: cors });   // 항상 ok(공격자에게 정보 비노출)
     }
 
     // 0-1b) 관리자 키 검증(백도어). 키는 Cloudflare Secret(env.ADMIN_KEY)에만 존재
@@ -75,8 +102,12 @@ export default {
       const origin = req.headers.get("Origin") || "*";
       const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      // C: 무차별 대입 방어 — IP당 분 10회 제한 + 실패 지연
+      const ip = req.headers.get("CF-Connecting-IP") || "0";
+      if (await _rateLimited(env, "adm", ip, 10)) return new Response(JSON.stringify({ ok: false, rl: true }), { status: 429, headers: { ...cors, "Content-Type": "application/json" } });
       let b = {}; try { b = await req.json(); } catch (e) {}
       const ok = !!env.ADMIN_KEY && String(b.key) === String(env.ADMIN_KEY);
+      if (!ok) await new Promise((r) => setTimeout(r, 600));   // 타이밍/속도 둔화
       return new Response(JSON.stringify({ ok: ok }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
