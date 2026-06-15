@@ -240,6 +240,58 @@ export default {
     }
 
     // 0-3b) 일반 사용자 장소 제안 → Google Sheet(suggestions 탭)
+    // 0-1c) 관리자 정리 — 테스트/잔재 데이터 조회·삭제. ADMIN_KEY 필수.
+    if (url.pathname.endsWith("/cleanup")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      let b = {}; try { b = await req.json(); } catch (e) {}
+      if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+      const KV = env.PLACES; if (!KV) return new Response("no-store", { status: 500, headers: cors });
+      const J = (o) => new Response(JSON.stringify(o), { headers: { ...cors, "Content-Type": "application/json" } });
+      const isNumeric = (s) => /^[0-9]+$/.test(String(s));   // 진짜 카카오 id = 숫자
+      const report = { board: [], favs: [], rate: [], utrips: [], trips: [] };
+      // board: 비숫자 uid 항목
+      let bd = {}; try { bd = JSON.parse((await KV.get("board")) || "{}"); } catch (e) {}
+      for (const k of Object.keys(bd)) if (!isNumeric(k)) report.board.push(k);
+      // favs_/utrips_/trip: 키 스캔
+      let cursor;
+      do {
+        const lst = await KV.list({ cursor });
+        for (const it of lst.keys) {
+          const n = it.name;
+          if (n.startsWith("favs_") && !isNumeric(n.slice(5))) report.favs.push(n);
+          else if (n.startsWith("utrips:") && !isNumeric(n.slice(7))) report.utrips.push(n);
+          else if (n.startsWith("trip:") && !isNumeric(n.slice(5).split("_")[0])) report.trips.push(n);
+          else if (n.startsWith("rate_")) {   // rate: 비숫자 uid 표 제거 또는 빈 표
+            try { const rm = JSON.parse((await KV.get(n)) || "{}");
+              const bad = Object.keys(rm).filter((u) => !isNumeric(u));
+              if (bad.length) report.rate.push({ k: n, bad });
+            } catch (e) {}
+          }
+        }
+        cursor = lst.list_complete ? null : lst.cursor;
+      } while (cursor);
+
+      if (b.dry) return J({ dry: true, report });   // 미리보기
+
+      // 실제 삭제
+      let removed = 0;
+      for (const k of report.board) { delete bd[k]; removed++; }
+      if (report.board.length) await KV.put("board", JSON.stringify(bd));
+      for (const n of report.favs) { await KV.delete(n); removed++; }
+      for (const n of report.utrips) { await KV.delete(n); removed++; }
+      for (const n of report.trips) { await KV.delete(n); removed++; }
+      for (const r of report.rate) {
+        try { const rm = JSON.parse((await KV.get(r.k)) || "{}");
+          for (const u of r.bad) delete rm[u];
+          if (Object.keys(rm).length) await KV.put(r.k, JSON.stringify(rm)); else await KV.delete(r.k);
+          removed++;
+        } catch (e) {}
+      }
+      return J({ ok: true, removed, report });
+    }
+
     // 0-2c) 이미지 업로드(로그인 사용자) — KV에 base64 저장(클라가 압축). 추후 R2 이전(8c).
     if (url.pathname.endsWith("/upload")) {
       const origin = req.headers.get("Origin") || "*";
