@@ -258,8 +258,9 @@ export default {
             ctx.waitUntil((async () => { try {
               let sent = {}; try { sent = JSON.parse((await KV.get("cmt_exported")) || "{}"); } catch (e) {}
               if (sent[sig]) return;
+              const imgU = imgKey ? (url.origin + "/img?k=" + imgKey) : "";
               await fetch(env.LOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ type: "comment", cid: cseq, place: pl, nick: cnick, text: text }) }).catch(function () {});
+                body: JSON.stringify({ type: "comment", cid: cseq, place: pl, nick: cnick, text: text, stars: (stars >= 1 && stars <= 5) ? stars : "", img: imgU }) }).catch(function () {});
               sent[sig] = 1; await KV.put("cmt_exported", JSON.stringify(sent));
             } catch (e) {} })());
           }
