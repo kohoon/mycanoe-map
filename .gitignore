@@ -17,3 +17,4 @@ __pycache__/
 *.log
 *.output
 _kakao_profile/
+admin_key.txt

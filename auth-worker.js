@@ -271,6 +271,20 @@ export default {
     }
 
     // 0-3b) 일반 사용자 장소 제안 → Google Sheet(suggestions 탭)
+    // 0-1d) 수집 결과 보고 → 시트(LOG_WEBHOOK, type:collect). ADMIN_KEY 필수.
+    if (url.pathname.endsWith("/report")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      let b = {}; try { b = await req.json(); } catch (e) {}
+      if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+      if (env.LOG_WEBHOOK) ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "collect", status: String(b.status || "").slice(0, 40), added: Number(b.added) || 0, detail: String(b.detail || "").slice(0, 500) }),
+      }).catch(() => {}));
+      return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
     // 0-1c) 관리자 정리 — 테스트/잔재 데이터 조회·삭제. ADMIN_KEY 필수.
     if (url.pathname.endsWith("/cleanup")) {
       const origin = req.headers.get("Origin") || "*";

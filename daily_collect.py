@@ -10,18 +10,16 @@ Windows 작업 스케줄러가 daily_collect.bat 을 호출 → 이 스크립트
   - auth_state.json         : 카카오 로그인 세션(collect_kakao.py 가 생성/갱신)
   - gmail_app_password.txt  : Gmail 앱 비밀번호(16자) — 보고 메일 발신용. 없으면 메일 생략.
 """
-import json, smtplib, ssl, subprocess, sys, time
+import json, subprocess, sys, urllib.request
 from datetime import datetime
-from email.mime.text import MIMEText
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 PY = sys.executable
 FOLDERS = "20842531"                 # 카카오 폴더 ID(쉼표로 여러개). 마이카누=20842531
-SENDER = "kohoon0140@gmail.com"      # 발신(Gmail)
-TO = "crowd@kakao.com"               # 수신
+WORKER = "https://mycanoe-map.kohoon0140.workers.dev"
 LOG = BASE / "collect_log.txt"
-PWFILE = BASE / "gmail_app_password.txt"
+ADMINFILE = BASE / "admin_key.txt"   # 시트 보고용(워커 /report 인증). gitignore.
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -34,20 +32,19 @@ def run(cmd, timeout=600):
     return r.returncode, (r.stdout or "") + (r.stderr or "")
 
 
-def email_report(subject, body):
-    if not PWFILE.exists():
-        return "메일 생략(gmail_app_password.txt 없음)"
-    pw = PWFILE.read_text(encoding="utf-8").strip()
-    msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = subject; msg["From"] = SENDER; msg["To"] = TO
+def sheet_report(status, added, detail):
+    """수집 결과를 구글 시트(collect 탭)로 보고 → 워커 /report."""
+    if not ADMINFILE.exists():
+        return "시트보고 생략(admin_key.txt 없음)"
+    key = ADMINFILE.read_text(encoding="utf-8").strip()
+    body = json.dumps({"adminKey": key, "status": status, "added": added, "detail": detail}).encode("utf-8")
     try:
-        ctx = ssl.create_default_context()
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as s:
-            s.starttls(context=ctx); s.login(SENDER, pw)
-            s.sendmail(SENDER, [TO], msg.as_string())
-        return "메일 전송됨"
+        req = urllib.request.Request(WORKER + "/report", data=body,
+                                     headers={"Content-Type": "application/json", "Origin": "https://kohoon.github.io"})
+        urllib.request.urlopen(req, timeout=20).read()
+        return "시트 기록됨"
     except Exception as e:
-        return f"메일 실패: {str(e)[:120]}"
+        return f"시트 보고 실패: {str(e)[:120]}"
 
 
 def main():
@@ -88,8 +85,8 @@ def main():
             lines.append("(빌드 결과 변경 없음 — 푸시 생략)"); status = f"신규 {new}곳(푸시생략)"
 
     body = "\n".join(lines)
-    mail = email_report(f"[마이카누] 일일 수집 — {status}", body)
-    body += "\n" + mail
+    rep = sheet_report(status, new, body.replace("\n", " / "))
+    body += "\n" + rep
     with open(LOG, "a", encoding="utf-8") as f:
         f.write(body + "\n" + ("-" * 40) + "\n")
     print(body)
