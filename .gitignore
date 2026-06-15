@@ -16,3 +16,4 @@ synced_seqs.backup.json
 __pycache__/
 *.log
 *.output
+_kakao_profile/
