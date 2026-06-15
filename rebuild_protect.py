@@ -11,7 +11,7 @@
 입력: protect_geom.json (로컬, gitignore. list of {mnum,sido,sigg,cx,cy,verts})
       verts = 닫힌 외곽링 [[lng,lat],...] (레코드당 1링, 홀 없음)
 """
-import json, sys, heapq
+import json, sys, heapq, math
 from pathlib import Path
 
 try:
@@ -112,6 +112,39 @@ def process_ring(verts):
     return out
 
 
+def split_parts(vs):
+    """원본 캐시는 MultiPolygon을 하나의 verts로 flatten 해둠(각 서브링은 시작점==끝점으로
+    정확 폐합). 파트 시작점으로 '정확히 복귀'하는 지점에서 분리 → 서브링 복원.
+    임계값 불요 — legit 긴 직선변은 시작점으로 정확 복귀하지 않으므로 오분할 없음."""
+    pts = [tuple(p) for p in vs]
+    n = len(pts)
+    parts = []
+    s = 0
+    i = 1
+    while i < n:
+        if i - s >= 3 and pts[i] == pts[s]:     # 파트 정확 폐합 → 종료
+            parts.append(vs[s:i + 1]); s = i + 1; i = s + 1
+        else:
+            i += 1
+    if s < n:
+        parts.append(vs[s:n])
+    return [p for p in parts if len(p) >= 3]
+
+
+def process_record(verts):
+    """flatten verts → 서브링 분리 → 각 VW 단순화 → Polygon/MultiPolygon geometry."""
+    polys = []
+    for part in split_parts(verts):
+        r = process_ring(part)
+        if r and len(r) >= 4:
+            polys.append([r])     # polygon = [외곽링]
+    if not polys:
+        return None
+    if len(polys) == 1:
+        return {"type": "Polygon", "coordinates": polys[0]}
+    return {"type": "MultiPolygon", "coordinates": polys}
+
+
 def main():
     if not SRC.exists():
         raise SystemExit(f"[!] 원본 없음: {SRC} (protect_geom.json 로컬 필요)")
@@ -119,7 +152,7 @@ def main():
     feats = []
     nv = 0
     skipped = 0
-    deg = 0
+    multi = 0
     for it in raw:
         verts = it.get("verts")
         if isinstance(verts, str):
@@ -127,22 +160,22 @@ def main():
         if not verts or len(verts) < 3:
             skipped += 1
             continue
-        ring = process_ring(verts)
-        if not ring:
+        geom = process_record(verts)
+        if not geom:
             skipped += 1
             continue
-        nv += len(ring)
-        if len(ring) <= 4:
-            deg += 1
+        if geom["type"] == "MultiPolygon":
+            multi += 1
+            nv += sum(len(p[0]) for p in geom["coordinates"])
+        else:
+            nv += len(geom["coordinates"][0])
         s = ((str(it.get("sido") or "")) + " " + (str(it.get("sigg") or ""))).strip()
-        feats.append({"type": "Feature",
-                      "geometry": {"type": "Polygon", "coordinates": [ring]},
-                      "properties": {"s": s}})
+        feats.append({"type": "Feature", "geometry": geom, "properties": {"s": s}})
     fc = {"type": "FeatureCollection", "features": feats}
     OUT.write_text(json.dumps(fc, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     kb = OUT.stat().st_size / 1024
-    print(f"[done] {len(feats)}폴리곤 (원본 {len(raw)}, 스킵 {skipped}) → {OUT.name}")
-    print(f"       꼭짓점 {nv}, {kb:.0f}KB, ≤4점 {deg}개")
+    print(f"[done] {len(feats)}피처 (원본 {len(raw)}, 스킵 {skipped}, MultiPolygon {multi}) → {OUT.name}")
+    print(f"       꼭짓점 {nv}, {kb:.0f}KB")
     # 한글 샘플
     for f in feats[:3]:
         print("       샘플 s:", f["properties"]["s"])
