@@ -77,7 +77,8 @@ def main():
         # 3) 변경 있으면 커밋+푸시
         _, st = run(["git", "status", "--porcelain"])
         if st.strip():
-            run(["git", "add", "synced_seqs.json", "place_ids.json", "map.html", "index.html", "test.html"])
+            run(["git", "add", "synced_seqs.json", "place_ids.json", "map.html", "index.html", "test.html",
+                 "wlz.geojson", "protect_polygons.geojson"])
             run(["git", "commit", "-m", f"카카오 즐겨찾기 신규 {new}곳 자동 수집 ({now})"])
             prc, pout = run(["git", "push"])
             lines.append("📤 푸시 완료" if prc == 0 else "❌ 푸시 실패:\n" + pout[-400:])
