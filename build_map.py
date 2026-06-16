@@ -184,6 +184,12 @@ __GTAG__
   .leaflet-control-layers-separator{margin:6px 0}
   .lc-key{margin-top:2px}
   .lc-key .lg-row{margin:2px 0}
+  .sat-src{display:none;align-items:center;gap:5px;margin:1px 0 5px 20px}
+  .sat-src-lb{font-size:11px;color:#5a6b62}
+  .sat-src button{font:500 11.5px sans-serif;border:1px solid #cdd8d2;background:#fff;color:#5a6b62;padding:2px 9px;cursor:pointer;border-radius:0}
+  .sat-src button:first-of-type{border-radius:6px 0 0 6px}
+  .sat-src button:last-of-type{border-radius:0 6px 6px 0;border-left:none}
+  .sat-src button.on{background:#e3f0fb;color:#185fa5;border-color:#9cc4e8;font-weight:700}
   .sw-course{background:linear-gradient(90deg,#7c4dff 0 33%,#d500f9 33% 66%,#00897b 66% 100%)!important}
   .rv-sw{display:inline-block;width:14px;margin-right:6px;text-align:center;font-size:12px;flex:none}
   .leaflet-div-icon.rv-div{background:transparent;border:0;width:auto!important;height:auto!important}
@@ -681,15 +687,32 @@ const CafeCtl=L.Control.extend({ options:{position:'bottomright'},
 
 const baseOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {maxZoom:19, attribution:'© OpenStreetMap'});   // 기본 추가는 저장된 설정으로(아래)
-const SAT_MAXZOOM=18;   // 위성(Esri) 고배율 미제공 줌에서 'Map data not yet available' 방지 — 여기서 멈춤
-const satImg = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  {maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, attribution:'Tiles © Esri'});
+// 위성지도(단일 베이스) = Esri 또는 VWorld 정사영상. 서브토글(안 B)로 출처 교체.
+const SAT_MAXZOOM_E=18;   // Esri 고배율 미제공 줌 한계
+const SAT_MAXZOOM_V=19;   // VWorld 정사영상은 한 단계 더 확대
 map.createPane('satLabelsPane'); map.getPane('satLabelsPane').style.zIndex='350'; map.getPane('satLabelsPane').style.pointerEvents='none';
-// 일반지도와 동일한 OSM 타일을 반투명 라벨 오버레이로(리 단위 한글 지명 보장, 키 불필요).
-// 위성 질감은 비치고 한글 지명/물길/도로가 또렷이 읽히도록 opacity 조정.
+// Esri World Imagery + OSM 반투명 라벨(리 단위 한글 지명, 키 불필요)
+const satImgEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxNativeZoom:SAT_MAXZOOM_E, attribution:'Tiles © Esri'});
+// 두 위성 공통 라벨: OSM 반투명(리 단위 한글 지명 보장 — VWorld Hybrid는 리 누락이라 폐기됨)
 const satLabels = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  {subdomains:'abc', maxZoom:SAT_MAXZOOM, maxNativeZoom:SAT_MAXZOOM, pane:'satLabelsPane', opacity:0.4, attribution:'© OpenStreetMap'});
-const baseSat = L.layerGroup([satImg, satLabels]);     // 위성 + OSM 지명(반투명) 하이브리드
+  {subdomains:'abc', maxNativeZoom:SAT_MAXZOOM_V, pane:'satLabelsPane', opacity:0.4, attribution:'© OpenStreetMap'});
+// VWorld 정사영상(국토지리정보원). VKEY 도메인잠금, 브라우저 직접 호출. 라벨은 위 OSM 공용.
+const satImgV = VKEY ? L.tileLayer('https://api.vworld.kr/req/wmts/1.0.0/'+VKEY+'/Satellite/{z}/{y}/{x}.jpeg',
+  {maxNativeZoom:SAT_MAXZOOM_V, attribution:'© VWorld(국토지리정보원)'}) : null;
+const baseSat = L.layerGroup();   // 내용은 setSatSource 가 Esri/VWorld 로 교체
+let _satSrc='esri'; try{ _satSrc=localStorage.getItem('mc_satsrc')||'esri'; }catch(e){}
+if(_satSrc==='vworld' && !satImgV) _satSrc='esri';   // 키 없으면 Esri 고정
+function setSatSource(src){
+  if(src==='vworld' && !satImgV) src='esri';
+  _satSrc=src; try{ localStorage.setItem('mc_satsrc',src); }catch(e){}
+  baseSat.clearLayers();
+  baseSat.addLayer(src==='vworld' ? satImgV : satImgEsri);
+  baseSat.addLayer(satLabels);
+  if(map.hasLayer(baseSat)){ const mz=(src==='vworld')?SAT_MAXZOOM_V:SAT_MAXZOOM_E; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); }
+  _syncSatToggle();
+}
+setSatSource(_satSrc);   // baseSat 초기 채움(토글 UI는 아직 없으니 _syncSatToggle 은 no-op)
 
 // ---- 외부 지도 딥링크 (안드로이드 intent / iOS scheme / 데스크톱 웹) ----
 function extLinks(lat,lng,label,hasRv){   // hasRv===false 면 로드뷰 링크 숨김(없는 곳)
@@ -1582,13 +1605,37 @@ _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시
   L.DomEvent.on(h,'click',function(e){ L.DomEvent.stop(e); c.classList.toggle('lc-collapsed'); });
   if(isTouch) c.classList.add('lc-collapsed');   // 모바일: 기본 닫힘
 })();
-// 위성지도일 때 최대 줌 제한 + 선택 저장(다음 접속에 유지)
-map.on('baselayerchange', function(e){ const mz=(e.name==='위성지도')?SAT_MAXZOOM:19; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz);
+// ---- 위성 출처 서브토글(안 B): 위성지도 활성 시에만 Esri↔VWorld 노출 ----
+function _syncSatToggle(){
+  const el=document.getElementById('satSrcToggle'); if(!el) return;
+  el.style.display = map.hasLayer(baseSat) ? 'flex' : 'none';
+  el.querySelectorAll('[data-src]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-src')===_satSrc); });
+}
+(function(){
+  if(!satImgV) return;   // VWorld 키 없으면 토글 생략(Esri 단독)
+  const c=_layerControl && _layerControl.getContainer(); if(!c) return;
+  const base=c.querySelector('.leaflet-control-layers-base'); if(!base) return;
+  const t=L.DomUtil.create('div','sat-src'); t.id='satSrcToggle';
+  t.innerHTML='<span class="sat-src-lb">위성</span>'
+    +'<button type="button" data-src="esri">Esri</button>'
+    +'<button type="button" data-src="vworld">VWorld</button>';
+  base.insertAdjacentElement('afterend', t);
+  L.DomEvent.disableClickPropagation(t);
+  t.querySelectorAll('[data-src]').forEach(function(b){
+    L.DomEvent.on(b,'click',function(ev){ L.DomEvent.stop(ev); setSatSource(b.getAttribute('data-src')); gaEvent('sat_src_'+b.getAttribute('data-src')); });
+  });
+})();
+// 위성지도 최대 줌(출처별) + 선택 저장 + 서브토글 동기화
+map.on('baselayerchange', function(e){
+  if(e.name==='위성지도'){ const mz=(_satSrc==='vworld')?SAT_MAXZOOM_V:SAT_MAXZOOM_E; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); }
+  else { map.setMaxZoom(19); }
+  _syncSatToggle();
   try{ localStorage.setItem('mc_basemap', e.name); }catch(err){} });
 // 저장된 베이스맵으로 시작(기본 일반지도)
 (function(){ let saved='일반지도'; try{ saved=localStorage.getItem('mc_basemap')||'일반지도'; }catch(e){}
-  if(saved==='위성지도'){ baseSat.addTo(map); map.setMaxZoom(SAT_MAXZOOM); if(map.getZoom()>SAT_MAXZOOM) map.setZoom(SAT_MAXZOOM); }
-  else baseOSM.addTo(map); })();
+  if(saved==='위성지도'){ baseSat.addTo(map); const mz=(_satSrc==='vworld')?SAT_MAXZOOM_V:SAT_MAXZOOM_E; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); }
+  else baseOSM.addTo(map);
+  _syncSatToggle(); })();
 
 // ---- 등록 코스(KV) 로드/렌더 ----
 const _kvCourseGrp=L.layerGroup();
