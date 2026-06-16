@@ -27,6 +27,7 @@ MIN_POINTS = 6        # 닫힌 링을 이 미만으로 줄이지 않음(5 distin
 AREA_FLOOR = 3.0e-7   # 이 삼각형 면적(deg^2) 미만 꼭짓점만 제거. 작을수록 정밀/큰 파일. argv[1]로 덮어쓰기
                       # 3e-7 ≈ 61k점/1.5MB(작은 필지는 MIN_POINTS·폴백으로 보존, 큰 폴리곤만 간소화)
 ROUND = 5             # 좌표 반올림 자리(~1.1m)
+TOPO_CAP = 400        # 이 점수 이하 작은 링만 위상보존 검사(빠름). 큰 링 자기교차는 nonzero fill 로 처리
 if len(sys.argv) > 1:
     AREA_FLOOR = float(sys.argv[1])
 
@@ -43,6 +44,8 @@ def vw_simplify(open_ring):
     n = len(open_ring)
     if n <= MIN_POINTS:
         return open_ring[:]
+    af = vw_simplify.area_floor
+    topo = n <= TOPO_CAP   # 위상보존 검사(과대 링은 성능상 생략)
     prev = [(i - 1) % n for i in range(n)]
     nxt = [(i + 1) % n for i in range(n)]
     alive = [True] * n
@@ -57,8 +60,10 @@ def vw_simplify(open_ring):
         a, i, v = heapq.heappop(heap)
         if not alive[i] or v != ver[i]:
             continue            # 낡은 엔트리
-        if a > AREA_FLOOR:
+        if a > af:
             break               # 남은 모든 꼭짓점이 유의미 → 중단
+        if topo and not _removable(open_ring, prev, nxt, i):
+            continue            # 제거 시 자기교차 → 이 꼭짓점 보존(소비; 이웃 변경 시 재평가)
         # i 제거
         alive[i] = False
         cnt -= 1
@@ -82,6 +87,23 @@ def vw_simplify(open_ring):
     return out
 
 
+def _removable(ring, prev, nxt, i):
+    """꼭짓점 i 제거 시 새 변 (prev[i]→nxt[i])가 비인접 alive 변과 교차하지 않으면 True.
+    교차하면 제거 불가(자기교차 방지). i 는 아직 alive 상태에서 호출."""
+    pi, ni = prev[i], nxt[i]
+    A, B = ring[pi], ring[ni]
+    u = ni
+    while True:
+        v = nxt[u]
+        if u not in (pi, i, ni) and v not in (pi, i, ni):
+            if _seg_x(A, B, ring[u], ring[v]):
+                return False
+        u = v
+        if u == ni:
+            break
+    return True
+
+
 def close_round(open_ring):
     """반올림 + 연속 중복 제거 + 폐합. 너무 적으면 None."""
     r = []
@@ -97,18 +119,44 @@ def close_round(open_ring):
     return r
 
 
+vw_simplify.area_floor = AREA_FLOOR
+
+
+def _ccw(a, b, c):
+    return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0])
+
+
+def _seg_x(a, b, c, d):
+    return _ccw(a, c, d) != _ccw(b, c, d) and _ccw(a, b, c) != _ccw(a, b, d)
+
+
+def self_intersects(ring):
+    """닫힌 링(마지막=처음)의 비인접 변 교차 여부. 과대 링은 성능상 생략(원본은 보통 정상)."""
+    n = len(ring) - 1
+    if n < 4 or n > 1600:
+        return False
+    for i in range(n):
+        a, b = ring[i], ring[i + 1]
+        jmax = n if i > 0 else n - 1
+        for j in range(i + 2, jmax):
+            if _seg_x(a, b, ring[j], ring[j + 1]):
+                return True
+    return False
+
+
 def process_ring(verts):
-    """원본 verts(닫힌 링) → 단순화된 닫힌 링. 붕괴 방지 폴백 포함."""
+    """원본 verts(닫힌 링) → VW 단순화된 닫힌 링.
+    작은 링(≤TOPO_CAP)은 위상보존(자기교차 유발 꼭짓점 보존)으로 단순화. 큰 링의 잔존 자기교차는
+    지도에서 fillRule:'nonzero' 로 시각 무해화(구멍 없이 solid fill). 붕괴 시 원본(반올림) 폴백."""
     ring = verts[:]
     if len(ring) >= 2 and ring[0] == ring[-1]:
         ring = ring[:-1]        # 열린 링으로
     if len(ring) < 3:
         return None
-    simp = vw_simplify(ring)
-    out = close_round(simp)
+    vw_simplify.area_floor = AREA_FLOOR
+    out = close_round(vw_simplify(ring))
     if out is None or len(set(map(tuple, out[:-1]))) < 4:
-        # 하드 가드: 붕괴 시 원본(반올림)으로 폴백 → 실제 범위 이하로 붕괴 안 함
-        out = close_round(ring)
+        out = close_round(ring)   # 붕괴 방지 폴백(작은 필지 실제 범위 보존)
     return out
 
 

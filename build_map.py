@@ -923,7 +923,7 @@ function _lazyLoadProtect(){
     .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
     .then(function(fc){
       protectLayer = L.geoJSON(fc, {
-        style:{color:'#c62828', weight:1, fillColor:'#e53935', fillOpacity:0.25},
+        style:{color:'#c62828', weight:1, fillColor:'#e53935', fillOpacity:0.25, fillRule:'nonzero'},
         onEachFeature:function(f,l){ if(f.properties&&f.properties.s) l.bindPopup('<b>상수원보호구역</b><br>'+f.properties.s); }
       });
       return protectLayer;
