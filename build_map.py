@@ -621,6 +621,7 @@ function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Wor
     history.replaceState(null,'',location.pathname+location.search);
     if(window.gtag) gtag('set',{user_id:uid});
     gaEvent('login',{method:'kakao'});
+    logVisit();   // 새 로그인도 로그시트 기록(누락 버그 수정) — 토큰 방금 저장됨
   } else { const u=getUser(); if(u&&u.uid){ if(window.gtag) gtag('set',{user_id:u.uid}); logVisit(); } }
 })();
 // 로그인 관문: 미로그인 시 지도 차단(로그인 화면 표시)
@@ -695,11 +696,12 @@ map.createPane('satLabelsPane'); map.getPane('satLabelsPane').style.zIndex='350'
 const satImgEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   {maxNativeZoom:SAT_MAXZOOM_E, attribution:'Tiles © Esri'});
 // 두 위성 공통 라벨: OSM 반투명(리 단위 한글 지명 보장 — VWorld Hybrid는 리 누락이라 폐기됨)
+// maxZoom 명시 필수: L.tileLayer 기본 maxZoom=18 이라 미지정 시 줌19에서 렌더 멈춤(공백).
 const satLabels = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  {subdomains:'abc', maxNativeZoom:SAT_MAXZOOM_V, pane:'satLabelsPane', opacity:0.4, attribution:'© OpenStreetMap'});
+  {subdomains:'abc', maxNativeZoom:SAT_MAXZOOM_V, maxZoom:SAT_MAXZOOM_V, pane:'satLabelsPane', opacity:0.4, attribution:'© OpenStreetMap'});
 // VWorld 정사영상(국토지리정보원). VKEY 도메인잠금, 브라우저 직접 호출. 라벨은 위 OSM 공용.
 const satImgV = VKEY ? L.tileLayer('https://api.vworld.kr/req/wmts/1.0.0/'+VKEY+'/Satellite/{z}/{y}/{x}.jpeg',
-  {maxNativeZoom:SAT_MAXZOOM_V, attribution:'© VWorld(국토지리정보원)'}) : null;
+  {maxNativeZoom:SAT_MAXZOOM_V, maxZoom:SAT_MAXZOOM_V, attribution:'© VWorld(국토지리정보원)'}) : null;
 const baseSat = L.layerGroup();   // 내용은 setSatSource 가 Esri/VWorld 로 교체
 let _satSrc='esri'; try{ _satSrc=localStorage.getItem('mc_satsrc')||'esri'; }catch(e){}
 if(_satSrc==='vworld' && !satImgV) _satSrc='esri';   // 키 없으면 Esri 고정
