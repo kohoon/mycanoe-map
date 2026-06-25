@@ -187,12 +187,12 @@ __GTAG__
   .leaflet-control-layers-separator{margin:6px 0}
   .lc-key{margin-top:2px}
   .lc-key .lg-row{margin:2px 0}
-  .sat-src{display:none;align-items:center;gap:5px;margin:1px 0 5px 20px}
-  .sat-src-lb{font-size:11px;color:#5a6b62}
-  .sat-src button{font:500 11.5px sans-serif;border:1px solid #cdd8d2;background:#fff;color:#5a6b62;padding:2px 9px;cursor:pointer;border-radius:0}
-  .sat-src button:first-of-type{border-radius:6px 0 0 6px}
-  .sat-src button:last-of-type{border-radius:0 6px 6px 0;border-left:none}
-  .sat-src button.on{background:#e3f0fb;color:#185fa5;border-color:#9cc4e8;font-weight:700}
+  .sat-src{display:none;align-items:center;gap:6px;margin:3px 0 6px 20px}
+  .sat-src-lb{font-size:11.5px;color:#5a6b62}
+  .sat-src .sat-seg{display:inline-flex;border:1px solid #b9cadf;border-radius:9px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .sat-src button{font:600 13px sans-serif;border:0;border-left:1px solid #d3def0;background:#fff;color:#41566b;padding:7px 14px;cursor:pointer;white-space:nowrap;line-height:1}
+  .sat-src button:first-of-type{border-left:0}
+  .sat-src button.on{background:#185fa5;color:#fff;font-weight:700}
   .sw-course{background:linear-gradient(90deg,#7c4dff 0 33%,#d500f9 33% 66%,#00897b 66% 100%)!important}
   .rv-sw{display:inline-block;width:14px;margin-right:6px;text-align:center;font-size:12px;flex:none}
   .leaflet-div-icon.rv-div{background:transparent;border:0;width:auto!important;height:auto!important}
@@ -1627,9 +1627,9 @@ function _syncSatToggle(){
   const c=_layerControl && _layerControl.getContainer(); if(!c) return;
   const base=c.querySelector('.leaflet-control-layers-base'); if(!base) return;
   const t=L.DomUtil.create('div','sat-src'); t.id='satSrcToggle';
-  t.innerHTML='<span class="sat-src-lb">위성</span>'
-    +'<button type="button" data-src="esri">Esri</button>'
-    +'<button type="button" data-src="vworld">VWorld</button>';
+  t.innerHTML='<span class="sat-src-lb">🛰 위성</span>'
+    +'<span class="sat-seg"><button type="button" data-src="esri">Esri</button>'
+    +'<button type="button" data-src="vworld">VWorld</button></span>';
   base.insertAdjacentElement('afterend', t);
   L.DomEvent.disableClickPropagation(t);
   t.querySelectorAll('[data-src]').forEach(function(b){
