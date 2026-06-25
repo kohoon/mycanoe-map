@@ -609,6 +609,12 @@ export default {
           } else {
             arr = arr.filter((x) => String(x.id) !== String(b.noticeId));
           }
+        } else if (action === "replyDelete") {
+          if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+          const nt = arr.find((x) => String(x.id) === String(b.noticeId));
+          if (!nt || !Array.isArray(nt.replies)) return new Response("bad", { status: 400, headers: cors });
+          const ri = nt.replies.findIndex((r) => String(r.t) === String(b.replyT));
+          if (ri >= 0) nt.replies.splice(ri, 1);
         } else if (action === "reply") {
           if (!b.id) return new Response("forbidden", { status: 403, headers: cors });
           const nt = arr.find((x) => String(x.id) === String(b.noticeId));

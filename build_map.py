@@ -350,6 +350,7 @@ __GTAG__
   .nt-body{font-size:14px;color:#333;margin:7px 0;white-space:pre-wrap;word-break:break-word;line-height:1.55}
   .nt-reply{font-size:13px;color:#445;padding:5px 0 5px 11px;border-left:2px solid #cfe0d8;margin:4px 0;word-break:break-word}
   .nt-reply b{color:#1565c0}
+  .nt-reply-del{color:#c62828;cursor:pointer;font-size:12px;margin-left:8px;text-decoration:none}
   .nt-replyform{display:flex;gap:6px;margin-top:8px}
   .nt-replyform input{flex:1;min-width:0;padding:9px;border:1px solid #ccd;border-radius:9px;font-size:13.5px}
   .nt-reply-btn{background:#1565c0;color:#fff;border:0;border-radius:9px;padding:9px 13px;font-weight:700;cursor:pointer;white-space:nowrap}
@@ -2115,7 +2116,7 @@ function renderNotices(list){
   }
   if(!list||!list.length){ h+='<div class="tm-empty">아직 공지가 없어요</div>'; }
   else h+=list.map(function(n){
-    const rep=(n.replies||[]).map(function(r){ return '<div class="nt-reply"><b>'+pmEsc(r.nick||'익명')+'</b> '+linkify(r.text)+'</div>'; }).join('');
+    const rep=(n.replies||[]).map(function(r){ const rdel=isAdmin()?' <a class="nt-reply-del" onclick="deleteReply(\''+n.id+'\',\''+r.t+'\')">삭제</a>':''; return '<div class="nt-reply"><b>'+pmEsc(r.nick||'익명')+'</b> '+linkify(r.text)+rdel+'</div>'; }).join('');
     const adm=isAdmin()?' <a class="nt-edit" onclick="editNoticeStart(\''+n.id+'\')">수정</a> <a class="nt-del" onclick="deleteNotice(\''+n.id+'\')">삭제</a>':'';
     return '<div class="nt-item"><div class="nt-h"><b>'+pmEsc(n.title||'(제목없음)')+'</b><span class="nt-date">'+ntDate(n.t)+(n.edited?' (수정됨)':'')+adm+'</span></div>'
       +'<div class="nt-body">'+linkify(n.body||'')+'</div>'
@@ -2139,6 +2140,9 @@ async function replyNotice(nid, text){ const u=getUser(); if(!u||!u.uid) return;
 async function deleteNotice(nid){ if(!isAdmin()) return; if(!confirm('이 공지를 삭제할까요?')) return;
   try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',adminKey:adminKey(),noticeId:nid})});
     if(r.ok) openNotices(); }catch(e){} }
+async function deleteReply(nid, rt){ if(!isAdmin()) return; if(!confirm('이 답글을 삭제할까요?')) return;
+  try{ const r=await fetch(napi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'replyDelete',adminKey:adminKey(),noticeId:nid,replyT:rt})});
+    if(r.ok){ gaEvent('notice_reply_del'); openNotices(); } else alert('실패(권한 확인)'); }catch(e){ alert('오류'); } }
 
 // ---- 범례는 레이어 패널에 통합됨(위 _layerControl) ----
 map.addControl(new CafeCtl());   // 카페 카드: 우하단
