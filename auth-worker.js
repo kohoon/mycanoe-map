@@ -545,7 +545,7 @@ export default {
       return new Response(JSON.stringify(out), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 0-3e) 코스 장애물(보/징검다리/낮은바닥) — 관리자. KV "obstacles"
+    // 0-3e) 지형지물(보/징검다리/낮은바닥/여울/유명지) — 관리자. KV "obstacles". 여울·유명지는 name 보유
     if (url.pathname.endsWith("/obstacles") || url.pathname.endsWith("/obstacle")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
@@ -557,7 +557,7 @@ export default {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
-        const TYPES = ["보", "징검다리", "낮은바닥"];
+        const TYPES = ["보", "징검다리", "낮은바닥", "여울", "유명지"];
         let arr = []; try { arr = JSON.parse((await KV.get("obstacles")) || "[]"); } catch (e) {}
         let created = null;
         if (b.action === "delete") {
@@ -567,12 +567,13 @@ export default {
           if (!it) return new Response("notfound", { status: 404, headers: cors });
           if (b.type && TYPES.indexOf(b.type) >= 0) it.type = b.type;
           if (b.note != null) it.note = String(b.note).slice(0, 200);
+          if (b.name != null) it.name = String(b.name).slice(0, 40);
           if (b.lat != null && b.lng != null) { it.lat = Number(b.lat); it.lng = Number(b.lng); }
         } else {
           const lat = Number(b.lat), lng = Number(b.lng);
           if (!isFinite(lat) || !isFinite(lng)) return new Response("bad", { status: 400, headers: cors });
           const type = TYPES.indexOf(b.type) >= 0 ? b.type : "보";
-          created = { id: Date.now(), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), t: Date.now() };
+          created = { id: Date.now(), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), t: Date.now() };
           arr.unshift(created);
           if (arr.length > 500) arr = arr.slice(0, 500);
         }
