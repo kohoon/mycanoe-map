@@ -890,7 +890,9 @@ function suggestPlace(){
     catch(e){ msg.textContent=(typeof e==='string'?e:'오류'); } };
 }
 // 등록장소는 별도 레이어 없이 카테고리(명소/런칭·랜딩) 레이어에 합쳐 표시
+let _kvPlaces=[];   // 관리자 KV 등록 장소(검색용)
 function addPlaceMarker(pl){ const k=(pl.cat==='명소')?'spot':'canoe';
+  _kvPlaces.push(pl);
   const m=makeMarker([pl.lat,pl.lng],k);
   m.on('click',function(){ openPlaceModal(pl); });
   m.addTo(k==='spot'?famousLayer:canoeLayer); }
@@ -1737,7 +1739,17 @@ function _localSearch(q){
   COURSES.features.forEach(function(f){ const p=f.properties||{}; const nm=p.name||'';
     if(nm.replace(/\s/g,'').toLowerCase().indexOf(nq)>=0){ const cs=f.geometry.coordinates; const m=cs[Math.floor(cs.length/2)];
       out.push({kind:'course', label:'〰️ '+nm, lat:m[1], lng:m[0], feat:f}); } });
-  return out.slice(0,8);
+  // 관리자 KV 등록분: 등록 장소 + 지형지물(여울/유명지 이름) + KV 코스
+  (_kvPlaces||[]).forEach(function(pl){ const nm=pl.name||'';
+    if(nm.replace(/\s/g,'').toLowerCase().indexOf(nq)>=0)
+      out.push({kind:'kvplace', label:(pl.cat==='명소'?'📍 ':'🛶 ')+nm, lat:pl.lat, lng:pl.lng, pl:pl}); });
+  Object.keys(_obstacles||{}).forEach(function(k){ const o=_obstacles[k]; const nm=o.name||'';
+    if(nm && nm.replace(/\s/g,'').toLowerCase().indexOf(nq)>=0){ const t=OBS_TYPES[o.type]||OBS_TYPES['보'];
+      out.push({kind:'obs', label:t.e+' '+nm, lat:o.lat, lng:o.lng, o:o}); } });
+  Object.keys(_kvCourses||{}).forEach(function(k){ const c=_kvCourses[k]; const nm=c.name||'';
+    if(nm.replace(/\s/g,'').toLowerCase().indexOf(nq)>=0 && c.coords&&c.coords.length){ const m=c.coords[Math.floor(c.coords.length/2)];
+      out.push({kind:'kvcourse', label:'〰️ '+nm, lat:m[0], lng:m[1], c:c}); } });
+  return out.slice(0,12);
 }
 document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   ev.preventDefault();
@@ -1761,6 +1773,9 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
     ze.preventDefault(); const x=_res[a.dataset.i];
     if(x.kind==='place'){ map.setView([x.lat,x.lng],15); openPlaceModal(featPlace(x.feat)); }
     else if(x.kind==='course'){ const cs=x.feat.geometry.coordinates.map(function(c){return [c[1],c[0]];}); _fitAndPop(cs, x.feat.properties.name, x.feat.properties.km); }
+    else if(x.kind==='kvplace'){ map.setView([x.lat,x.lng],15); openPlaceModal(x.pl); }
+    else if(x.kind==='obs'){ map.setView([x.lat,x.lng],16); const t=(OBS_TYPES[x.o.type]||OBS_TYPES['보']); L.popup().setLatLng([x.lat,x.lng]).setContent('<span class="obs-ic '+t.c+'">'+t.e+' '+pmEsc(x.o.name||t.label)+'</span>').openOn(map); }
+    else if(x.kind==='kvcourse'){ _fitAndPop(x.c.coords, x.c.name, x.c.km); }
     else { map.setView([x.lat,x.lng],14); L.popup().setLatLng([x.lat,x.lng]).setContent('<b>'+(x.disp||q).slice(0,50)+'</b>'+extLinks(x.lat,x.lng,q)).openOn(map); }
   }); });
 });
