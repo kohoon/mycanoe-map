@@ -1011,6 +1011,9 @@ function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return
 const _wxCache={};
 function _wxEmoji(c){ if(c===0) return '☀️'; if(c<=2) return '🌤️'; if(c===3) return '☁️'; if(c<=48) return '🌫️';
   if(c<=67) return '🌧️'; if(c<=77) return '❄️'; if(c<=82) return '🌦️'; if(c<=86) return '❄️'; return '⛈️'; }
+function _wxText(c){ if(c===0) return '맑음'; if(c<=2) return '구름조금'; if(c===3) return '흐림'; if(c<=48) return '안개';
+  if(c<=55) return '이슬비'; if(c<=57) return '어는비'; if(c<=65) return '비'; if(c<=67) return '어는비';
+  if(c<=77) return '눈'; if(c<=82) return '소나기'; if(c<=86) return '소나기눈'; return '뇌우'; }
 function _wxDir(d){ return ['북','북동','동','남동','남','남서','서','북서'][Math.round(((d%360)+360)%360/45)%8]; }
 function _windCol(v){ return v>=8?'#c62828':(v>=5?'#e65100':'#667'); }
 let _wxView='h'; try{ _wxView=localStorage.getItem('mc_wxview')||'h'; }catch(e){}
@@ -1022,7 +1025,7 @@ function placeWeather(lat,lng){
   function render(w){
     if(!w){ el.innerHTML=''; return; }
     const wind=w.wind, col=_windCol(wind);
-    let h='<div class="pm-wx-now"><span>'+_wxEmoji(w.code)+' '+w.temp.toFixed(0)+'°</span>'
+    let h='<div class="pm-wx-now"><span>'+_wxEmoji(w.code)+' '+w.temp.toFixed(0)+'° '+_wxText(w.code)+'</span>'
       +'<span style="color:'+col+';font-weight:'+(wind>=5?'700':'400')+'">바람 '+wind.toFixed(1)+'㎧ '+_wxDir(w.dir)+(wind>=8?' ⚠️강풍':wind>=5?' 주의':'')+'</span>'
       +(w.rain>0?'<span style="color:#1565c0">비 '+w.rain+'㎜</span>':'')+'</div>';
     // 탭: 시간대별 / 주간
