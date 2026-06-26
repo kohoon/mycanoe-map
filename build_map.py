@@ -797,6 +797,31 @@ function vworldReverse(lat,lng){
     document.body.appendChild(s);
   });
 }
+// ---- 전방 검색: V-World 검색 API(JSONP) — 도로명/지번 주소·장소 ----
+function vworldSearch(q, type, category){
+  return new Promise(function(resolve){
+    if(!VKEY){ resolve([]); return; }
+    const name='__vws'+(_jpId++); let done=false;
+    const s=document.createElement('script');
+    function cleanup(){ try{ delete window[name]; }catch(e){} if(s.parentNode) s.parentNode.removeChild(s); }
+    const timer=setTimeout(function(){ if(!done){ done=true; cleanup(); resolve([]);} }, 6000);
+    window[name]=function(d){ if(done) return; done=true; clearTimeout(timer);
+      try{ const r=d.response;
+        if(r&&r.status==='OK'&&r.result&&r.result.items){
+          resolve(r.result.items.map(function(it){
+            const a=it.address||{}; const disp=(category==='road'?a.road:category==='parcel'?a.parcel:'')||it.title||a.road||a.parcel||'';
+            return {lat:+(it.point&&it.point.y), lng:+(it.point&&it.point.x), disp:disp};
+          }).filter(function(x){ return isFinite(x.lat)&&isFinite(x.lng); }));
+        } else resolve([]);
+      }catch(e){ resolve([]); } cleanup();
+    };
+    s.onerror=function(){ if(!done){ done=true; clearTimeout(timer); cleanup(); resolve([]);} };
+    s.src='https://api.vworld.kr/req/search?service=search&request=search&version=2.0&crs=EPSG:4326'
+      +'&size=8&page=1&type='+type+(category?'&category='+category:'')+'&format=json'
+      +'&query='+encodeURIComponent(q)+'&key='+VKEY+'&callback='+name;
+    document.body.appendChild(s);
+  });
+}
 async function nominatimReverse(lat,lng){
   try{
     const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&accept-language=ko&zoom=18&lat='+lat+'&lon='+lng);
@@ -1696,7 +1721,7 @@ async function deleteCourse(id){ if(!isAdmin()) return; if(!confirm('이 등록 
 const SearchCtl = L.Control.extend({ options:{position:'topleft'},
   onAdd:function(){
     const d=L.DomUtil.create('div','legend search');
-    d.innerHTML='<form id="srchForm"><input id="srchQ" placeholder="장소 검색" autocomplete="off"><button type="submit">검색</button></form><div id="srchRes"></div>';
+    d.innerHTML='<form id="srchForm"><input id="srchQ" placeholder="장소·주소(도로명·지번) 검색" autocomplete="off"><button type="submit">검색</button></form><div id="srchRes"></div>';
     L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
     return d;
   }
@@ -1720,9 +1745,14 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   if(!q) return; box.textContent='검색 중…'; gaEvent('search',{q:q.slice(0,40)});
   // 1) 내 지도 결과 먼저
   const local=_localSearch(q);
-  // 2) 외부 지오코더
-  let geo=[]; try{ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=kr&accept-language=ko&limit=6&q='+encodeURIComponent(q)); geo=await r.json(); }catch(e){}
-  _res=local.concat(geo.map(function(x){ return {kind:'geo', label:'🔎 '+x.display_name.slice(0,34), lat:+x.lat, lng:+x.lon, disp:x.display_name}; }));
+  // 2) 외부 지오코더 — V-World(도로명·지번·장소) 우선, 없으면 Nominatim 폴백
+  let geo=[];
+  if(VKEY){
+    const rs=await Promise.all([vworldSearch(q,'address','road'), vworldSearch(q,'address','parcel'), vworldSearch(q,'place','')]);
+    const seen={}; geo=[].concat(rs[0],rs[1],rs[2]).filter(function(x){ const k=x.lat.toFixed(5)+','+x.lng.toFixed(5); if(seen[k])return false; seen[k]=true; return true; }).slice(0,8);
+  }
+  if(!geo.length){ try{ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=kr&accept-language=ko&limit=6&q='+encodeURIComponent(q)); const nj=await r.json(); geo=nj.map(function(x){ return {lat:+x.lat, lng:+x.lon, disp:x.display_name}; }); }catch(e){} }
+  _res=local.concat(geo.map(function(x){ return {kind:'geo', label:'🔎 '+(x.disp||'').slice(0,34), lat:x.lat, lng:x.lng, disp:x.disp}; }));
   if(!_res.length){ box.textContent='결과 없음'; return; }
   box.innerHTML=(local.length?'<div class="sr-head">내 지도</div>':'')
     + _res.map(function(x,i){ return (x.kind==='geo'&&(i===0||_res[i-1].kind!=='geo')?'<div class="sr-head">일반 검색</div>':'')
