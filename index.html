@@ -60,9 +60,6 @@
   .lc-collapsed .leaflet-control-layers-list,.lc-collapsed .lc-key{display:none}
   .leaflet-control-layers label{margin:3px 0;cursor:pointer}
   .leaflet-control-layers-separator{margin:6px 0}
-  body.clean-sat .leaflet-marker-pane,body.clean-sat .leaflet-overlay-pane,body.clean-sat .leaflet-shadow-pane,body.clean-sat .leaflet-tooltip-pane,body.clean-sat .leaflet-obsPane-pane,body.clean-sat .leaflet-wlPane-pane{display:none!important}
-  .lc-clean{margin-top:8px;cursor:pointer;font:600 12.5px sans-serif;background:#f2f7fa;border:1px solid #cdd8d2;border-radius:7px;padding:7px 9px;text-align:center;color:#33506b}
-  .lc-clean.on{background:#185fa5;color:#fff;border-color:#185fa5}
   .lc-key{margin-top:2px}
   .lc-key .lg-row{margin:2px 0}
   .sat-src{display:none;align-items:center;gap:6px;margin:3px 0 6px 4px}
@@ -462,7 +459,8 @@ function getUser(){ try{ return JSON.parse(localStorage.getItem('mc_user')||'nul
 function setUser(u){ try{ u?localStorage.setItem('mc_user',JSON.stringify(u)):localStorage.removeItem('mc_user'); }catch(e){} }
 function devType(){ return (('ontouchstart' in window)||navigator.maxTouchPoints>0)?'모바일':'PC'; }
 function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Worker → 시트
-  try{ const u=getUser(); if(!u||!u.uid) return;
+  try{ if(adminKey()) return;   // 관리자 기기(mc_admin 보유)는 접속기록 시트에서 제외
+    const u=getUser(); if(!u||!u.uid) return;
     fetch(WORKER_URL.replace(/\/+$/,'')+'/log',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({id:u.uid, tok:u.tok||'', nick:u.nick||'', type:'visit', dev:devType()})}).catch(function(){});
   }catch(e){}
@@ -549,10 +547,14 @@ map.createPane('satLabelsPane'); map.getPane('satLabelsPane').style.zIndex='350'
 // Esri World Imagery + OSM 반투명 라벨(리 단위 한글 지명, 키 불필요)
 const satImgEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   {maxNativeZoom:SAT_MAXZOOM_E, attribution:'Tiles © Esri'});
-// 두 위성 공통 라벨: OSM 반투명(리 단위 한글 지명 보장 — VWorld Hybrid는 리 누락이라 폐기됨)
+// 두 위성 공통 라벨: VWorld Hybrid(투명 PNG, 한글 지명·도로·경계) → 위성사진 선명(구글어스식).
+// (구: OSM 타일 0.4 불투명 → 위성이 뿌옇게 흐려지는 문제 → 투명 오버레이로 교체. VKEY 없으면 OSM 폴백)
 // maxZoom 명시 필수: L.tileLayer 기본 maxZoom=18 이라 미지정 시 줌19에서 렌더 멈춤(공백).
-const satLabels = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  {subdomains:'abc', maxNativeZoom:SAT_MAXZOOM_V, maxZoom:SAT_MAXZOOM_V, pane:'satLabelsPane', opacity:0.4, attribution:'© OpenStreetMap'});
+const satLabels = VKEY
+  ? L.tileLayer('https://api.vworld.kr/req/wmts/1.0.0/'+VKEY+'/Hybrid/{z}/{y}/{x}.png',
+      {maxNativeZoom:SAT_MAXZOOM_V, maxZoom:SAT_MAXZOOM_V, pane:'satLabelsPane', attribution:'© VWorld(국토지리정보원)'})
+  : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {subdomains:'abc', maxNativeZoom:SAT_MAXZOOM_V, maxZoom:SAT_MAXZOOM_V, pane:'satLabelsPane', opacity:0.4, attribution:'© OpenStreetMap'});
 // VWorld 정사영상(국토지리정보원). VKEY 도메인잠금, 브라우저 직접 호출. 라벨은 위 OSM 공용.
 const satImgV = VKEY ? L.tileLayer('https://api.vworld.kr/req/wmts/1.0.0/'+VKEY+'/Satellite/{z}/{y}/{x}.jpeg',
   {maxNativeZoom:SAT_MAXZOOM_V, maxZoom:SAT_MAXZOOM_V, attribution:'© VWorld(국토지리정보원)'}) : null;
@@ -1532,9 +1534,6 @@ _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시
     +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
     +'<div id="pdChip" class="pd-chip"></div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
-  const cb=L.DomUtil.create('div','lc-clean'); cb.id='cleanBtnBox'; cb.innerHTML='🛰️ 위성만 보기'; cb.title='마커·구역 숨기고 순수 위성만(다시 누르면 복귀)';
-  L.DomEvent.disableClickPropagation(cb); L.DomEvent.on(cb,'click',function(e){ L.DomEvent.stop(e); toggleClean(); });
-  c.appendChild(cb);
   L.DomEvent.on(h,'click',function(e){ L.DomEvent.stop(e); c.classList.toggle('lc-collapsed'); });
   if(isTouch) c.classList.add('lc-collapsed');   // 모바일: 기본 닫힘
 })();
@@ -1928,17 +1927,6 @@ const NoticeCtl=L.Control.extend({ options:{position:'topleft'},
 map.addControl(new NoticeCtl());
 map.addControl(new ObstacleCtl());   // 지형지물(관리자) — 공지 아래
 (function(){ const ob=document.getElementById('obsBtnBox'); if(ob&&isAdmin()) ob.style.display='block'; })();
-// ---- 위성 전용("위성만") 모드: 오버레이 pane 숨김 + 위성 베이스 전환(완전 가역) ----
-let _cleanOn=false,_cleanPrevBase='osm';
-function toggleClean(){ _cleanOn=!_cleanOn; const b=document.getElementById('cleanBtnBox');
-  document.body.classList.toggle('clean-sat',_cleanOn);
-  if(_cleanOn){ _cleanPrevBase=map.hasLayer(baseSat)?'sat':'osm';
-    if(!map.hasLayer(baseSat)){ map.removeLayer(baseOSM); baseSat.addTo(map); const mz=(_satSrc==='vworld')?SAT_MAXZOOM_V:SAT_MAXZOOM_E; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); }
-    map.closePopup(); if(b){ b.classList.add('on'); b.innerHTML='🗺️ 지도 복귀'; } }
-  else { if(_cleanPrevBase==='osm'&&map.hasLayer(baseSat)){ map.removeLayer(baseSat); baseOSM.addTo(map); map.setMaxZoom(19); }
-    if(b){ b.classList.remove('on'); b.innerHTML='🛰️ 위성만 보기'; } }
-  gaEvent('clean_sat',{on:_cleanOn}); }
-// (위성만 토글 UI는 범례 패널 안에 배치 — 위 lc-clean)
 function napi(){ return WORKER_URL.replace(/\/+$/,'')+'/notices'; }
 function closeNotices(){ document.getElementById('noticeModal').classList.remove('open'); }
 function ntDate(t){ try{ const d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate(); }catch(e){ return ''; } }
