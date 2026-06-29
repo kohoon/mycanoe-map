@@ -493,11 +493,22 @@ export default {
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
-      if (req.method === "GET") { const d = KV ? await KV.get("courses") : null; return J(d || "[]"); }
+      if (req.method === "GET") {
+        if (url.searchParams.get("hidden")) { const h = KV ? await KV.get("course_hidden") : null; return J(h || "[]"); }   // 정적 코스 숨김 cid 목록
+        const d = KV ? await KV.get("courses") : null; return J(d || "[]");
+      }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        if (b.action === "hidestatic" || b.action === "unhidestatic") {   // 정적(임베드) 코스 숨김/복원 — KV "course_hidden"
+          const cid = String(b.cid || "").slice(0, 20); if (!cid) return new Response("bad", { status: 400, headers: cors });
+          let hid = []; try { hid = JSON.parse((await KV.get("course_hidden")) || "[]"); } catch (e) {}
+          hid = hid.filter((x) => String(x) !== cid);
+          if (b.action === "hidestatic") hid.push(cid);
+          await KV.put("course_hidden", JSON.stringify(hid));
+          return J(JSON.stringify({ ok: true }));
+        }
         let arr = []; try { arr = JSON.parse((await KV.get("courses")) || "[]"); } catch (e) {}
         if (b.action === "delete") {
           arr = arr.filter((x) => String(x.id) !== String(b.courseId));
