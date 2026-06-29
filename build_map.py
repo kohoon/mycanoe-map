@@ -165,6 +165,8 @@ __GTAG__
   .measmode{font-size:12.5px;padding:7px 11px;display:none;width:auto}
   .measbtn .mx{margin-left:8px;background:rgba(255,255,255,.35);border-radius:8px;padding:1px 7px;cursor:pointer}
   .obsbtn.on{background:#e53935;color:#fff}
+  .evbtn.on{background:#f9a825;color:#fff}
+  .ev-ic{display:inline-block;background:#f9a825;color:#fff;border:2px solid #fff;border-radius:50%;width:22px;height:22px;line-height:20px;text-align:center;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,.35);transform:translate(-50%,-50%)}
   .obs-ic{display:inline-flex;align-items:center;gap:3px;padding:3px 8px 3px 6px;border-radius:12px;font:700 12px sans-serif;color:#fff;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #fff}
   .obs-bo{background:#e53935}
   .obs-jing{background:#fb8c00}
@@ -583,7 +585,7 @@ function _adminBadge(on){ let el=document.getElementById('adminBadge');
     document.getElementById('adminExport').onclick=exportComments;
     document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
   else if(el){ el.remove(); } }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); ['obsBtnBox','evBtnBox'].forEach(function(idr){ const x=document.getElementById(idr); if(x) x.style.display=on?'block':'none'; }); }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -2233,6 +2235,23 @@ const NoticeCtl=L.Control.extend({ options:{position:'topleft'},
 map.addControl(new NoticeCtl());
 map.addControl(new ObstacleCtl());   // 지형지물(관리자) — 공지 아래
 (function(){ const ob=document.getElementById('obsBtnBox'); if(ob&&isAdmin()) ob.style.display='block'; })();
+// ---- 전기차 충전소(관리자 전용) — 빌드 임베드 ev.geojson(장소 근처), 키리스 ----
+const evLayer=L.layerGroup(); let _evOn=false,_evLoaded=false;
+function evIcon(){ return L.divIcon({className:'ev-div',html:'<span class="ev-ic">⚡</span>',iconSize:null}); }
+function loadEV(){ if(_evLoaded) return Promise.resolve(); _evLoaded=true;
+  return fetch('./ev.geojson?v='+DATAVER.wlz).then(function(r){return r.json();}).then(function(g){
+    (g.features||[]).forEach(function(f){ const c=f.geometry.coordinates,p=f.properties||{};
+      const m=L.marker([c[1],c[0]],{icon:evIcon()});
+      m.bindPopup('<b>⚡ '+pmEsc(p.name||'충전소')+'</b>'+(p.busi?'<br><small>'+pmEsc(p.busi)+'</small>':'')+(p.addr?'<br><small style="color:#789">'+pmEsc(p.addr)+'</small>':'')+(p.n?'<br>충전기 '+p.n+'기':''));
+      m.addTo(evLayer); }); }).catch(function(){}); }
+function toggleEV(){ _evOn=!_evOn; const b=document.getElementById('evBtnBox'); if(b){ b.classList.toggle('on',_evOn); b.innerHTML=_evOn?'⚡ 충전소 끄기':'⚡ 충전소'; }
+  if(_evOn){ loadEV().then(function(){ evLayer.addTo(map); }); gaEvent('ev_on'); } else { map.removeLayer(evLayer); } }
+const EVCtl=L.Control.extend({ options:{position:'topleft'},
+  onAdd:function(){ const d=L.DomUtil.create('div','measbtn evbtn'); d.id='evBtnBox'; d.innerHTML='⚡ 충전소'; d.title='전기차 충전소 표시(관리자)'; d.style.display='none';
+    L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+    L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); toggleEV(); }); return d; } });
+map.addControl(new EVCtl());
+(function(){ const ev=document.getElementById('evBtnBox'); if(ev&&isAdmin()) ev.style.display='block'; })();
 function napi(){ return WORKER_URL.replace(/\/+$/,'')+'/notices'; }
 function closeNotices(){ document.getElementById('noticeModal').classList.remove('open'); }
 function ntDate(t){ try{ const d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate(); }catch(e){ return ''; } }
