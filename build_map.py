@@ -185,6 +185,9 @@ __GTAG__
   .lc-collapsed .leaflet-control-layers-list,.lc-collapsed .lc-key{display:none}
   .leaflet-control-layers label{margin:3px 0;cursor:pointer}
   .leaflet-control-layers-separator{margin:6px 0}
+  body.clean-sat .leaflet-marker-pane,body.clean-sat .leaflet-overlay-pane,body.clean-sat .leaflet-shadow-pane,body.clean-sat .leaflet-tooltip-pane,body.clean-sat .leaflet-obsPane-pane,body.clean-sat .leaflet-wlPane-pane{display:none!important}
+  .lc-clean{margin-top:8px;cursor:pointer;font:600 12.5px sans-serif;background:#f2f7fa;border:1px solid #cdd8d2;border-radius:7px;padding:7px 9px;text-align:center;color:#33506b}
+  .lc-clean.on{background:#185fa5;color:#fff;border-color:#185fa5}
   .lc-key{margin-top:2px}
   .lc-key .lg-row{margin:2px 0}
   .sat-src{display:none;align-items:center;gap:6px;margin:3px 0 6px 4px}
@@ -1687,6 +1690,9 @@ _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시
     +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
     +'<div id="pdChip" class="pd-chip"></div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
+  const cb=L.DomUtil.create('div','lc-clean'); cb.id='cleanBtnBox'; cb.innerHTML='🛰️ 위성만 보기'; cb.title='마커·구역 숨기고 순수 위성만(다시 누르면 복귀)';
+  L.DomEvent.disableClickPropagation(cb); L.DomEvent.on(cb,'click',function(e){ L.DomEvent.stop(e); toggleClean(); });
+  c.appendChild(cb);
   L.DomEvent.on(h,'click',function(e){ L.DomEvent.stop(e); c.classList.toggle('lc-collapsed'); });
   if(isTouch) c.classList.add('lc-collapsed');   // 모바일: 기본 닫힘
 })();
@@ -2184,6 +2190,17 @@ const NoticeCtl=L.Control.extend({ options:{position:'topleft'},
 map.addControl(new NoticeCtl());
 map.addControl(new ObstacleCtl());   // 지형지물(관리자) — 공지 아래
 (function(){ const ob=document.getElementById('obsBtnBox'); if(ob&&isAdmin()) ob.style.display='block'; })();
+// ---- 위성 전용("위성만") 모드: 오버레이 pane 숨김 + 위성 베이스 전환(완전 가역) ----
+let _cleanOn=false,_cleanPrevBase='osm';
+function toggleClean(){ _cleanOn=!_cleanOn; const b=document.getElementById('cleanBtnBox');
+  document.body.classList.toggle('clean-sat',_cleanOn);
+  if(_cleanOn){ _cleanPrevBase=map.hasLayer(baseSat)?'sat':'osm';
+    if(!map.hasLayer(baseSat)){ map.removeLayer(baseOSM); baseSat.addTo(map); const mz=(_satSrc==='vworld')?SAT_MAXZOOM_V:SAT_MAXZOOM_E; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); }
+    map.closePopup(); if(b){ b.classList.add('on'); b.innerHTML='🗺️ 지도 복귀'; } }
+  else { if(_cleanPrevBase==='osm'&&map.hasLayer(baseSat)){ map.removeLayer(baseSat); baseOSM.addTo(map); map.setMaxZoom(19); }
+    if(b){ b.classList.remove('on'); b.innerHTML='🛰️ 위성만 보기'; } }
+  gaEvent('clean_sat',{on:_cleanOn}); }
+// (위성만 토글 UI는 범례 패널 안에 배치 — 위 lc-clean)
 function napi(){ return WORKER_URL.replace(/\/+$/,'')+'/notices'; }
 function closeNotices(){ document.getElementById('noticeModal').classList.remove('open'); }
 function ntDate(t){ try{ const d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate(); }catch(e){ return ''; } }
