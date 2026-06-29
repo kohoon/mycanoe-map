@@ -324,6 +324,38 @@ export default {
           m[id] = cur;
         }
         await KV.put("placeover", JSON.stringify(m));
+        // 위치 이동 시 좌표 slug 기반 데이터 이관: 코멘트·평점·즐겨찾기(전 사용자)
+        const mvFrom = String(b.mvFrom || "").slice(0, 40), mvTo = String(b.mvTo || "").slice(0, 40);
+        if (mvFrom && mvTo && mvFrom !== mvTo) {
+          // 코멘트 cmt:<slug> (대상 있으면 병합)
+          const cFrom = await KV.get("cmt:" + mvFrom);
+          if (cFrom) {
+            const cTo = await KV.get("cmt:" + mvTo);
+            if (!cTo) { await KV.put("cmt:" + mvTo, cFrom); }
+            else { let a = {}, bb = {}; try { a = JSON.parse(cTo); } catch (e) {} try { bb = JSON.parse(cFrom); } catch (e) {}
+              a.list = (a.list || []).concat(bb.list || []); if (!a.admin && bb.admin) a.admin = bb.admin;
+              await KV.put("cmt:" + mvTo, JSON.stringify(a)); }
+            await KV.delete("cmt:" + mvFrom);
+          }
+          // 평점 rate_<slug> (uid→stars 병합)
+          const rFrom = await KV.get("rate_" + mvFrom);
+          if (rFrom) { let rm = {}, rt = {}; try { rm = JSON.parse(rFrom); } catch (e) {}
+            const rTo = await KV.get("rate_" + mvTo); try { rt = rTo ? JSON.parse(rTo) : {}; } catch (e) {}
+            Object.assign(rt, rm); await KV.put("rate_" + mvTo, JSON.stringify(rt)); await KV.delete("rate_" + mvFrom); }
+          // 즐겨찾기 favs_<uid> 전체 스캔 — 항목 t===mvFrom 을 mvTo+새좌표로 갱신
+          const nlat = (b.lat != null) ? Number(b.lat) : null, nlng = (b.lng != null) ? Number(b.lng) : null;
+          let cursor;
+          do {
+            const lst = await KV.list({ prefix: "favs_", cursor });
+            for (const ky of lst.keys) {
+              let arr = []; try { arr = JSON.parse((await KV.get(ky.name)) || "[]"); } catch (e) {}
+              let ch = false;
+              arr = arr.map((x) => { if (x && x.t === mvFrom) { ch = true; return { ...x, t: mvTo, lat: nlat != null ? nlat : x.lat, lng: nlng != null ? nlng : x.lng }; } return x; });
+              if (ch) await KV.put(ky.name, JSON.stringify(arr));
+            }
+            cursor = lst.list_complete ? null : lst.cursor;
+          } while (cursor);
+        }
         return J(JSON.stringify({ ok: true }));
       }
       return new Response("method", { status: 405, headers: cors });

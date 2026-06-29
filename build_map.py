@@ -292,7 +292,7 @@ __GTAG__
   .pm-memo{color:#556;font-size:13px;margin-top:6px}
   .pm-padmin{margin-top:8px;display:flex;gap:14px}
   .pm-padmin a{cursor:pointer;font-size:12.5px;font-weight:600}
-  .pm-padmin a:first-child{color:#1565c0} .pm-padmin a:last-child{color:#c62828}
+  .pm-padmin a:first-child{color:#1565c0} .pm-padmin a:nth-child(2){color:#2e9e5b} .pm-padmin a:last-child{color:#c62828}
   .pm-editform{margin-top:8px}
   .pm-editform input,.pm-editform textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccd;border-radius:8px;font-size:13.5px;margin-bottom:6px}
   .pe-cancel{cursor:pointer;color:#789;font-size:12.5px;margin-left:8px}
@@ -907,8 +907,9 @@ function addPlaceMarker(pl){
   if(o.del) return;
   const nm=(o.name!=null?o.name:(pl.name||'')); const catv=o.cat?(o.cat==='spot'?'명소':'런칭랜딩'):(pl.cat||'런칭랜딩');
   const k=(catv==='명소')?'spot':'canoe';
-  const rec={id:id,name:nm,memo:(o.memo!=null?o.memo:(pl.memo||'')),lat:pl.lat,lng:pl.lng,cat:catv};
-  const m=makeMarker([pl.lat,pl.lng],k);
+  const lat=(o.lat!=null?o.lat:pl.lat), lng=(o.lng!=null?o.lng:pl.lng);
+  const rec={id:id,name:nm,memo:(o.memo!=null?o.memo:(pl.memo||'')),lat:lat,lng:lng,cat:catv};
+  const m=makeMarker([lat,lng],k);
   m.on('click',function(){ openPlaceModal(rec); });
   m.addTo(k==='spot'?famousLayer:canoeLayer);
   _placeMarkerById[id]={m:m,cat:k,name:nm,rec:rec}; _kvPlaces.push(rec); }
@@ -1139,7 +1140,7 @@ function openPlaceModal(pl){
   _clearPhoto(); renderRateRow();
   document.getElementById('pmLinks').innerHTML='<div id="pmWx" class="pm-wx"></div>'
     +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'')
-    +((isAdmin()&&pl.id!=null)?'<div class="pm-padmin"><a onclick="editPlace()">✏️ 수정</a><a onclick="deletePlace()">🗑 삭제</a></div>':'');
+    +((isAdmin()&&pl.id!=null)?'<div class="pm-padmin"><a onclick="editPlace()">✏️ 수정</a><a onclick="movePlace()">📍 위치 이동</a><a onclick="deletePlace()">🗑 삭제</a></div>':'');
   placeWeather(pl.lat,pl.lng);
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
@@ -1382,8 +1383,28 @@ function renderNewPlace(id,o){ if(_placeMarkerById[id]||o.del||o.lat==null) retu
   _placeMarkerById[id]={m:m,cat:k,name:o.name||'',rec:rec}; _kvPlaces.push(rec); }
 function applyPlaceOver(){ Object.keys(_placeOver).forEach(function(id){ const o=_placeOver[id]; const e=_placeMarkerById[id];
   if(!e){ if(o.new) renderNewPlace(id,o); return; }
-  if(o.del){ (e.cat==='spot'?famousLayer:canoeLayer).removeLayer(e.m); e.deleted=true; }
-  else if(o.cat){ setPlaceKind(id,o.cat,false); } }); }
+  if(o.del){ (e.cat==='spot'?famousLayer:canoeLayer).removeLayer(e.m); e.deleted=true; return; }
+  if(o.cat){ setPlaceKind(id,o.cat,false); }
+  if(o.lat!=null&&o.lng!=null){ e.m.setLatLng([o.lat,o.lng]); if(e.f) e.f.geometry.coordinates=[o.lng,o.lat]; if(e.rec){ e.rec.lat=o.lat; e.rec.lng=o.lng; } } }); }
+// ---- 관리자: "위치 이동" 버튼 → 해당 마커만 드래그 → dragend에 좌표 저장 + 데이터 이관 ----
+function movePlace(){ if(!isAdmin()||!_pmPlace||_pmPlace.id==null) return;
+  const id=_pmPlace.id, e=_placeMarkerById[id]; if(!e||!e.m){ alert('지도에서 이 마커를 찾을 수 없어요'); return; }
+  const m=e.m, fromSlug=placeSlug(_pmPlace.lat,_pmPlace.lng);
+  closePlaceModal();
+  if(m.dragging){ m.dragging.enable(); } m._preLL=m.getLatLng();
+  measHint('📍 아이콘을 끌어 위치를 옮긴 뒤 손을 떼세요(취소하려면 제자리)');
+  m.once('dragend',function(){ const ll=m.getLatLng(); if(m.dragging) m.dragging.disable(); measHint(false);
+    if(confirm('이 위치로 이동시킬까요?\n(코멘트·별점·즐겨찾기도 함께 이동됩니다)')){ savePlaceMove(id, ll.lat, ll.lng, m, fromSlug); }
+    else if(m._preLL){ m.setLatLng(m._preLL); } }); }
+async function savePlaceMove(id, lat, lng, m, fromSlug){ if(!isAdmin()) return;
+  const toSlug=placeSlug(lat,lng);
+  try{ const r=await fetch(fapi('/placeover'),{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({adminKey:adminKey(),id:String(id),lat:lat,lng:lng,mvFrom:fromSlug,mvTo:toSlug})});
+    if(r.ok){ _placeOver[id]=Object.assign({},_placeOver[id]||{},{lat:lat,lng:lng});
+      const e=_placeMarkerById[id]; if(e){ if(e.f) e.f.geometry.coordinates=[lng,lat]; if(e.rec){ e.rec.lat=lat; e.rec.lng=lng; } }
+      gaEvent('place_move'); alert('위치 이동 완료 — 코멘트·별점·즐겨찾기도 함께 이동됐어요'); }
+    else { if(m&&m._preLL) m.setLatLng(m._preLL); alert('이동 실패(권한 확인)'); } }
+  catch(e){ if(m&&m._preLL) m.setLatLng(m._preLL); alert('오류'); } }
 fetch(fapi('/placeover')).then(function(r){return r.json();}).then(function(m){ _placeOver=m||{}; applyPlaceOver(); loadPlaces(); }).catch(function(){ loadPlaces(); });
 function applyZoomIcons(){ const dot=map.getZoom()<Z_ICON; const f=function(m){ if(!m._kind||m._isDot===dot) return; m._isDot=dot; m.setIcon(dot?dotIcon(m._kind):fullIcon(m._kind)); };
   famousLayer.eachLayer(f); canoeLayer.eachLayer(f); }
