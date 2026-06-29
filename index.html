@@ -165,6 +165,12 @@
   .pmodal h3{margin:0 30px 8px 0;font-size:18px;color:#1b3a2b}
   #pmLinks{font-size:13px;margin-bottom:10px}
   .pm-memo{color:#556;font-size:13px;margin-top:6px}
+  .pm-padmin{margin-top:8px;display:flex;gap:14px}
+  .pm-padmin a{cursor:pointer;font-size:12.5px;font-weight:600}
+  .pm-padmin a:first-child{color:#1565c0} .pm-padmin a:last-child{color:#c62828}
+  .pm-editform{margin-top:8px}
+  .pm-editform input,.pm-editform textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccd;border-radius:8px;font-size:13.5px;margin-bottom:6px}
+  .pe-cancel{cursor:pointer;color:#789;font-size:12.5px;margin-left:8px}
   .pm-adminbox{background:#e8f7f1;border-left:3px solid #00b894;border-radius:6px;padding:8px 10px;margin:8px 0;font-size:13px;white-space:pre-wrap;word-break:break-word}
   .pm-admedit{background:#00b894;color:#fff;border:0;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;margin:4px 0 8px}
   .pm-cmts-h{font-weight:700;font-size:14px;border-top:1px solid #eee;padding-top:12px;margin-top:8px}
@@ -731,17 +737,22 @@ function suggestPlace(){
       else msg.textContent='전송 실패'; }
     catch(e){ msg.textContent=(typeof e==='string'?e:'오류'); } };
 }
-// 등록장소는 별도 레이어 없이 카테고리(명소/런칭·랜딩) 레이어에 합쳐 표시
-let _kvPlaces=[];   // 관리자 KV 등록 장소(검색용)
-function addPlaceMarker(pl){ const k=(pl.cat==='명소')?'spot':'canoe';
-  _kvPlaces.push(pl);
+// 등록장소(레거시 KV /places)는 카테고리 레이어에 합쳐 표시 — 통합 오버라이드(placeover) 적용
+let _kvPlaces=[];   // 등록·신규 장소(검색용)
+function addPlaceMarker(pl){
+  const id=pl.id||('L'+placeSlug(pl.lat,pl.lng)); const o=_placeOver[id]||{};
+  if(o.del) return;
+  const nm=(o.name!=null?o.name:(pl.name||'')); const catv=o.cat?(o.cat==='spot'?'명소':'런칭랜딩'):(pl.cat||'런칭랜딩');
+  const k=(catv==='명소')?'spot':'canoe';
+  const rec={id:id,name:nm,memo:(o.memo!=null?o.memo:(pl.memo||'')),lat:pl.lat,lng:pl.lng,cat:catv};
   const m=makeMarker([pl.lat,pl.lng],k);
-  m.on('click',function(){ openPlaceModal(pl); });
-  m.addTo(k==='spot'?famousLayer:canoeLayer); }
+  m.on('click',function(){ openPlaceModal(rec); });
+  m.addTo(k==='spot'?famousLayer:canoeLayer);
+  _placeMarkerById[id]={m:m,cat:k,name:nm,rec:rec}; _kvPlaces.push(rec); }
 function loadPlaces(){ if(!WORKER_URL) return;
   fetch(WORKER_URL.replace(/\/+$/,'')+'/places').then(function(r){return r.json();})
     .then(function(list){ (list||[]).forEach(addPlaceMarker); }).catch(function(){}); }
-loadPlaces();
+// loadPlaces()는 placeover 로드 후 호출(오버라이드 선적용)
 function addPlace(){
   if(!isAdmin()) return; const a=window._curAddr; if(!a) return;
   const html='<div class="addform"><b>장소 등록</b>'
@@ -754,10 +765,11 @@ function addPlace(){
     sv.onclick=async function(){
       const nm=(document.getElementById('apName').value||'').trim(); if(!nm){ document.getElementById('apMsg').textContent='이름 입력'; return; }
       const cc=document.querySelector('input[name=apc]:checked'); const cat=cc?cc.value:'런칭랜딩';
-      const msg=document.getElementById('apMsg'); msg.textContent='저장 중…'; const u=getUser();
-      try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/places',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:u.uid,adminKey:adminKey(),nick:u.nick||'',name:nm,cat:cat,lat:a.lat,lng:a.lng})});
-        if(r.ok){ msg.textContent='완료!'; addPlaceMarker({name:nm,cat:cat,lat:a.lat,lng:a.lng}); gaEvent('place_add',{cat:cat}); setTimeout(function(){map.closePopup();},700); }
+      const msg=document.getElementById('apMsg'); msg.textContent='저장 중…';
+      const pid='u'+Date.now(); const catv=(cat==='명소')?'spot':'canoe';
+      try{ const r=await fetch(fapi('/placeover'),{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({adminKey:adminKey(),id:pid,new:1,name:nm,cat:catv,lat:a.lat,lng:a.lng})});
+        if(r.ok){ msg.textContent='완료!'; _placeOver[pid]={new:1,name:nm,cat:catv,lat:a.lat,lng:a.lng,memo:''}; renderNewPlace(pid,_placeOver[pid]); gaEvent('place_add',{cat:cat}); setTimeout(function(){map.closePopup();},700); }
         else { msg.textContent=(r.status===403?'권한 없음':'실패'); }
       }catch(e){ msg.textContent='오류'; }
     };
@@ -875,7 +887,10 @@ function pmEsc(s){ return (s||'').replace(/[<>&]/g,function(c){return {'<':'&lt;
 function linkify(s){ return pmEsc(s||'').replace(/(https?:\/\/[^\s<]+)/g,function(u){
   var tail='',m=u.match(/[.,!?)\]]+$/); if(m){ tail=m[0]; u=u.slice(0,-tail.length); }
   return '<a href="'+u+'" target="_blank" rel="noopener" style="color:#1565c0;word-break:break-all">'+u+'</a>'+tail; }); }
-function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; return {name:p.name||'',lat:c[1],lng:c[0],memo:p.memo||'',cat:isSpot(p.name)?'명소':'런칭랜딩',id:p.id,rv:!!p.rv}; }
+let _placeOver={};   // 통합 장소 오버라이드(KV placeover): id -> {name,memo,cat,del,new,lat,lng}
+function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; const o=_placeOver[p.id]||{};
+  const nm=(o.name!=null?o.name:p.name)||''; const mo=(o.memo!=null?o.memo:p.memo)||'';
+  return {name:nm,lat:c[1],lng:c[0],memo:mo,cat:isSpot(nm)?'명소':'런칭랜딩',id:p.id,rv:!!p.rv}; }
 // ---- 현재 날씨(Open-Meteo, 키·CORS 불필요) — 장소 좌표 기준 ----
 const _wxCache={};
 function _wxEmoji(c){ if(c===0) return '☀️'; if(c<=2) return '🌤️'; if(c===3) return '☁️'; if(c<=48) return '🌫️';
@@ -956,11 +971,12 @@ let _pmPlace=null,_pmSlug=null;
 function openPlaceModal(pl){
   _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
   _pmTarget=_pmSlug; _pmKind='p'; _pmName=pl.name||'장소'; _pmLL=[pl.lat,pl.lng];
-  document.getElementById('pmTitle').textContent=(pl.id?('#'+pl.id+' '):'')+(pl.name||'장소');
+  document.getElementById('pmTitle').textContent=((pl.id&&/^[0-9]+$/.test(String(pl.id)))?('#'+pl.id+' '):'')+(pl.name||'장소');
   renderPmCat(pl);
   _clearPhoto(); renderRateRow();
   document.getElementById('pmLinks').innerHTML='<div id="pmWx" class="pm-wx"></div>'
-    +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'');
+    +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'')
+    +((isAdmin()&&pl.id!=null)?'<div class="pm-padmin"><a onclick="editPlace()">✏️ 수정</a><a onclick="deletePlace()">🗑 삭제</a></div>':'');
   placeWeather(pl.lat,pl.lng);
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
@@ -969,6 +985,23 @@ function openPlaceModal(pl){
   gaEvent('place_open',{name:pl.name||''}); loadComments();
 }
 function closePlaceModal(){ document.getElementById('pmodal').classList.remove('open'); }
+// ---- 관리자: 장소 제목·내용 수정 / 삭제(숨김) — 통합 placeover ----
+function editPlace(){ if(!isAdmin()||!_pmPlace||_pmPlace.id==null) return; const p=_pmPlace;
+  document.getElementById('pmLinks').innerHTML='<div class="pm-editform"><input id="peName" maxlength="60" value="'+pmEsc(p.name||'')+'" placeholder="제목">'
+    +'<textarea id="peMemo" rows="3" maxlength="500" placeholder="내용(메모)">'+pmEsc(p.memo||'')+'</textarea>'
+    +'<div><button class="sg-submit" onclick="savePlaceEdit()">저장</button> <a class="pe-cancel" onclick="openPlaceModal(_pmPlace)">취소</a></div><div id="peMsg"></div></div>'; }
+async function savePlaceEdit(){ if(!isAdmin()||!_pmPlace||_pmPlace.id==null) return; const p=_pmPlace;
+  const nm=(document.getElementById('peName').value||'').trim().slice(0,60); const mo=(document.getElementById('peMemo').value||'').slice(0,500);
+  const msg=document.getElementById('peMsg'); msg.textContent='저장 중…';
+  try{ const r=await fetch(fapi('/placeover'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:adminKey(),id:String(p.id),name:nm,memo:mo})});
+    if(r.ok){ _placeOver[p.id]=Object.assign({},_placeOver[p.id]||{},{name:nm,memo:mo});
+      const e=_placeMarkerById[p.id]; if(e){ e.name=nm; if(e.f){e.f.properties.name=nm;e.f.properties.memo=mo;} if(e.rec){e.rec.name=nm;e.rec.memo=mo;} }
+      _pmPlace.name=nm; _pmPlace.memo=mo; gaEvent('place_edit'); openPlaceModal(_pmPlace); }
+    else msg.textContent=(r.status===403?'권한 없음':'실패'); }catch(e){ msg.textContent='오류'; } }
+async function deletePlace(){ if(!isAdmin()||!_pmPlace||_pmPlace.id==null) return; if(!confirm('이 장소를 지도에서 숨길까요? (되돌릴 수 있음)')) return; const p=_pmPlace;
+  try{ const r=await fetch(fapi('/placeover'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:adminKey(),id:String(p.id),del:1})});
+    if(r.ok){ _placeOver[p.id]=Object.assign({},_placeOver[p.id]||{},{del:1}); const e=_placeMarkerById[p.id]; if(e&&e.m){ (e.cat==='spot'?famousLayer:canoeLayer).removeLayer(e.m); } gaEvent('place_del'); closePlaceModal(); }
+    else alert(r.status===403?'권한 없음':'실패'); }catch(e){ alert('오류'); } }
 // 코스 코멘트 — 장소 모달(#pmodal) 재사용, 코스별 키로 저장
 const _courseByCid={};
 COURSES.features.forEach(function(f){ const p=f.properties||{}; if(p.cid!=null) _courseByCid[String(p.cid)]={name:p.name||'코스',km:p.km||0}; });
@@ -1156,13 +1189,13 @@ const famousLayer = L.geoJSON(spotFeats, {
   pointToLayer:(f,ll)=>makeMarker(ll,'spot'),
   onEachFeature:(f,l)=>{ const p=f.properties||{}; l.on('click',function(){ openPlaceModal(featPlace(f)); });
     const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null);
-    if(p.id!=null) _placeMarkerById[p.id]={m:l,cat:'spot',name:p.name||''}; }
+    if(p.id!=null) _placeMarkerById[p.id]={m:l,cat:'spot',name:p.name||'',f:f}; }
 }).addTo(map);
 const canoeLayer = L.geoJSON(landFeats, {
   pointToLayer:(f,ll)=>makeMarker(ll, isWreck((f.properties||{}).name)?'wreck':'canoe'),
   onEachFeature:(f,l)=>{ const p=f.properties||{}; l.on('click',function(){ openPlaceModal(featPlace(f)); });
     const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null);
-    if(p.id!=null) _placeMarkerById[p.id]={m:l,cat:'canoe',name:p.name||''}; }
+    if(p.id!=null) _placeMarkerById[p.id]={m:l,cat:'canoe',name:p.name||'',f:f}; }
 }).addTo(map);
 // 카테고리 오버라이드(관리자가 바꾼 분류) — KV에서 로드해 적용
 function setPlaceKind(id, cat, save){
@@ -1177,6 +1210,18 @@ function setPlaceKind(id, cat, save){
     body:JSON.stringify({adminKey:adminKey(),id:String(id),cat:cat})}).catch(function(){}); gaEvent('placecat',{cat:cat}); }
 }
 fetch(fapi('/placecat')).then(function(r){return r.json();}).then(function(m){ Object.keys(m||{}).forEach(function(id){ setPlaceKind(id,m[id],false); }); }).catch(function(){});
+// ---- 통합 장소 오버라이드(placeover): 임베드 점 수정/삭제/분류 + 신규 점 ----
+function renderNewPlace(id,o){ if(_placeMarkerById[id]||o.del||o.lat==null) return;
+  const k=(o.cat==='spot'||o.cat==='명소')?'spot':'canoe';
+  const rec={id:id,name:o.name||'',memo:o.memo||'',lat:o.lat,lng:o.lng,cat:(k==='spot'?'명소':'런칭랜딩'),_new:true};
+  const m=makeMarker([o.lat,o.lng],k); m.on('click',function(){ openPlaceModal(rec); }); m.addTo(k==='spot'?famousLayer:canoeLayer);
+  _favReg(placeSlug(o.lat,o.lng),m,null);
+  _placeMarkerById[id]={m:m,cat:k,name:o.name||'',rec:rec}; _kvPlaces.push(rec); }
+function applyPlaceOver(){ Object.keys(_placeOver).forEach(function(id){ const o=_placeOver[id]; const e=_placeMarkerById[id];
+  if(!e){ if(o.new) renderNewPlace(id,o); return; }
+  if(o.del){ (e.cat==='spot'?famousLayer:canoeLayer).removeLayer(e.m); e.deleted=true; }
+  else if(o.cat){ setPlaceKind(id,o.cat,false); } }); }
+fetch(fapi('/placeover')).then(function(r){return r.json();}).then(function(m){ _placeOver=m||{}; applyPlaceOver(); loadPlaces(); }).catch(function(){ loadPlaces(); });
 function applyZoomIcons(){ const dot=map.getZoom()<Z_ICON; const f=function(m){ if(!m._kind||m._isDot===dot) return; m._isDot=dot; m.setIcon(dot?dotIcon(m._kind):fullIcon(m._kind)); };
   famousLayer.eachLayer(f); canoeLayer.eachLayer(f); }
 map.on('zoomend', applyZoomIcons);
@@ -1575,7 +1620,7 @@ let _res=[];
 // 우리 데이터(장소·코스) 이름 검색 — 외부 지오코더보다 먼저
 function _localSearch(q){
   const nq=q.replace(/\s/g,'').toLowerCase(); const out=[];
-  POINTS.features.forEach(function(f){ const p=f.properties||{}; const nm=p.name||'';
+  POINTS.features.forEach(function(f){ const p=f.properties||{}; const o=_placeOver[p.id]||{}; if(o.del) return; const nm=(o.name!=null?o.name:p.name)||'';
     if(nm.replace(/\s/g,'').toLowerCase().indexOf(nq)>=0){ const c=f.geometry.coordinates;
       out.push({kind:'place', label:(isSpot(nm)?'📍 ':'🛶 ')+nm, lat:c[1], lng:c[0], feat:f}); } });
   COURSES.features.forEach(function(f){ const p=f.properties||{}; const nm=p.name||'';

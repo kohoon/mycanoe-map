@@ -295,6 +295,40 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
+    // 0-2f) 통합 장소 오버라이드(관리자) — KV "placeover" = {id: {name?,memo?,cat?,del?,new?,lat?,lng?}}
+    // 임베드 점 수정/삭제/분류 + 앱 신규 등록을 id 하나로 통합 관리(D1 호환: id=행). 원본 비파괴.
+    if (url.pathname.endsWith("/placeover")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
+      if (req.method === "GET") { const d = KV ? await KV.get("placeover") : null; return J(d || "{}"); }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+        if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        let m = {}; try { m = JSON.parse((await KV.get("placeover")) || "{}"); } catch (e) {}
+        const id = String(b.id || "").slice(0, 40);
+        if (!id) return new Response("bad", { status: 400, headers: cors });
+        if (b.clear) { delete m[id]; }   // 오버라이드 완전 해제(원복)
+        else {
+          const cur = m[id] || {};
+          if (b.name != null) cur.name = String(b.name).slice(0, 60);
+          if (b.memo != null) cur.memo = String(b.memo).slice(0, 500);
+          if (b.cat != null) { const c = (b.cat === "spot" || b.cat === "canoe") ? b.cat : null; if (c) cur.cat = c; }
+          if (b.del != null) cur.del = b.del ? 1 : 0;
+          if (b.new) cur.new = 1;
+          if (b.lat != null && isFinite(Number(b.lat))) cur.lat = Number(b.lat);
+          if (b.lng != null && isFinite(Number(b.lng))) cur.lng = Number(b.lng);
+          m[id] = cur;
+        }
+        await KV.put("placeover", JSON.stringify(m));
+        return J(JSON.stringify({ ok: true }));
+      }
+      return new Response("method", { status: 405, headers: cors });
+    }
+
     // 0-1d) 수집 결과 보고 → 시트(LOG_WEBHOOK, type:collect). ADMIN_KEY 필수.
     if (url.pathname.endsWith("/report")) {
       const origin = req.headers.get("Origin") || "*";
