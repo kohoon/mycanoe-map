@@ -920,7 +920,7 @@ function placeWeather(lat,lng){
     const wind=w.wind, col=_windCol(wind);
     let h='<div class="pm-wx-now"><span>'+_wxEmoji(w.code)+' '+w.temp.toFixed(0)+'° '+_wxText(w.code)+'</span>'
       +'<span style="color:'+col+';font-weight:'+(wind>=5?'700':'400')+'">바람 '+wind.toFixed(1)+'㎧ '+_wxDir(w.dir)+(wind>=8?' ⚠️강풍':wind>=5?' 주의':'')+'</span>'
-      +(w.rain>0?'<span style="color:#1565c0">비 '+w.rain+'㎜</span>':'')+'</div>';
+      +'<span style="color:#1565c0">강수 '+((w.rain||0)<10?(w.rain||0):Math.round(w.rain))+'㎜</span>'+'</div>';
     // 탭: 시간대별 / 주간
     h+='<div class="pm-wx-tabs"><a data-v="h" class="'+(_wxView==='h'?'on':'')+'">시간대별</a><a data-v="d" class="'+(_wxView==='d'?'on':'')+'">주간</a></div>';
     if(_wxView==='h' && w.hours && w.hours.length){   // 시간대별(현재~48h, 3시간 간격, 2일치 가로 스크롤)
