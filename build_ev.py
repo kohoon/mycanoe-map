@@ -18,7 +18,7 @@ if not KEY:
 
 RADIUS_KM = 3.0
 ENDPOINT = "http://apis.data.go.kr/B552584/EvCharger/getChargerInfo"
-ROWS = 2000   # 9999는 서버 504 빈발 → 축소(페이지↑ 안정↑)
+ROWS = 9999
 
 anchors = []
 ss = json.load(open(BASE / "synced_seqs.json", encoding="utf-8")).get("items", {})
@@ -46,35 +46,25 @@ def near(lat, lng):
 
 def fetch_page(page):
     url = ENDPOINT + "?serviceKey=" + KEY + f"&pageNo={page}&numOfRows={ROWS}"
-    last = None
-    for attempt in range(5):
+    for attempt in range(3):
         try:
-            return urllib.request.urlopen(url, timeout=90).read()
-        except Exception as e:
-            last = e; wait = 2 ** attempt
-            print(f"  page {page} 재시도 {attempt+1}/5 ({e}) — {wait}s 대기"); time.sleep(wait)
-    raise last
+            return urllib.request.urlopen(url, timeout=120).read()
+        except Exception:
+            if attempt < 2:
+                time.sleep(1.2)
+    return None   # 이 페이지 포기(소수 누락 허용)
 
 stations = {}   # statId -> dict 또는 {skip:1}
 ctCount = Counter()
-page, total = 1, None
-while True:
-    try:
-        raw = fetch_page(page)
-    except Exception as e:
-        print("fetch 최종 실패", e); break
+
+def process(raw):
+    if not raw:
+        return
     try:
         root = ET.fromstring(raw)
     except Exception:
-        print("parse err(앞 200자):", raw[:200]); break
-    if total is None:
-        tc = root.findtext(".//totalCount")
-        total = int(tc) if (tc and tc.isdigit()) else None
-        print("totalCount", total)
-    items = root.findall(".//item")
-    if not items:
-        break
-    for it in items:
+        return
+    for it in root.findall(".//item"):
         sid = it.findtext("statId") or ""
         if not sid:
             continue
@@ -106,11 +96,31 @@ while True:
         if ov:
             rec["out"].add(ov)
 
-    kept = sum(1 for s in stations.values() if not s.get("skip"))
-    print(f"page {page}: +{len(items)}행 / 근처 {kept}곳")
-    if (total and page * ROWS >= total) or len(items) < ROWS:
-        break
-    page += 1; time.sleep(0.3)
+# 1페이지로 totalCount → 전체 페이지를 동시 5개로 fetch(파싱은 메인스레드)
+raw1 = fetch_page(1)
+total = None
+if raw1:
+    try:
+        total = int(ET.fromstring(raw1).findtext(".//totalCount"))
+    except Exception:
+        total = None
+pages = (total + ROWS - 1) // ROWS if total else 1
+print("totalCount", total, "| pages", pages)
+process(raw1)
+from concurrent.futures import ThreadPoolExecutor, as_completed
+if pages > 1:
+    with ThreadPoolExecutor(max_workers=1) as ex:
+        futs = {ex.submit(fetch_page, p): p for p in range(2, pages + 1)}
+        done, miss = 0, 0
+        for fut in as_completed(futs):
+            raw = fut.result(); done += 1
+            if raw is None:
+                miss += 1
+            else:
+                process(raw)
+            if done % 25 == 0 or done == len(futs):
+                kept = sum(1 for s in stations.values() if not s.get("skip"))
+                print(f"  {done+1}/{pages}p 완료 / 근처 {kept}곳 / 실패 {miss}")
 
 print("chgerType 코드 분포(전체):", dict(ctCount.most_common()))
 

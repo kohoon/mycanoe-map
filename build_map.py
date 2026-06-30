@@ -2259,9 +2259,9 @@ const evLayer=L.layerGroup(); let _evData=null,_evLoading=false;
 const _evFilter={combo:true,nacs:true,slow:true};
 const EV_CATS=[{k:'combo',label:'DC콤보',c:'#1565c0'},{k:'nacs',label:'NACS',c:'#c62828'},{k:'slow',label:'완속',c:'#2e9e5b'}];
 function _evCats(ctArr){ const s={}; (ctArr||[]).forEach(function(c){ c=String(c);
-  if(['04','05','06','08'].indexOf(c)>=0) s.combo=1;
-  else if(['02','03','07'].indexOf(c)>=0) s.slow=1;
-  else s.nacs=1; }); return s; }   // chgerType 코드→3분류(수집 코드 확인 후 확정)
+  if(c==='02'||c==='07') s.slow=1;          // AC완속·AC3상
+  else if(c==='10'||c==='11') s.nacs=1;     // NACS(추정)
+  else s.combo=1; }); return s; }           // 04/05/06/08/01/03/09 → 급속(DC콤보류)
 function _evPrimary(cats){ return cats.combo?'combo':(cats.nacs?'nacs':'slow'); }
 function evIcon(cat){ const col=(EV_CATS.find(function(x){return x.k===cat;})||{}).c||'#f9a825'; return L.divIcon({className:'ev-div',html:'<span class="ev-ic" style="background:'+col+'">⚡</span>',iconSize:null}); }
 function _evShown(cats){ return (cats.combo&&_evFilter.combo)||(cats.nacs&&_evFilter.nacs)||(cats.slow&&_evFilter.slow); }
