@@ -1998,29 +1998,51 @@ function finishMeasure(){
 let _lastCourse=null, _cmMode='add', _cmCourse=null;
 const COURSE_CATS=['초심자코스','엑스페디션','기타'];
 function closeCourseModal(){ document.getElementById('courseModal').classList.remove('open'); }
-function _splitCourse(name){   // 이름 -> {cat, desc}
-  for(let i=0;i<2;i++){ const c=COURSE_CATS[i]; if((name||'').indexOf(c)===0) return {cat:c, desc:name.slice(c.length).replace(/^#/,'').trim()}; }
-  return {cat:'기타', desc:(name||'').trim()};
+function _splitCourse(name){   // 이름 -> {cat, no, desc}
+  for(let i=0;i<2;i++){
+    const c=COURSE_CATS[i];
+    if((name||'').indexOf(c)===0){
+      let rest=name.slice(c.length).trim(), no='';
+      if(rest.charAt(0)==='#'){
+        rest=rest.slice(1).trim();
+        const m=rest.match(/^(\S+)(?:\s+(.*))?$/);
+        if(m){ no=m[1]||''; rest=m[2]||''; }
+      }
+      return {cat:c, no:no, desc:rest.trim()};
+    }
+  }
+  return {cat:'기타', no:'', desc:(name||'').trim()};
 }
-function _joinCourse(cat,desc){ desc=(desc||'').trim(); return (cat==='기타')?desc:(cat+'#'+desc.replace(/^#/,'')); }
+function _courseNo(v){ return (v||'').trim().replace(/^#+/,'').trim().replace(/\s+/g,''); }
+function _joinCourse(cat,no,desc){
+  desc=(desc||'').trim();
+  if(cat==='기타') return desc;
+  no=_courseNo(no);
+  return cat+(no?'#'+no:'')+(desc?' '+desc:'');
+}
 function _cmCat(){ const e=document.querySelector('#cmBody .seg-b.on'); return e?e.getAttribute('data-cat'):'초심자코스'; }
-function cmPickCat(el){ const bs=document.querySelectorAll('#cmBody .seg-b'); for(let i=0;i<bs.length;i++) bs[i].classList.remove('on'); el.classList.add('on'); cmPreview(); }
-function cmPreview(){ const p=document.getElementById('cmPrev'); if(!p) return; p.textContent=_joinCourse(_cmCat(),(document.getElementById('cmName').value||''))||'—'; }
+function _cmNo(){ const e=document.getElementById('cmNo'); return e?_courseNo(e.value):''; }
+function _cmUpdateNoRow(){ const row=document.getElementById('cmNoRow'); if(row) row.style.display=(_cmCat()==='기타'?'none':'block'); }
+function cmPickCat(el){ const bs=document.querySelectorAll('#cmBody .seg-b'); for(let i=0;i<bs.length;i++) bs[i].classList.remove('on'); el.classList.add('on'); _cmUpdateNoRow(); cmPreview(); }
+function cmPreview(){ const p=document.getElementById('cmPrev'); if(!p) return; p.textContent=_joinCourse(_cmCat(),_cmNo(),(document.getElementById('cmName').value||''))||'—'; }
 function openCourseModal(mode, course){
   if(!isAdmin()) return;
   _cmMode=mode; _cmCourse=course||null;
-  let cat='초심자코스', desc='', km=0, npts=0;
-  if((mode==='edit'||mode==='editstatic')&&course){ const s=_splitCourse(course.name); cat=s.cat; desc=s.desc; km=course.km||0; npts=(course.coords||[]).length; }
+  let cat='초심자코스', no='', desc='', km=0, npts=0;
+  if((mode==='edit'||mode==='editstatic')&&course){ const s=_splitCourse(course.name); cat=s.cat; no=s.no; desc=s.desc; km=course.km||0; npts=(course.coords||[]).length; }
   else { if(!_lastCourse) return; km=_lastCourse.km; npts=_lastCourse.coords.length; }
   let seg=''; for(let i=0;i<COURSE_CATS.length;i++){ const c=COURSE_CATS[i]; seg+='<button class="seg-b'+(c===cat?' on':'')+'" data-cat="'+c+'" onclick="cmPickCat(this)">'+c+'</button>'; }
   document.getElementById('cmBody').innerHTML=
     '<h3>'+((mode==='edit'||mode==='editstatic')?'✏️ 코스 수정':'💾 코스 등록')+'</h3>'
     +(km?'<div class="cm-stat"><b>'+km.toFixed(2)+'</b> km · '+npts+'개 점</div>':'')
     +'<div class="sg-label">카테고리 (색상 분류)</div><div class="seg">'+seg+'</div>'
-    +'<div class="sg-label">코스 이름</div>'
-    +'<input id="cmName" placeholder="예: 3 청라호수공원 한바퀴" maxlength="80" oninput="cmPreview()">'
+    +'<div id="cmNoRow" style="display:'+(cat==='기타'?'none':'block')+'"><div class="sg-label"># 번호</div>'
+    +'<input id="cmNo" placeholder="예: 2" maxlength="12" oninput="cmPreview()"></div>'
+    +'<div class="sg-label">코스 설명/이름</div>'
+    +'<input id="cmName" placeholder="예: 장자늪→복여울교 (남한강)" maxlength="80" oninput="cmPreview()">'
     +'<div class="cm-note">최종 이름: <b id="cmPrev">—</b></div>'
     +'<button class="sg-submit" id="cmSave">'+((mode==='edit'||mode==='editstatic')?'수정 완료':'코스 등록')+'</button><div id="cmMsg"></div>';
+  const noEl=document.getElementById('cmNo'); if(noEl) noEl.value=no;
   document.getElementById('cmName').value=desc;
   document.getElementById('courseModal').classList.add('open');
   document.getElementById('cmSave').onclick=doSaveCourse;
@@ -2034,8 +2056,10 @@ async function doSaveCourse(){
   if(!isAdmin()) return;
   const desc=(document.getElementById('cmName').value||'').trim();
   const msg=document.getElementById('cmMsg');
-  if(!desc){ msg.style.color='#c0392b'; msg.textContent='코스 이름을 입력하세요'; return; }
-  const name=_joinCourse(_cmCat(), desc);
+  const cat=_cmCat(), no=_cmNo();
+  if(cat==='기타' && !desc){ msg.style.color='#c0392b'; msg.textContent='코스 이름을 입력하세요'; return; }
+  if(cat!=='기타' && !no && !desc){ msg.style.color='#c0392b'; msg.textContent='번호 또는 코스 설명을 입력하세요'; return; }
+  const name=_joinCourse(cat, no, desc);
   msg.style.color='#888'; msg.textContent='저장 중…';
   const base=WORKER_URL.replace(/\/+$/,'')+'/course';
   try{
