@@ -18,7 +18,8 @@
 import json, os, sys, threading, http.server, socketserver
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 PORT = 8097
 RADIUS = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 60
 
@@ -39,7 +40,7 @@ def js_key():
 
 
 def load_places():
-    items = json.loads((BASE / "synced_seqs.json").read_text(encoding="utf-8")).get("items", {})
+    items = json.loads((DATA / "synced_seqs.json").read_text(encoding="utf-8")).get("items", {})
     out = []
     for key, v in items.items():
         if v.get("lat") is not None:
@@ -104,7 +105,7 @@ def main():
             pass
 
     have = sum(1 for v in res.values() if v.get("rv"))
-    (BASE / "roadview.json").write_text(json.dumps(res, ensure_ascii=False), encoding="utf-8")
+    (DATA / "roadview.json").write_text(json.dumps(res, ensure_ascii=False), encoding="utf-8")
     print(f"[done] 로드뷰 있음 {have} / {len(res)} -> roadview.json", flush=True)
 
 

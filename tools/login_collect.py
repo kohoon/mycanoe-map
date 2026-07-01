@@ -6,13 +6,15 @@ import json, re, sys, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
+TOOLS = Path(__file__).resolve().parent
 try: sys.stdout.reconfigure(encoding="utf-8")
 except Exception: pass
 FOLDERS = (sys.argv[1] if len(sys.argv) > 1 else "20842531").split(",")
 PROFILE = BASE / "_kakao_profile"
-AUTH = BASE / "auth_state.json"; SEQS = BASE / "synced_seqs.json"
-JS = re.search(r'KAKAO_FETCH_JS = r"""(.*?)"""', (BASE/"kakao_naver_sync.py").read_text(encoding="utf-8"), re.S).group(1)
+AUTH = BASE / "auth_state.json"; SEQS = DATA / "synced_seqs.json"
+JS = re.search(r'KAKAO_FETCH_JS = r"""(.*?)"""', (TOOLS/"kakao_naver_sync.py").read_text(encoding="utf-8"), re.S).group(1)
 
 # 로그인 상태 체크용 경량 JS(페이지 이동 없이 fetch만)
 CHECK_JS = r"""

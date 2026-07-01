@@ -17,19 +17,21 @@
 |---|---|
 | `index.html` / `map.html` | 자체포함 지도 (폴리곤·점 임베드, 키 불필요) |
 | `protect_polygons.geojson` | 상수원보호구역 면(단순화) |
-| `synced_seqs.json` | 카누 즐겨찾기 점 데이터 |
-| `build_polygons.py` | V-World API로 상수원보호구역 폴리곤 수집·단순화 |
-| `build_map.py` | 데이터 → `map.html` 생성 |
-| `protect_endpoints.py` / `protect_zones.py` | 구역 군집화·대표점 계산 |
-| `kakao_naver_sync.py` | 카카오맵 즐겨찾기 → 네이버맵 동기화 |
-| `kakao_add_favorites.py` | 카카오 폴더에 상수원보호구역 마커 일괄 추가 |
+| `data/synced_seqs.json` | 카누 즐겨찾기 점 데이터 |
+| `tools/build_polygons.py` | V-World API로 상수원보호구역 폴리곤 수집·단순화 |
+| `tools/build_map.py` | 데이터 → `map.html` 생성 |
+| `tools/protect_endpoints.py` / `tools/protect_zones.py` | 구역 군집화·대표점 계산 |
+| `tools/kakao_naver_sync.py` | 카카오맵 즐겨찾기 → 네이버맵 동기화 |
+| `tools/kakao_add_favorites.py` | 카카오 폴더에 상수원보호구역 마커 일괄 추가 |
+| `workers/auth-worker.js` | Cloudflare Worker 백엔드 |
+| `.github/workflows/daily-collect.yml` | GitHub Actions 일일 수집 자동화 |
 
 ## 🔄 데이터 갱신
 ```bash
 # V-World 키 준비 (둘 중 하나)
 set VWORLD_KEY=발급키          # 또는 vworld_key.txt 에 키 저장
-python build_polygons.py        # 폴리곤 재수집·단순화
-python build_map.py             # map.html 재생성
+python tools/build_polygons.py        # 폴리곤 재수집·단순화
+python tools/build_map.py             # map.html 재생성
 ```
 
 ## 🔐 참고

@@ -9,7 +9,8 @@
 import csv, json, math, sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 RADIUS_KM = float(sys.argv[1]) if len(sys.argv) > 1 else 8.0
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -48,17 +49,17 @@ def main():
     print(f"보(중복 병합): {len(weirs)}")
 
     pts = []
-    items = json.loads((BASE/"synced_seqs.json").read_text(encoding="utf-8"))["items"]
+    items = json.loads((DATA/"synced_seqs.json").read_text(encoding="utf-8"))["items"]
     pts += [(v["lat"], v["lng"]) for v in items.values() if v.get("lat") is not None]
     try:
-        cj = json.loads((BASE/"courses.geojson").read_text(encoding="utf-8"))
+        cj = json.loads((DATA/"courses.geojson").read_text(encoding="utf-8"))
         for f in cj["features"]:
             pts += [(c[1], c[0]) for c in f["geometry"]["coordinates"][::10]]
     except Exception:
         pass
     # 전체 목록(등급 포함)을 저장 — build_map.py가 빌드 때마다 현재 장소·코스 기준으로 자동 선별
     allw = list(weirs.values())
-    (BASE/"weirs_all.json").write_text(json.dumps(allw, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+    (DATA/"weirs_all.json").write_text(json.dumps(allw, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
     # 참고용 선별 결과도 출력
     def keep(w):
         rad = RADIUS_KM if w["g"] == "국가" else LOCAL_KM

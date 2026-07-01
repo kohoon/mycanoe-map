@@ -41,9 +41,10 @@ except Exception:
 # ---------------------------------------------------------------------------
 # 경로/상수
 # ---------------------------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
 AUTH_STATE = BASE_DIR / "auth_state.json"
-SYNCED_FILE = BASE_DIR / "synced_seqs.json"
+SYNCED_FILE = DATA_DIR / "synced_seqs.json"
 
 KAKAO_MAIN = "https://map.kakao.com/"
 KAKAO_FAV_API = "https://map.kakao.com/favorite/mine/list?folderid={folderid}"

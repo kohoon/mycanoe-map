@@ -4,10 +4,10 @@
 카카오 즐겨찾기(마스터) → synced_seqs.json 갱신(네이버 동기화 상태는 보존) → map.html 재생성 → git push.
 카카오 앱에서 런칭/랜딩 지점을 추가/수정/삭제한 뒤 이 스크립트만 돌리면 공개 지도가 갱신됩니다.
 
-사용: update.bat            (folderid 기본 20842531)
-      update.bat 12345      (다른 폴더)
+사용: python tools/update_map.py            (folderid 기본 20842531)
+      python tools/update_map.py 12345      (다른 폴더)
 """
-import shutil, subprocess, sys
+import subprocess, sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -19,7 +19,8 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 PY = sys.executable
 FOLDERID = sys.argv[1] if len(sys.argv) > 1 else "20842531"
 
@@ -72,8 +73,7 @@ def main():
 
     # 지도 재생성
     print("[map] map.html 재생성…")
-    subprocess.run([PY, str(BASE / "build_map.py")], check=True)
-    shutil.copyfile(BASE / "map.html", BASE / "index.html")
+    subprocess.run([PY, str(Path(__file__).resolve().parent / "build_map.py")], check=True)
 
     # git push
     print("[git] 커밋·푸시…")

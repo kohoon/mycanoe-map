@@ -10,7 +10,8 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 PORT = 8000
 Handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(BASE))
 try:

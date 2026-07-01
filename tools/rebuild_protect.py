@@ -19,7 +19,8 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 SRC = BASE / "protect_geom.json"
 OUT = BASE / "protect_polygons.geojson"
 

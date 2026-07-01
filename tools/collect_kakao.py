@@ -8,20 +8,22 @@
 
 사용:
   # 폴더 1개
-  python collect_kakao.py --folderid 20842531
+  python tools/collect_kakao.py --folderid 20842531
   # 폴더 여러개(쉼표)
-  python collect_kakao.py --folderid 20842531,12345678
+  python tools/collect_kakao.py --folderid 20842531,12345678
   # 세션 만료 시 창에서 카카오 로그인 후 엔터 → 자동 수집
 
 이후:
-  python build_map.py && python build_map.py test
-  git add synced_seqs.json place_ids.json map.html index.html test.html && git commit && git push
+  python tools/build_map.py && python tools/build_map.py test
+  git add data/synced_seqs.json data/place_ids.json map.html index.html test.html && git commit && git push
 """
 import argparse, json, re, sys, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
+TOOLS = Path(__file__).resolve().parent
 try:
     sys.stdout.reconfigure(encoding="utf-8"); sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
@@ -29,10 +31,10 @@ except Exception:
 
 KAKAO_MAIN = "https://map.kakao.com/"
 AUTH = BASE / "auth_state.json"
-SEQS = BASE / "synced_seqs.json"
+SEQS = DATA / "synced_seqs.json"
 
 # 검증된 수집 JS 재사용
-_src = (BASE / "kakao_naver_sync.py").read_text(encoding="utf-8")
+_src = (TOOLS / "kakao_naver_sync.py").read_text(encoding="utf-8")
 KAKAO_FETCH_JS = re.search(r'KAKAO_FETCH_JS = r"""(.*?)"""', _src, re.S).group(1)
 
 
@@ -100,7 +102,7 @@ def main():
     SEQS.write_text(json.dumps(data, ensure_ascii=False, indent=0), encoding="utf-8")
     print(f"\n[done] 신규 {added}개 추가 (좌표없음 {skipped} 제외) / 총 {before}→{len(items)}곳")
     if added:
-        print("다음: python build_map.py && python build_map.py test  →  git commit/push")
+        print("다음: python tools/build_map.py && python tools/build_map.py test  →  git commit/push")
 
 
 if __name__ == "__main__":

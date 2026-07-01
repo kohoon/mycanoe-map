@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 """자체포함 Leaflet 지도 map.html 생성 (키 노출 없음).
 - 베이스: OpenStreetMap
-- 상수원보호구역 면: protect_polygons.geojson 임베드
-- 카누 즐겨찾기 점: synced_seqs.json 임베드
+- 상수원보호구역 면: protect_polygons.geojson 런타임 fetch
+- 카누 즐겨찾기 점: data/synced_seqs.json 임베드
 - 주소: 프록시(Cloudflare Worker)를 통한 V-World 역지오코딩(지번) + Nominatim 폴백
 - 외부지도 딥링크: 모바일 앱(intent/scheme) / 데스크톱 웹
 PROXY_URL 은 proxy_url.txt 에서 읽음(없으면 Nominatim 폴백만).
 """
-import json, sys
+import json, os, sys
 from pathlib import Path
 
 try:
@@ -16,17 +16,21 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 # 브라우저가 V-World를 직접 호출(JSONP). 키는 도메인잠금 상태로 공개됨(사용자 승인).
 _kf = BASE / "vworld_key.txt"
-VKEY = (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else "")
+VKEY = (os.environ.get("VWORLD_KEY", "").strip()
+        or (_kf.read_text(encoding="utf-8").strip() if _kf.exists() else ""))
 # 카카오 JS 키(로드뷰 인앱 임베드). 도메인잠금이라 공개되어도 등록 도메인에서만 동작.
 _kjf = BASE / "kakao_js_key.txt"
-KAKAO_JS_KEY = (_kjf.read_text(encoding="utf-8").strip() if _kjf.exists() else "7dfaf9d396a83c4be5e67285dc805c88")
+KAKAO_JS_KEY = (os.environ.get("KAKAO_JS_KEY", "").strip()
+                or (_kjf.read_text(encoding="utf-8").strip() if _kjf.exists() else "7dfaf9d396a83c4be5e67285dc805c88"))
 # HRFCO 수위 키: API가 해외 IP(워커)를 차단해 브라우저 직접 호출(CORS 허용 확인).
 # 도메인잠금이 없는 키라 노출됨 — 남용 시 재발급으로 교체.
 _hkf = BASE / "hrfco_key.txt"
-HRFCO_KEY = (_hkf.read_text(encoding="utf-8").strip() if _hkf.exists() else "")
+HRFCO_KEY = (os.environ.get("HRFCO_KEY", "").strip()
+             or (_hkf.read_text(encoding="utf-8").strip() if _hkf.exists() else ""))
 
 # 카카오 로그인 OAuth Worker (Redirect URI 와 동일, 끝 슬래시 포함)
 WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/"
@@ -39,10 +43,10 @@ if GA_ID.startswith("G-"):
 else:
     GTAG = '<script>function gtag(){}</script>'
 
-items = json.loads((BASE / "synced_seqs.json").read_text(encoding="utf-8"))["items"]
+items = json.loads((DATA / "synced_seqs.json").read_text(encoding="utf-8"))["items"]
 
 # ---- 안정적 장소 ID 레지스트리(즐겨찾기 key -> 고정 ID). 새 장소만 다음 번호 부여 ----
-_idf = BASE / "place_ids.json"
+_idf = DATA / "place_ids.json"
 _reg = json.loads(_idf.read_text(encoding="utf-8")) if _idf.exists() else {"next": 1, "ids": {}}
 _ids = _reg["ids"]
 _newk = [k for k in items if k not in _ids and items[k].get("lat") is not None]
@@ -52,7 +56,7 @@ for k in _newk:
 _idf.write_text(json.dumps(_reg, ensure_ascii=False, indent=0), encoding="utf-8")
 
 # ---- 로드뷰 존재 여부(사전계산: build_roadview.py) ----
-_rvf = BASE / "roadview.json"
+_rvf = DATA / "roadview.json"
 _rv = json.loads(_rvf.read_text(encoding="utf-8")) if _rvf.exists() else {}
 
 # ---- 전국 보 위치(해수부 어도 현황) — 빌드 시 현재 장소·코스 기준 자동 선별 ----
@@ -65,12 +69,12 @@ def _hav_km(a, b):
     h = _math.sin((la2-la1)/2)**2 + _math.cos(la1)*_math.cos(la2)*_math.sin((lo2-lo1)/2)**2
     return 2*R*_math.asin(_math.sqrt(h))
 weirs = []
-_waf = BASE / "weirs_all.json"
+_waf = DATA / "weirs_all.json"
 if _waf.exists():
     _allw = json.loads(_waf.read_text(encoding="utf-8"))
     _wpts = [(v["lat"], v["lng"]) for v in items.values() if v.get("lat") is not None]
     try:
-        _cgj = json.loads((BASE / "courses.geojson").read_text(encoding="utf-8"))
+        _cgj = json.loads((DATA / "courses.geojson").read_text(encoding="utf-8"))
         _wpts += [(c[1], c[0]) for f in _cgj["features"] for c in f["geometry"]["coordinates"][::10]]
     except Exception:
         pass
@@ -83,7 +87,7 @@ elif (BASE / "weirs.json").exists():
 print(f"보(어도 기반) {len(weirs)}곳 (빌드 시 자동 선별)")
 
 # ---- 수위관측소(HRFCO, build_hrfco.py 선별) ----
-_wsf = BASE / "hrfco_stations.json"
+_wsf = DATA / "hrfco_stations.json"
 wlstn = json.loads(_wsf.read_text(encoding="utf-8")) if _wsf.exists() else []
 print(f"수위관측소 {len(wlstn)}곳")
 
@@ -91,7 +95,7 @@ print(f"수위관측소 {len(wlstn)}곳")
 # 외부 fetch용 단일 wlz.geojson 으로 병합 생성(런타임에 줌인 시 fetch). HTML 임베드 안 함.
 wlz = {"type": "FeatureCollection", "features": []}
 for _wf in ("wlz_polygons.geojson", "wlz_inland.geojson"):
-    _p = BASE / _wf
+    _p = DATA / _wf
     if _p.exists():
         wlz["features"] += json.loads(_p.read_text(encoding="utf-8"))["features"]
 (BASE / "wlz.geojson").write_text(json.dumps(wlz, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
@@ -112,16 +116,16 @@ def _datahash(_name):
     return _hl.sha1(_p.read_bytes()).hexdigest()[:8] if _p.exists() else "0"
 PROTECT_VER = _datahash("protect_polygons.geojson")
 WLZ_VER = _datahash("wlz.geojson")
-_cf = BASE / "courses.geojson"
+_cf = DATA / "courses.geojson"
 courses = json.loads(_cf.read_text(encoding="utf-8")) if _cf.exists() else {"type": "FeatureCollection", "features": []}
 # 코스에도 ID 부여(코스명 기준 고정)
-_creg = json.loads((BASE / "course_ids.json").read_text(encoding="utf-8")) if (BASE / "course_ids.json").exists() else {"next": 1, "ids": {}}
+_creg = json.loads((DATA / "course_ids.json").read_text(encoding="utf-8")) if (DATA / "course_ids.json").exists() else {"next": 1, "ids": {}}
 for _f in courses["features"]:
     _nm = _f["properties"]["name"]
     if _nm not in _creg["ids"]:
         _creg["ids"][_nm] = _creg["next"]; _creg["next"] += 1
     _f["properties"]["cid"] = _creg["ids"][_nm]
-(BASE / "course_ids.json").write_text(json.dumps(_creg, ensure_ascii=False, indent=0), encoding="utf-8")
+(DATA / "course_ids.json").write_text(json.dumps(_creg, ensure_ascii=False, indent=0), encoding="utf-8")
 print(f"점 {len(pfeats)} / 면 {len(polygons['features'])} / 코스 {len(courses['features'])} / VKEY {'있음' if VKEY else '없음'}")
 
 HTML = r"""<!DOCTYPE html>

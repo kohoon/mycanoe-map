@@ -4,7 +4,7 @@
 OSM 하천 추적 → courses.geojson → map.html 재생성 → git push.
 (카카오 로그인 불필요)
 """
-import shutil, subprocess, sys
+import subprocess, sys
 from pathlib import Path
 
 try:
@@ -12,15 +12,15 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 PY = sys.executable
 
 print("[1/3] 하천 따라 코스 추적 (trace_course.py)…")
-subprocess.run([PY, str(BASE / "trace_course.py")], check=True)
+subprocess.run([PY, str(Path(__file__).resolve().parent / "trace_course.py")], check=True)
 
 print("[2/3] 지도 재생성 (build_map.py)…")
-subprocess.run([PY, str(BASE / "build_map.py")], check=True)
-shutil.copyfile(BASE / "map.html", BASE / "index.html")
+subprocess.run([PY, str(Path(__file__).resolve().parent / "build_map.py")], check=True)
 
 print("[3/3] git 커밋·푸시…")
 subprocess.run(["git", "add", "-A"], cwd=str(BASE))

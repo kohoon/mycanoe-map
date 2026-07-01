@@ -13,7 +13,8 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 OVERPASS_MIRRORS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
@@ -198,7 +199,7 @@ def trace_course(course):
 
 
 def load_favorites():
-    p = BASE / "synced_seqs.json"
+    p = DATA / "synced_seqs.json"
     if not p.exists():
         return []
     items = json.loads(p.read_text(encoding="utf-8")).get("items", {})
@@ -208,8 +209,8 @@ def load_favorites():
 
 def load_id_map():
     """place_ids.json(즐겨찾기 key->ID) + synced_seqs => {ID: [lat,lng]}."""
-    rp = BASE / "place_ids.json"
-    sj = BASE / "synced_seqs.json"
+    rp = DATA / "place_ids.json"
+    sj = DATA / "synced_seqs.json"
     if not rp.exists() or not sj.exists():
         return {}
     ids = json.loads(rp.read_text(encoding="utf-8")).get("ids", {})
@@ -249,7 +250,7 @@ def resolve_point(pt, favs, idmap=None):
 
 
 def main():
-    defs = json.loads((BASE / "courses_def.json").read_text(encoding="utf-8"))
+    defs = json.loads((DATA / "courses_def.json").read_text(encoding="utf-8"))
     favs = load_favorites()
     idmap = load_id_map()
     for c in defs:
@@ -266,7 +267,7 @@ def main():
         print(f"  → {c['name']}: 총 {total/1000:.1f}km", flush=True)
         time.sleep(5.0)
     fc = {"type": "FeatureCollection", "features": feats}
-    (BASE / "courses.geojson").write_text(json.dumps(fc, ensure_ascii=False), encoding="utf-8")
+    (DATA / "courses.geojson").write_text(json.dumps(fc, ensure_ascii=False), encoding="utf-8")
     print(f"\n[done] {len(feats)}개 코스 → courses.geojson")
 
 

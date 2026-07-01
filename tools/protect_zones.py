@@ -16,15 +16,16 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 
 
 def load_points():
-    return json.load(open(BASE / "protect_points.json", encoding="utf-8"))
+    return json.load(open(DATA / "protect_points.json", encoding="utf-8"))
 
 
 def load_canoe_coords():
-    p = BASE / "synced_seqs.json"
+    p = DATA / "synced_seqs.json"
     if not p.exists():
         return []
     items = json.load(open(p, encoding="utf-8")).get("items", {})
@@ -77,7 +78,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--thresh", type=float, default=1.0, help="군집 거리 임계 km (기본 1.0)")
     ap.add_argument("--near", type=float, default=10.0, help="카누 즐겨찾기 근처 반경 km (기본 10)")
-    ap.add_argument("--out", default=str(BASE / "protect_zones.json"))
+    ap.add_argument("--out", default=str(DATA / "protect_zones.json"))
     args = ap.parse_args()
 
     recs = load_points()

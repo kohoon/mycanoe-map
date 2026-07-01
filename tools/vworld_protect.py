@@ -27,7 +27,8 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 API = "https://api.vworld.kr/req/data"
 DATA_ID = "LT_C_UM710"  # 상수원보호
 
@@ -125,7 +126,7 @@ def main():
     ap.add_argument("--key", required=True, help="V-World 인증키")
     ap.add_argument("--domain", required=True, help="키에 등록한 도메인 (예: http://localhost)")
     ap.add_argument("--grid", type=int, default=6, help="전국 BBOX 격자 분할 수 (기본 6 → 36타일)")
-    ap.add_argument("--out", default=str(BASE / "protect_points.json"))
+    ap.add_argument("--out", default=str(DATA / "protect_points.json"))
     args = ap.parse_args()
 
     seen = {}  # mnum -> record

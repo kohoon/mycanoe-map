@@ -1,5 +1,5 @@
 name = "mycanoe-auth"
-main = "auth-worker.js"
+main = "workers/auth-worker.js"
 compatibility_date = "2024-09-01"
 
 # 카카오 OAuth 콜백 Worker 설정.

@@ -27,11 +27,12 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 AUTH = BASE / "auth_state.json"
-ZONES = BASE / "protect_zones.json"
+ZONES = DATA / "protect_zones.json"
 STATE = BASE / "kakao_add_state.json"
-SYNCED = BASE / "synced_seqs.json"
+SYNCED = DATA / "synced_seqs.json"
 
 # 페이지에서 좌표변환 + favorite/add 를 수행하는 JS
 ADD_JS = r"""

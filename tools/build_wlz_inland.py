@@ -12,7 +12,8 @@ import json, math, sys, time, urllib.request, urllib.parse
 from pathlib import Path
 from trace_course import fetch_waterways, build_graph, nearest_node, dijkstra_all, reconstruct, haversine
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -206,7 +207,7 @@ def main():
     print("청용저수지…"); add("하동 청용저수지(옥종상수원)", lake_zone("청용",[35.17451,127.85312],(220,380)), ALL_,"연중","하동군")
 
     fc={"type":"FeatureCollection","features":feats}
-    (BASE/"wlz_inland.geojson").write_text(json.dumps(fc,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
+    (DATA/"wlz_inland.geojson").write_text(json.dumps(fc,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
     print(f"[done] {len(feats)}개 구역 → wlz_inland.geojson")
     print("제외(위치 미상): 포천 화적연·영로교, 안동댐 산야리 / 중복(상수원 레이어): 일부 구간 겹침 허용")
 

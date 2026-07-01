@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""매일 자동: 카카오 즐겨찾기 수집 → (신규 시) 빌드+커밋+푸시 → 이메일 보고.
+"""매일 자동: 카카오 즐겨찾기 수집 → (신규 시) 빌드+커밋+푸시 → 시트 보고.
 
-Windows 작업 스케줄러가 daily_collect.bat 을 호출 → 이 스크립트 실행.
+GitHub Actions schedule(.github/workflows/daily-collect.yml)이 이 스크립트를 실행.
 카카오 세션(auth_state.json)이 살아있으면 헤드리스로 무인 수집,
 만료되면 "재로그인 필요"로 보고(그때만 collect_kakao.py 수동 1회).
 
 설정 파일(모두 gitignore, 로컬에만):
-  - auth_state.json         : 카카오 로그인 세션(collect_kakao.py 가 생성/갱신)
-  - gmail_app_password.txt  : Gmail 앱 비밀번호(16자) — 보고 메일 발신용. 없으면 메일 생략.
+  - auth_state.json         : 카카오 로그인 세션(collect_kakao.py 가 생성/갱신, CI에서는 GitHub Secret에서 복원)
+  - admin_key.txt           : 시트 보고용 워커 ADMIN_KEY(로컬 gitignore, CI에서는 GitHub Secret에서 복원)
 """
 import json, subprocess, sys, urllib.request
 from datetime import datetime
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
+TOOLS = Path(__file__).resolve().parent
 PY = sys.executable
 FOLDERS = "20842531"                 # 카카오 폴더 ID(쉼표로 여러개). 마이카누=20842531
 WORKER = "https://mycanoe-map.kohoon0140.workers.dev"
@@ -41,7 +43,7 @@ def sheet_report(status, added, detail):
     try:
         req = urllib.request.Request(WORKER + "/report", data=body,
                                      headers={"Content-Type": "application/json", "Origin": "https://kohoon.github.io",
-                                              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) mycanoe-daily"})
+                                              "User-Agent": "Mozilla/5.0 (GitHub Actions) mycanoe-daily"})
         urllib.request.urlopen(req, timeout=20).read()
         return "시트 기록됨"
     except Exception as e:
@@ -53,7 +55,7 @@ def main():
     lines = [f"[{now}] 마이카누 일일 수집"]
 
     # 1) 수집(헤드리스)
-    rc, out = run([PY, "collect_kakao.py", "--folderid", FOLDERS, "--headless"])
+    rc, out = run([PY, str(TOOLS / "collect_kakao.py"), "--folderid", FOLDERS, "--headless"])
     new = 0
     for ln in out.splitlines():
         if "신규" in ln and "추가" in ln:
@@ -63,7 +65,7 @@ def main():
 
     if rc == 2:   # 세션 만료
         lines.append("⚠️ 카카오 세션 만료 — 재로그인 필요")
-        lines.append("  PC에서:  python collect_kakao.py --folderid " + FOLDERS)
+        lines.append("  맥북에서:  python tools/collect_kakao.py --folderid " + FOLDERS)
         status = "재로그인 필요"
     elif rc != 0:
         lines.append("❌ 수집 오류"); lines.append(out[-600:]); status = "수집 오류"
@@ -73,11 +75,11 @@ def main():
         lines.append(f"✅ 신규 {new}곳 수집")
         for nm in names[:30]: lines.append("  + " + nm)
         # 2) 빌드
-        run([PY, "build_map.py"]); run([PY, "build_map.py", "test"])
+        run([PY, str(TOOLS / "build_map.py")]); run([PY, str(TOOLS / "build_map.py"), "test"])
         # 3) 변경 있으면 커밋+푸시
         _, st = run(["git", "status", "--porcelain"])
         if st.strip():
-            run(["git", "add", "synced_seqs.json", "place_ids.json", "map.html", "index.html", "test.html",
+            run(["git", "add", "data/synced_seqs.json", "data/place_ids.json", "map.html", "index.html", "test.html",
                  "wlz.geojson", "protect_polygons.geojson"])
             run(["git", "commit", "-m", f"카카오 즐겨찾기 신규 {new}곳 자동 수집 ({now})"])
             prc, pout = run(["git", "push"])

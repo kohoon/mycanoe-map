@@ -10,7 +10,8 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 sys.path.insert(0, str(BASE))
 from vworld_protect import fetch_page, extract_features, make_grid, KOR_BBOX  # noqa
 

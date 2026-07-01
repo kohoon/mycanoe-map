@@ -22,7 +22,8 @@ try:
 except Exception:
     pass
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 GEOM_CACHE = BASE / "protect_geom.json"
 sys.path.insert(0, str(BASE))
 from vworld_protect import fetch_page, extract_features, make_grid, KOR_BBOX  # noqa
@@ -168,7 +169,7 @@ def main():
     ap.add_argument("--aspect", type=float, default=2.5, help="강형 판정 종횡비")
     ap.add_argument("--minlen-km", type=float, default=1.0, help="강형 최소 주축 길이 km")
     ap.add_argument("--maxlen-km", type=float, default=12.0, help="강형 최대 주축 길이 km(초과시 호수형)")
-    ap.add_argument("--out", default=str(BASE / "protect_zones.json"))
+    ap.add_argument("--out", default=str(DATA / "protect_zones.json"))
     args = ap.parse_args()
 
     if GEOM_CACHE.exists() and not args.refetch:

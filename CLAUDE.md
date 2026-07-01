@@ -5,18 +5,18 @@
 
 ## 정체성
 카누 런칭/랜딩·코스·상수원보호구역(진입금지)·장애물을 한 지도에 보여주는 한국형 카누 정적 웹앱.
-정적 HTML(Leaflet, 데이터 빌드시 임베드) + Cloudflare Worker(`auth-worker.js`, KV·Kakao OAuth·Google Sheets).
+정적 HTML(Leaflet, 데이터 빌드시 임베드) + Cloudflare Worker(`workers/auth-worker.js`, KV·Kakao OAuth·Google Sheets).
 공개: https://kohoon.github.io/mycanoe-map/
 
 ## 구조 — 5단 아님
 이 레포는 전역 규약의 `ingest/parse/store/analyze/serve` 5단을 **따르지 않는다**.
-의도된 플랫 스크립트 구조다(빌드시 임베드 → CDN 정적 서빙, 요청당 서버작업 0).
-새 디렉토리/단 구조를 강제하지 말 것. 핵심 파일은 `기획문서.md` 부록 A 참조.
+의도된 단순 스크립트 구조다(빌드시 임베드 → CDN 정적 서빙, 요청당 서버작업 0).
+루트 공개 산출물 + `tools/` 스크립트 + `data/` 원천/레지스트리 정도의 얕은 구조만 유지한다. 핵심 파일은 `기획문서.md` 부록 A 참조.
 
 ## 빌드 & 배포 (반드시 이 순서)
 ```
-python build_map.py        # index.html / map.html (운영)
-python build_map.py test   # test.html (카누잉 기록 포함)
+python tools/build_map.py        # index.html / map.html (운영)
+python tools/build_map.py test   # test.html (카누잉 기록 포함)
 # → Playwright headless 검증: JS 에러 0 + 핵심 함수/엔드포인트
 git add … && git commit && git push   # GitHub Pages 자동 반영, Worker 1~2분 자동 재배포
 ```
@@ -24,11 +24,11 @@ git add … && git commit && git push   # GitHub Pages 자동 반영, Worker 1~2
 - 커밋 메시지 끝: `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` (기존 히스토리 관례).
 
 ## 데이터 갱신 명령 (원천 갱신 시에만)
-- 상수원보호: `rebuild_protect.py`(오프라인, 키 불요) / `build_polygons.py`(deprecated 온라인 크롤러)
-- 코스: `trace_course.py`(OSM 물길추적) → `courses.geojson`
-- 수위관측소: `build_hrfco.py`(HRFCO 키) · 보: 빌드시 자동(원천만 `build_weirs.py`)
-- 내수면 금지구역: `build_wlz_inland.py` · 로드뷰: `build_roadview.py`(카카오 JS 키)
-- 카카오 즐겨찾기: Windows 스케줄러 `daily_collect.bat`(매일 09:00) 자동
+- 상수원보호: `tools/rebuild_protect.py`(오프라인, 키 불요) / `tools/build_polygons.py`(deprecated 온라인 크롤러)
+- 코스: `tools/trace_course.py`(OSM 물길추적) → `data/courses.geojson`
+- 수위관측소: `tools/build_hrfco.py`(HRFCO 키) · 보: 빌드시 자동(원천만 `tools/build_weirs.py`)
+- 내수면 금지구역: `tools/build_wlz_inland.py` · 로드뷰: `tools/build_roadview.py`(카카오 JS 키)
+- 카카오 즐겨찾기: GitHub Actions `.github/workflows/daily-collect.yml`(매일 09:00 KST) 자동
 
 ## 보안 (절대 준수)
 - `ADMIN_KEY`·`LOG_WEBHOOK`(Apps Script URL)·Kakao Client Secret → **Cloudflare Secret만**. 코드/레포 금지.

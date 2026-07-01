@@ -9,7 +9,8 @@
 import json, math, os, sys, urllib.request
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent
+DATA = BASE / "data"
 RADIUS_KM = float(sys.argv[1]) if len(sys.argv) > 1 else 12.0
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -51,10 +52,10 @@ def main():
 
     # 기준점: 즐겨찾기 장소 + 코스 꼭짓점
     pts = []
-    items = json.loads((BASE/"synced_seqs.json").read_text(encoding="utf-8"))["items"]
+    items = json.loads((DATA/"synced_seqs.json").read_text(encoding="utf-8"))["items"]
     pts += [(v["lat"], v["lng"]) for v in items.values() if v.get("lat") is not None]
     try:
-        cj = json.loads((BASE/"courses.geojson").read_text(encoding="utf-8"))
+        cj = json.loads((DATA/"courses.geojson").read_text(encoding="utf-8"))
         for f in cj["features"]:
             cs = f["geometry"]["coordinates"]
             pts += [(c[1], c[0]) for c in cs[::10]]
@@ -63,7 +64,7 @@ def main():
 
     sel = [st for st in stations if any(hav_km((st["lat"], st["lng"]), p) <= RADIUS_KM for p in pts)]
     print(f"선별({RADIUS_KM}km 이내): {len(sel)}")
-    (BASE/"hrfco_stations.json").write_text(json.dumps(sel, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+    (DATA/"hrfco_stations.json").write_text(json.dumps(sel, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
     print("[done] hrfco_stations.json")
 
 if __name__ == "__main__":
