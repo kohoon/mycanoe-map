@@ -495,6 +495,7 @@ export default {
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
       if (req.method === "GET") {
         if (url.searchParams.get("hidden")) { const h = KV ? await KV.get("course_hidden") : null; return J(h || "[]"); }   // 정적 코스 숨김 cid 목록
+        if (url.searchParams.get("over")) { const o = KV ? await KV.get("course_over") : null; return J(o || "{}"); }   // 정적 코스 이름/분류/거리 오버라이드
         const d = KV ? await KV.get("courses") : null; return J(d || "[]");
       }
       if (req.method === "POST") {
@@ -507,6 +508,20 @@ export default {
           hid = hid.filter((x) => String(x) !== cid);
           if (b.action === "hidestatic") hid.push(cid);
           await KV.put("course_hidden", JSON.stringify(hid));
+          return J(JSON.stringify({ ok: true }));
+        }
+        if (b.action === "editstatic") {   // 정적 코스는 원본 GeoJSON 비파괴, 표시 메타만 KV 오버라이드
+          const cid = String(b.cid || "").slice(0, 20); if (!cid) return new Response("bad", { status: 400, headers: cors });
+          let over = {}; try { over = JSON.parse((await KV.get("course_over")) || "{}"); } catch (e) {}
+          const name = String(b.name || "").slice(0, 80);
+          const km = Number(b.km);
+          if (!name && !Number.isFinite(km)) delete over[cid];
+          else {
+            over[cid] = over[cid] || {};
+            if (name) over[cid].name = name;
+            if (Number.isFinite(km)) over[cid].km = km;
+          }
+          await KV.put("course_over", JSON.stringify(over));
           return J(JSON.stringify({ ok: true }));
         }
         let arr = []; try { arr = JSON.parse((await KV.get("courses")) || "[]"); } catch (e) {}

@@ -890,38 +890,57 @@ const COURSE_COLORS={'엑스페디션':'#7c4dff','초심자코스':'#d500f9','�
 const KNOWN_CATS=['엑스페디션','초심자코스'];
 function subcatColor(sc){ return COURSE_COLORS[sc]||COURSE_COLORS['기타']; }
 function courseSubcat(name){ for(var i=0;i<KNOWN_CATS.length;i++){ if((name||'').indexOf(KNOWN_CATS[i])===0) return KNOWN_CATS[i]; } return '기타'; }
-const _courseGroups={};   // 서브카테고리 -> features
-COURSES.features.forEach(function(f){ const sc=courseSubcat((f.properties||{}).name);
-  (_courseGroups[sc]=_courseGroups[sc]||[]).push(f); });
 const courseLayers={};    // 서브카테고리 -> layerGroup(전체 코스 그룹에 포함)
 const _staticCidLayers={};   // 정적 코스 cid -> [{grp,l}] (삭제/숨김용)
+const _hiddenStaticCids=new Set();
 const allCoursesGroup=L.layerGroup().addTo(map);   // 코스 전체 토글(단일 레이어 항목)
 const _favLayerIdx={};   // 즐겨찾기 필터용: target -> [{l,parent}]
 function _favReg(target,l,parent){ (_favLayerIdx[target]=_favLayerIdx[target]||[]).push({l:l,parent:parent}); }
 let _favList=[], _favSet=new Set(), _favLoaded=false;
 let _favOnly=false; try{ _favOnly=localStorage.getItem('mc_favonly')==='1'; }catch(e){}
 let _courseLegendHtml='';
-Object.keys(_courseGroups).forEach(function(sc){
-  const fc={type:'FeatureCollection',features:_courseGroups[sc]};
-  const col=subcatColor(sc);
-  const reg=function(f,l,parent){ const cid=(f.properties||{}).cid; if(cid!=null) _favReg('course_c'+cid,l,parent); };
-  const casing=L.geoJSON(fc,{style:{color:'#2a0a4a',weight:8,opacity:0.55},interactive:false,
-    onEachFeature:function(f,l){ reg(f,l,null); }});
-  const line=L.geoJSON(fc,{style:{color:col,weight:5,opacity:0.95},interactive:false,
-    onEachFeature:function(f,l){ reg(f,l,null); }});
-  // 투명 넓은 탭 영역(어디를 탭/클릭해도 정보)
-  const hit=L.geoJSON(fc,{style:{color:'#000',weight:22,opacity:0},
-    onEachFeature:(f,l)=>{ const p=f.properties||{};
-      if(p.cid!=null){ l.on('click',function(){ courseCmt('c',p.cid); }); if(!isTouch) l.bindTooltip('<b>'+pmEsc(p.name||'코스')+'</b>'+(p.km?' '+p.km+'km':''),{sticky:true,direction:'top',opacity:0.95}); }
-      else { l.bindPopup('<b>'+pmEsc(p.name||'카누잉코스')+'</b>'); }
-      reg(f,l,null); }
+const _courseOver={};
+function _applyCourseOver(f){
+  const p=f.properties||{}, cid=p.cid;
+  if(cid!=null && _courseOver[String(cid)]){
+    const o=_courseOver[String(cid)];
+    if(o.name) p.name=o.name;
+    if(o.km!=null && isFinite(parseFloat(o.km))) p.km=parseFloat(o.km);
+    f.properties=p;
+  }
+  return f;
+}
+function _renderStaticCourses(){
+  const groups={};   // 서브카테고리 -> features
+  COURSES.features.forEach(function(f){ _applyCourseOver(f); const p=f.properties||{};
+    if(p.cid!=null) _courseByCid[String(p.cid)]={id:p.cid, static:true, name:p.name||'코스', km:p.km||0, coords:(f.geometry&&f.geometry.coordinates||[]).map(function(c){return [c[1],c[0]];})};
+    const sc=courseSubcat(p.name); (groups[sc]=groups[sc]||[]).push(f);
   });
-  // 등록 시 parent 지정(제거/복원용)
-  Object.keys(_favLayerIdx).forEach(function(t){ _favLayerIdx[t].forEach(function(e){ if(!e.parent){ e.parent=(casing.hasLayer(e.l)?casing:(line.hasLayer(e.l)?line:hit)); } }); });
-  // cid별 레이어 등록(정적 코스 삭제용)
-  [casing,line,hit].forEach(function(grp){ grp.eachLayer(function(l){ const cid=((l.feature&&l.feature.properties)||{}).cid; if(cid!=null) (_staticCidLayers[cid]=_staticCidLayers[cid]||[]).push({grp:grp,l:l}); }); });
-  courseLayers[sc]=L.layerGroup([casing,line,hit]); allCoursesGroup.addLayer(courseLayers[sc]);
-});
+  Object.keys(groups).forEach(function(sc){
+    const fc={type:'FeatureCollection',features:groups[sc]};
+    const col=subcatColor(sc);
+    const reg=function(f,l,parent){ const cid=(f.properties||{}).cid; if(cid!=null) _favReg('course_c'+cid,l,parent); };
+    const casing=L.geoJSON(fc,{style:{color:'#2a0a4a',weight:8,opacity:0.55},interactive:false,
+      onEachFeature:function(f,l){ reg(f,l,null); }});
+    const line=L.geoJSON(fc,{style:{color:col,weight:5,opacity:0.95},interactive:false,
+      onEachFeature:function(f,l){ reg(f,l,null); }});
+    // 투명 넓은 탭 영역(어디를 탭/클릭해도 정보)
+    const hit=L.geoJSON(fc,{style:{color:'#000',weight:22,opacity:0},
+      onEachFeature:(f,l)=>{ const p=f.properties||{};
+        if(p.cid!=null){ l.on('click',function(){ courseCmt('c',p.cid); }); if(!isTouch) l.bindTooltip('<b>'+pmEsc(p.name||'코스')+'</b>'+(p.km?' '+p.km+'km':''),{sticky:true,direction:'top',opacity:0.95}); }
+        else { l.bindPopup('<b>'+pmEsc(p.name||'카누잉코스')+'</b>'); }
+        reg(f,l,null); }
+    });
+    // 등록 시 parent 지정(제거/복원용)
+    Object.keys(_favLayerIdx).forEach(function(t){ _favLayerIdx[t].forEach(function(e){ if(!e.parent){ e.parent=(casing.hasLayer(e.l)?casing:(line.hasLayer(e.l)?line:hit)); } }); });
+    // cid별 레이어 등록(정적 코스 삭제용)
+    [casing,line,hit].forEach(function(grp){ grp.eachLayer(function(l){ const cid=((l.feature&&l.feature.properties)||{}).cid; if(cid!=null) (_staticCidLayers[cid]=_staticCidLayers[cid]||[]).push({grp:grp,l:l}); }); });
+    courseLayers[sc]=L.layerGroup([casing,line,hit]); allCoursesGroup.addLayer(courseLayers[sc]);
+  });
+  _hiddenStaticCids.forEach(function(cid){ _hideStaticCourse(cid); });
+  if(_favOnly) applyFavFilter();
+}
+fetch(WORKER_URL.replace(/\/+$/,'')+'/course?over=1').then(function(r){return r.json();}).then(function(o){ Object.assign(_courseOver,o||{}); _renderStaticCourses(); }).catch(function(){ _renderStaticCourses(); });
 
 // ---- 장소 상세 모달 + 코멘트 ----
 function placeSlug(lat,lng){ return lat.toFixed(5)+'_'+lng.toFixed(5); }
@@ -1056,7 +1075,7 @@ function openCourseComments(key,name,km,shareId){
   let _cadm='';
   if(isAdmin()&&shareId){ if(String(shareId).charAt(0)==='k'){ const kid=String(shareId).slice(1);
       _cadm='<div class="pm-padmin"><a onclick="editCourse(\''+kid+'\')">✏️ 수정</a><a onclick="deleteCourse(\''+kid+'\')">🗑 삭제</a></div>'; }
-    else { _cadm='<div class="pm-padmin"><a onclick="deleteStaticCourse(\''+shareId+'\')" style="color:#c62828">🗑 삭제</a></div>'; } }
+    else { _cadm='<div class="pm-padmin"><a onclick="editStaticCourse(\''+shareId+'\')">✏️ 수정</a><a onclick="deleteStaticCourse(\''+shareId+'\')" style="color:#c62828">🗑 삭제</a></div>'; } }
   document.getElementById('pmLinks').innerHTML=(km?'<div class="pm-memo">약 '+km+'km</div>':'')+(shareId?'<a class="course-share" onclick="shareCourse(\''+shareId+'\')">🔗 코스 공유</a>':'')+_cadm;
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
@@ -1660,7 +1679,7 @@ function renderKVCourse(c){
 }
 function loadCourses(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ (list||[]).forEach(renderKVCourse); }).catch(function(){}); }
 // 정적 코스 숨김(관리자 삭제분) 적용
-fetch(fapi('/course')+'?hidden=1').then(function(r){return r.json();}).then(function(a){ (a||[]).forEach(function(cid){ _hideStaticCourse(cid); }); }).catch(function(){});
+fetch(fapi('/course')+'?hidden=1').then(function(r){return r.json();}).then(function(a){ (a||[]).forEach(function(cid){ _hiddenStaticCids.add(String(cid)); _hideStaticCourse(cid); }); }).catch(function(){});
 loadCourses();
 // ---- 코스 URL 공유 ----
 function courseShareUrl(idStr){ return location.origin+location.pathname+'?course='+encodeURIComponent(idStr); }
@@ -1689,7 +1708,7 @@ async function deleteCourse(id){ if(!isAdmin()) return; if(!confirm('이 등록 
 async function deleteStaticCourse(cid){ if(!isAdmin()) return; if(!confirm('이 코스를 지도에서 숨길까요? (되돌릴 수 있음)')) return;
   try{ const r=await fetch(fapi('/course'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hidestatic',adminKey:adminKey(),cid:String(cid)})});
     if(r.ok){ _hideStaticCourse(cid); closePlaceModal(); map.closePopup(); gaEvent('course_hide'); } else alert('실패(권한 확인)'); }catch(e){ alert('오류'); } }
-function _hideStaticCourse(cid){ const arr=_staticCidLayers[String(cid)]; if(arr) arr.forEach(function(e){ e.grp.removeLayer(e.l); }); }
+function _hideStaticCourse(cid){ _hiddenStaticCids.add(String(cid)); const arr=_staticCidLayers[String(cid)]; if(arr) arr.forEach(function(e){ e.grp.removeLayer(e.l); }); }
 
 // ---- 장소 검색 (Nominatim) ----
 const SearchCtl = L.Control.extend({ options:{position:'topleft'},
@@ -1862,17 +1881,17 @@ function openCourseModal(mode, course){
   if(!isAdmin()) return;
   _cmMode=mode; _cmCourse=course||null;
   let cat='초심자코스', desc='', km=0, npts=0;
-  if(mode==='edit'&&course){ const s=_splitCourse(course.name); cat=s.cat; desc=s.desc; km=course.km||0; npts=(course.coords||[]).length; }
+  if((mode==='edit'||mode==='editstatic')&&course){ const s=_splitCourse(course.name); cat=s.cat; desc=s.desc; km=course.km||0; npts=(course.coords||[]).length; }
   else { if(!_lastCourse) return; km=_lastCourse.km; npts=_lastCourse.coords.length; }
   let seg=''; for(let i=0;i<COURSE_CATS.length;i++){ const c=COURSE_CATS[i]; seg+='<button class="seg-b'+(c===cat?' on':'')+'" data-cat="'+c+'" onclick="cmPickCat(this)">'+c+'</button>'; }
   document.getElementById('cmBody').innerHTML=
-    '<h3>'+(mode==='edit'?'✏️ 코스 수정':'💾 코스 등록')+'</h3>'
+    '<h3>'+((mode==='edit'||mode==='editstatic')?'✏️ 코스 수정':'💾 코스 등록')+'</h3>'
     +(km?'<div class="cm-stat"><b>'+km.toFixed(2)+'</b> km · '+npts+'개 점</div>':'')
     +'<div class="sg-label">카테고리 (색상 분류)</div><div class="seg">'+seg+'</div>'
     +'<div class="sg-label">코스 이름</div>'
     +'<input id="cmName" placeholder="예: 3 청라호수공원 한바퀴" maxlength="80" oninput="cmPreview()">'
     +'<div class="cm-note">최종 이름: <b id="cmPrev">—</b></div>'
-    +'<button class="sg-submit" id="cmSave">'+(mode==='edit'?'수정 완료':'코스 등록')+'</button><div id="cmMsg"></div>';
+    +'<button class="sg-submit" id="cmSave">'+((mode==='edit'||mode==='editstatic')?'수정 완료':'코스 등록')+'</button><div id="cmMsg"></div>';
   document.getElementById('cmName').value=desc;
   document.getElementById('courseModal').classList.add('open');
   document.getElementById('cmSave').onclick=doSaveCourse;
@@ -1881,6 +1900,7 @@ function openCourseModal(mode, course){
 }
 function saveCoursePrompt(){ openCourseModal('add'); }
 function editCourse(id){ const c=_kvCourses[id]; if(c) openCourseModal('edit', c); }
+function editStaticCourse(cid){ const c=_courseByCid[String(cid)]; if(c) openCourseModal('editstatic', c); }
 async function doSaveCourse(){
   if(!isAdmin()) return;
   const desc=(document.getElementById('cmName').value||'').trim();
@@ -1891,11 +1911,12 @@ async function doSaveCourse(){
   const base=WORKER_URL.replace(/\/+$/,'')+'/course';
   try{
     let body;
-    if(_cmMode==='edit'&&_cmCourse){ body={action:'edit',adminKey:adminKey(),courseId:_cmCourse.id,name:name,km:_cmCourse.km}; }
+    if(_cmMode==='editstatic'&&_cmCourse){ body={action:'editstatic',adminKey:adminKey(),cid:String(_cmCourse.id),name:name,km:_cmCourse.km}; }
+    else if(_cmMode==='edit'&&_cmCourse){ body={action:'edit',adminKey:adminKey(),courseId:_cmCourse.id,name:name,km:_cmCourse.km}; }
     else { if(!_lastCourse) return; body={action:'add',adminKey:adminKey(),name:name,coords:_lastCourse.coords,km:_lastCourse.km}; }
     const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(r.ok){ gaEvent(_cmMode==='edit'?'course_edit':'course_add'); closeCourseModal(); map.closePopup();
-      if(_cmMode==='edit'){ alert('✏️ 코스 수정됨 — 새로고침하면 반영됩니다'); }
+    if(r.ok){ gaEvent((_cmMode==='edit'||_cmMode==='editstatic')?'course_edit':'course_add'); closeCourseModal(); map.closePopup();
+      if(_cmMode==='edit'||_cmMode==='editstatic'){ alert('✏️ 코스 수정됨 — 새로고침하면 반영됩니다'); }
       else { renderKVCourse({id:Date.now(),name:name,coords:_lastCourse.coords,km:_lastCourse.km}); _lastCourse=null; }
     } else { msg.style.color='#c0392b'; msg.textContent=(r.status===403?'관리자 권한 확인 필요':(r.status===404?'코스를 찾을 수 없음':'저장 실패')); }
   }catch(e){ msg.style.color='#c0392b'; msg.textContent='오류'; }
