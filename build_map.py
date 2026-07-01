@@ -583,7 +583,7 @@ function _adminBadge(on){ let el=document.getElementById('adminBadge');
     document.getElementById('adminExport').onclick=exportComments;
     document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
   else if(el){ el.remove(); } }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -1138,7 +1138,7 @@ let _pmPlace=null,_pmSlug=null;
 function openPlaceModal(pl){
   _pmPlace=pl; _pmSlug=placeSlug(pl.lat,pl.lng);
   _pmTarget=_pmSlug; _pmKind='p'; _pmName=pl.name||'장소'; _pmLL=[pl.lat,pl.lng];
-  document.getElementById('pmTitle').textContent=((pl.id&&/^[0-9]+$/.test(String(pl.id)))?('#'+pl.id+' '):'')+(pl.name||'장소');
+  document.getElementById('pmTitle').textContent=(pl.name||'장소');
   renderPmCat(pl);
   _clearPhoto(); renderRateRow();
   document.getElementById('pmLinks').innerHTML='<div id="pmWx" class="pm-wx"></div>'
@@ -1211,8 +1211,11 @@ function obsPopup(o){ const t=OBS_TYPES[o.type]||OBS_TYPES['보']; const nm=(o.n
     +(isAdmin()?'<a onclick="editObstacle(\''+o.id+'\')" style="color:#1565c0;cursor:pointer;margin-right:10px">✏️ 수정</a><a onclick="moveObstacle(\''+o.id+'\')" style="color:#2e9e5b;cursor:pointer;margin-right:10px">📍 이동</a><a onclick="deleteObstacle(\''+o.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':''); }
 function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
   const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type,o.name),pane:'obsPane'});
-  if(isAdmin()) m.bindPopup(obsPopup(o));   // 관리자만 클릭 팝업(수정/삭제). 일반 사용자는 말풍선 없음(호버 툴팁도 제거)
+  if(isAdmin()) m.bindPopup(obsPopup(o));   // 관리자만 클릭 팝업(수정/이동/삭제). 일반 사용자는 말풍선 없음
   m.addTo(obstacleLayer); o._m=m; }
+// 관리자 인증이 로드 뒤에 될 수 있어, 관리자 활성 시 지형지물 팝업 재바인딩
+function _refreshObsPopups(){ const on=isAdmin(); Object.keys(_obstacles).forEach(function(id){ const o=_obstacles[id]; if(!o||!o._m) return;
+  if(on) o._m.bindPopup(obsPopup(o)); else o._m.unbindPopup(); }); }
 function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();})
   .then(function(list){ (list||[]).forEach(renderObstacle); }).catch(function(){}); }
 // 전국 보(어도 현황 기반, 정적) — 관리자 등록 지형지물과 동일 아이콘, 관리자에게만 이름 팝업
