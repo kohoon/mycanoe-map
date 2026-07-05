@@ -29,6 +29,7 @@
   .sr-item{margin-top:5px;font-size:12px}
   .sr-item a{color:#1565c0;text-decoration:none}
   .sr-head{margin-top:7px;font-size:10.5px;font-weight:700;color:#99a}
+  .search-pin{font-size:30px;line-height:30px;text-align:center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
   .course-share{color:#1565c0;cursor:pointer;text-decoration:none;font-weight:600}
   #hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:1000;
         background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
@@ -1689,6 +1690,13 @@ const SearchCtl = L.Control.extend({ options:{position:'topleft'},
 map.addControl(new SearchCtl());
 let _res=[], _searchSeq=0;
 function closeSearchPreview(cancel){ if(cancel) _searchSeq++; const box=document.getElementById('srchRes'); if(box) box.innerHTML=''; _res=[]; }
+let _searchMarker=null;
+function showSearchPin(lat,lng,label){
+  if(_searchMarker) map.removeLayer(_searchMarker);
+  _searchMarker=L.marker([lat,lng],{icon:L.divIcon({className:'search-pin',html:'📍',iconSize:[30,30],iconAnchor:[15,30]}),zIndexOffset:1200})
+    .addTo(map).bindPopup('<b>'+pmEsc(label||'검색 위치')+'</b>');
+  return _searchMarker;
+}
 map.on('click', function(){ closeSearchPreview(true); });
 setTimeout(function(){
   const q=document.getElementById('srchQ');
@@ -1740,12 +1748,13 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   box.querySelectorAll('a').forEach(function(a){ a.addEventListener('click',function(ze){
     ze.preventDefault(); const x=_res[a.dataset.i];
     closeSearchPreview(false); const _si=document.getElementById('srchQ'); if(_si) _si.blur();   // 선택 후 미리보기 리스트 닫기
+    const pin=showSearchPin(x.lat,x.lng,(x.disp||x.label||q).replace(/^[^가-힣A-Za-z0-9]+/,''));
     if(x.kind==='place'){ map.setView([x.lat,x.lng],15); openPlaceModal(featPlace(x.feat)); }
     else if(x.kind==='course'){ const cs=x.feat.geometry.coordinates.map(function(c){return [c[1],c[0]];}); _fitAndPop(cs, x.feat.properties.name, x.feat.properties.km); }
     else if(x.kind==='kvplace'){ map.setView([x.lat,x.lng],15); openPlaceModal(x.pl); }
     else if(x.kind==='obs'){ map.setView([x.lat,x.lng],16); const t=(OBS_TYPES[x.o.type]||OBS_TYPES['보']); L.popup().setLatLng([x.lat,x.lng]).setContent('<span class="obs-ic '+t.c+'">'+t.e+' '+pmEsc(x.o.name||t.label)+'</span>').openOn(map); }
     else if(x.kind==='kvcourse'){ _fitAndPop(x.c.coords, x.c.name, x.c.km); }
-    else { map.setView([x.lat,x.lng],14); L.popup().setLatLng([x.lat,x.lng]).setContent('<b>'+(x.disp||q).slice(0,50)+'</b>'+extLinks(x.lat,x.lng,q)).openOn(map); }
+    else { map.setView([x.lat,x.lng],14); pin.setPopupContent('<b>'+(x.disp||q).slice(0,50)+'</b>'+extLinks(x.lat,x.lng,q)).openPopup(); }
   }); });
 });
 
