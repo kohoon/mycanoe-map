@@ -12,6 +12,12 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent.parent
 DATA = BASE / "data"
 RADIUS_KM = float(sys.argv[1]) if len(sys.argv) > 1 else 12.0
+# HRFCO 공식 좌표가 관측기 기준으로 다리 중심/지도 POI와 어긋나는 경우 표시용 보정.
+# 수위 조회 코드는 그대로 유지하고 지도 마커 위치만 보정한다.
+COORD_OVERRIDES = {
+    # 정선군(광하교): 공식 37.369722,128.618889 → VWorld 광하교 POI/다리 중심
+    "1001658": (37.368204, 128.619352),
+}
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
@@ -45,6 +51,8 @@ def main():
     for s in info.get("content", []):
         lat, lon = dms(s.get("lat")), dms(s.get("lon"))
         if lat is None or lon is None or not (33 < lat < 39 and 124 < lon < 131): continue
+        if s.get("wlobscd") in COORD_OVERRIDES:
+            lat, lon = COORD_OVERRIDES[s["wlobscd"]]
         stations.append({"cd": s["wlobscd"], "nm": s.get("obsnm",""), "lat": lat, "lng": lon,
                          "att": s.get("attwl",""), "wrn": s.get("wrnwl",""),
                          "alm": s.get("almwl",""), "srs": s.get("srswl","")})
