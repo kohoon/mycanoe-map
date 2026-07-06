@@ -1472,14 +1472,14 @@ function _wlTrend(cd){   // 최근 24시간 1H 수위 → 스파크라인 SVG
     }).catch(function(){ return ''; });
 }
 const _wlYrCache={};
-function _wlYear(cd, cur){   // 지난 1년(1D) 분포에서 현재 수위 위치 — 게이지 + 백분위
+function _wlYear(cd, cur){   // 지난 1년(1D) 분포에서 현재 수위 백분위 — 게이지 + 범위
   if(!HRFCO_KEY||!isFinite(cur)) return Promise.resolve('');
   const build=function(vals){
     if(!vals||vals.length<60) return '';
     const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
     if(mx-mn<0.01) return '';
     const pct=Math.round(vals.filter(function(v){return v<=cur;}).length/vals.length*100);
-    const pos=Math.max(0,Math.min(100,(cur-mn)/(mx-mn)*100));
+    const pos=Math.max(0,Math.min(100,pct));
     const lab=pct>=80?['연중 높음','#e53935']:pct>=60?['다소 높음','#fb8c00']:pct>=20?['평년 수준','#2e7d32']:['연중 낮음','#1565c0'];
     return '<div style="margin-top:7px">'
       +'<div style="position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,#90caf9,#a5d6a7,#ffcc80,#ef9a9a)">'
