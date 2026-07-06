@@ -1895,17 +1895,17 @@ map.on('click', function(e){
   if(!measureMode) return;
   const pt=e.latlng;
   L.circleMarker(pt,{radius:5,color:'#bf360c',fillColor:'#ff7043',fillOpacity:1}).addTo(measDraft);
-  _measQueue.push(pt);     // 클릭 순서 보존(즉시 점 표시)
+  _measQueue.push({pt:pt, mode:measMode});     // 클릭 당시 모드까지 보존(직선 구간이 물길 계산을 타지 않게)
   _runMeasQueue();
 });
 async function _runMeasQueue(){
   if(_measRunning) return; _measRunning=true;
   while(_measQueue.length){
-    const pt=_measQueue.shift();
+    const item=_measQueue.shift(), pt=item.pt, segMode=item.mode||measMode;
     if(measPts.length===0){ measPts.push(pt); updateMeasBtn(); continue; }
     const last=measPts[measPts.length-1];
     let seg=null;
-    if(measMode==='straight'){   // 직선 모드: 즉시 직선 구간
+    if(segMode==='straight'){   // 직선 모드: 즉시 직선 구간
       seg={coords:[[last.lat,last.lng],[pt.lat,pt.lng]], km:map.distance([last.lat,last.lng],[pt.lat,pt.lng])/1000, straight:true};
     } else {
       const b=document.getElementById('measBtnBox'); if(b) b.innerHTML='⏳ 물길 계산 중…';
