@@ -1098,7 +1098,7 @@ map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
 map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='635';
 map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='645';
 function _zoomPaneGate(){ const on=map.getZoom()>=12?'':'none';
-  map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; }
+  map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on; }
 map.on('zoomend', _zoomPaneGate);
 const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
 function _obHasName(ty){ return ty==='여울'||ty==='유명지'; }
@@ -1628,7 +1628,7 @@ function loadCctv(){
     const url=_cctvViewUrl(x);
     const h='<b>📹 '+pmEsc(x.nm)+'</b><br><small style="color:#889">홍수정보시스템 수위관측 CCTV</small>'
       +'<br><a href="'+url+'" target="_blank" rel="noopener">CCTV 보기</a>';
-    L.marker([x.lat,x.lng],{icon:L.divIcon({className:'cctv-div',html:'<span class="cctv-badge">🎥</span>',iconSize:[30,30],iconAnchor:[15,15]}),pane:'cctvPane'})
+    L.marker([x.lat,x.lng],{icon:L.divIcon({className:'cctv-div',html:'<span class="cctv-badge">🎦</span>',iconSize:[30,30],iconAnchor:[15,15]}),pane:'cctvPane'})
       .bindPopup(h,{minWidth:180}).addTo(cctvLayer);
   });
   _cctvLoaded=true; _cctvLoading=false;
@@ -1648,7 +1648,7 @@ _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
 _ov['<span class="rv-sw">⚠️</span>지형지물·보'] = obstacleLayer;     // 기본 ON, 줌≥12 표시
 _ov['<span class="rv-sw">🛣️</span>로드뷰'] = roadviewLayer;   // 기본 OFF
 _ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF, 줌≥12 표시
-_ov['<span class="rv-sw">📹</span>수위관측 CCTV'] = cctvLayer;   // 기본 OFF
+_ov['<span class="rv-sw">📹</span>수위관측 CCTV'] = cctvLayer;   // 기본 OFF, 줌≥12 표시
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
 _protectPH.addTo(map); _wlzPH.addTo(map);   // 기본 ON(체크). 실제 면은 줌게이트가 제어. obstacle/수위와 동일 거동.
