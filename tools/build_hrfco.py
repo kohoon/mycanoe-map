@@ -17,6 +17,29 @@ RADIUS_KM = float(sys.argv[1]) if len(sys.argv) > 1 else 12.0
 COORD_OVERRIDES = {
     # 정선군(광하교): 공식 37.369722,128.618889 → VWorld 광하교 POI/다리 중심
     "1001658": (37.368204, 128.619352),
+    # 포천시(대회산교): 공식 38.090000,127.220556 → VWorld 대회산교 POI
+    "1022642": (38.089208, 127.221601),
+    # 포천시(영로대교): 공식 38.065278,127.205833 → VWorld 영로대교 POI
+    "1022643": (38.068764, 127.204830),
+}
+
+# HRFCO info에는 남아 있지만 최신 10M/1H 관측값이 비는 중복·레거시 코드.
+# 지도 표시는 유지하되 수위 조회는 바로 옆 실측 코드로 대체한다.
+ALT_CODE_OVERRIDES = {
+    "1010688": "1010690",  # 춘천댐 → 춘천시(춘천댐)
+    "1015639": "1015640",  # 청평댐 → 가평군(청평댐)
+    "1018660": "1018662",  # 청담 → 서울시(청담대교)
+    "1022665": "1022664",  # 연천군(궁신교) → 궁신교
+    "3006650": "3006680",  # 이원 → 옥천군(이원대교)
+    "4009668": "4009667",  # 하동 → 하동군(하동저수지)
+    "4105660": "4105210",  # 수어댐 → 수어댐(실측 코드)
+}
+
+# 카누 판단용 "하천 수위"로 보이면 오해가 큰 지점.
+# 댐/저수위 성격 값이거나 0m/EL.m 계열로 들어와 주변 하천 수위와 스케일이 다르다.
+EXCLUDE_CODES = {
+    "1022644",  # 연천군(한탄강댐): 최신 10M 0.00m, 1H 공백
+    "1022645",  # 연천군(한여울교): 47m대 댐 영향/표고성 수위로 일반 하천수위와 혼동
 }
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -53,9 +76,12 @@ def main():
         if lat is None or lon is None or not (33 < lat < 39 and 124 < lon < 131): continue
         if s.get("wlobscd") in COORD_OVERRIDES:
             lat, lon = COORD_OVERRIDES[s["wlobscd"]]
-        stations.append({"cd": s["wlobscd"], "nm": s.get("obsnm",""), "lat": lat, "lng": lon,
-                         "att": s.get("attwl",""), "wrn": s.get("wrnwl",""),
-                         "alm": s.get("almwl",""), "srs": s.get("srswl","")})
+        st = {"cd": s["wlobscd"], "nm": s.get("obsnm",""), "lat": lat, "lng": lon,
+              "att": s.get("attwl",""), "wrn": s.get("wrnwl",""),
+              "alm": s.get("almwl",""), "srs": s.get("srswl","")}
+        if st["cd"] in ALT_CODE_OVERRIDES:
+            st["alt"] = ALT_CODE_OVERRIDES[st["cd"]]
+        stations.append(st)
     print(f"전체 관측소(좌표 유효): {len(stations)}")
 
     # 기준점: 즐겨찾기 장소 + 코스 꼭짓점
@@ -70,7 +96,7 @@ def main():
     except Exception: pass
     print(f"기준점: {len(pts)}")
 
-    sel = [st for st in stations if any(hav_km((st["lat"], st["lng"]), p) <= RADIUS_KM for p in pts)]
+    sel = [st for st in stations if st["cd"] not in EXCLUDE_CODES and not st.get("alt") and any(hav_km((st["lat"], st["lng"]), p) <= RADIUS_KM for p in pts)]
     print(f"선별({RADIUS_KM}km 이내): {len(sel)}")
     (DATA/"hrfco_stations.json").write_text(json.dumps(sel, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
     print("[done] hrfco_stations.json")

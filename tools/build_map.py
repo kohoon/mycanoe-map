@@ -91,6 +91,11 @@ _wsf = DATA / "hrfco_stations.json"
 wlstn = json.loads(_wsf.read_text(encoding="utf-8")) if _wsf.exists() else []
 print(f"수위관측소 {len(wlstn)}곳")
 
+# ---- 수위관측 CCTV(홍수정보시스템, build_cctv.py) ----
+_cctvf = DATA / "cctv_stations.json"
+cctvs = json.loads(_cctvf.read_text(encoding="utf-8")) if _cctvf.exists() else []
+print(f"수위관측 CCTV {len(cctvs)}곳")
+
 # ---- 수상레저 금지구역: 해수면(해경청 SHP) + 내수면(고시 도면 디지타이징) ----
 # 외부 fetch용 단일 wlz.geojson 으로 병합 생성(런타임에 줌인 시 fetch). HTML 임베드 안 함.
 wlz = {"type": "FeatureCollection", "features": []}
@@ -203,6 +208,8 @@ __GTAG__
   .rv-div .rv-badge{position:absolute;transform:translate(-50%,-150%);font-size:15px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
   .leaflet-div-icon.wl-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .wl-div .wl-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+  .leaflet-div-icon.cctv-div{background:transparent;border:0;width:auto!important;height:auto!important}
+  .cctv-div .cctv-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
   .wl-loading{color:#889;font-size:12.5px}
   #pmCat{display:flex;align-items:center;gap:7px;margin:0 0 8px;flex-wrap:wrap}
   #pmCat:empty{display:none}
@@ -571,6 +578,7 @@ let protectLayer = null, wlzLayer = null;          // 첫 줌인 때 생성
 let _protectLoading = null, _wlzLoading = null;    // in-flight fetch(중복 방지)
 let _protectWanted = true, _wlzWanted = true;      // 기본 ON 의도(토글이 뒤집음)
 const WLSTN = __WLSTN__;   // 수위관측소(HRFCO, 카누 장소 근처 선별)
+const CCTVS = __CCTVS__;   // 수위관측 CCTV 지점(홍수정보시스템, 영상은 공식 팝업)
 const WEIRS = __WEIRS__;   // 전국 보 위치(해수부 어도 현황 기반, 근처 선별)
 const HRFCO_KEY = "__HRFCO_KEY__";   // 수위 API(도메인잠금 없음 — 남용 시 재발급)
 const COURSES = __COURSES__;
@@ -1222,8 +1230,9 @@ function courseCmt(kind,id){
 // (레이어 토글과 독립 — 체크 상태 유지한 채 줌으로만 표시/숨김)
 map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
 map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='635';
+map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='636';
 function _zoomPaneGate(){ const on=map.getZoom()>=12?'':'none';
-  map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; }
+  map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on; }
 map.on('zoomend', _zoomPaneGate);
 const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
 function _obHasName(ty){ return ty==='여울'||ty==='유명지'; }
@@ -1605,6 +1614,7 @@ function _wlTime(t){
   if(!t) return '';
   if(t.length>=12) return (+t.slice(4,6))+'.'+(+t.slice(6,8))+' '+t.slice(8,10)+':'+t.slice(10,12);
   if(t.length>=10) return (+t.slice(4,6))+'.'+(+t.slice(6,8))+' '+t.slice(8,10)+':00';
+  if(t.length>=8) return (+t.slice(4,6))+'.'+(+t.slice(6,8))+' 일자료';
   return '';
 }
 const _wlCache={};   // cd -> {rec, ts} (10분 클라이언트 캐시)
@@ -1613,21 +1623,35 @@ function _wlRecent1H(cd){   // 일부 관측소는 최신 10M 엔드포인트가
   const now=new Date(), from=new Date(now.getTime()-48*3600*1000);
   return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/1H/'+cd+'/'+_hrfcoYmdh(from)+'/'+_hrfcoYmdh(now)+'.json')
     .then(function(r){return r.json();})
-    .then(function(j){ const rec=(j.content||[]).filter(function(x){return isFinite(parseFloat(x.wl));})[0]; return rec?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm,src:'1H'}:null; })
+    .then(function(j){ const rec=(j.content||[]).filter(function(x){return isFinite(parseFloat(x.wl));})[0]; return rec?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm,src:'1H',cd:cd}:null; })
     .catch(function(){ return null; });
 }
-function _wlGet(cd){
-  const c=_wlCache[cd]; if(c && Date.now()-c.ts<600000) return Promise.resolve(c.rec);
+function _wlRecent1D(cd){   // 최후 보완: 10M/1H가 모두 비는 관측소의 최근 일자료
+  if(!HRFCO_KEY) return Promise.resolve(null);
+  const now=new Date(), from=new Date(now.getTime()-7*86400*1000);
+  function ymd(d){ return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/1D/'+cd+'/'+ymd(from)+'/'+ymd(now)+'.json')
+    .then(function(r){return r.json();})
+    .then(function(j){ const rec=(j.content||[]).filter(function(x){return isFinite(parseFloat(x.wl));})[0]; return rec?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm||rec.ymd,src:'1D',cd:cd}:null; })
+    .catch(function(){ return null; });
+}
+function _wlGetCode(cd){
   const direct = HRFCO_KEY
     ? fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/10M/'+cd+'.json')
         .then(function(r){return r.json();})
-        .then(function(j){ const rec=(j.content||[])[0]; return rec?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm}:null; })
+        .then(function(j){ const rec=(j.content||[])[0]; return (rec&&isFinite(parseFloat(rec.wl)))?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm,src:'10M',cd:cd}:null; })
     : Promise.reject('nokey');
   return direct.then(function(rec){ return rec || _wlRecent1H(cd); }).catch(function(){   // 직접 호출 실패 시 워커 폴백
       return fetch(WORKER_URL.replace(/\/+$/,'')+'/waterlevel?obs='+cd)
-        .then(function(r){return r.json();}).then(function(d){ return (d&&d[cd])||null; });
+        .then(function(r){return r.json();}).then(function(d){ const rec=(d&&d[cd])||null; return (rec&&isFinite(parseFloat(rec.wl)))?{wl:rec.wl,fw:rec.fw,t:rec.t,src:'10M',cd:cd}:null; });
     }).then(function(rec){ return rec || _wlRecent1H(cd); })
-    .then(function(rec){ _wlCache[cd]={rec:rec,ts:Date.now()}; return rec; });
+    .then(function(rec){ return rec || _wlRecent1D(cd); });
+}
+function _wlGet(s){
+  const key=[s.cd,s.alt||''].join('|');
+  const c=_wlCache[key]; if(c && Date.now()-c.ts<600000) return Promise.resolve(c.rec);
+  return _wlGetCode(s.cd).then(function(rec){ return rec || (s.alt?_wlGetCode(s.alt):null); })
+    .then(function(rec){ _wlCache[key]={rec:rec,ts:Date.now()}; return rec; });
 }
 function _hrfcoYmdh(d){ return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+('0'+d.getHours()).slice(-2); }
 function _wlTrend(cd){   // 최근 24시간 1H 수위 → 스파크라인 SVG
@@ -1656,12 +1680,13 @@ function _wlYear(cd, cur){   // 지난 1년(1D) 분포에서 현재 수위 백�
     if(mx-mn<0.01) return '';
     const pct=Math.round(vals.filter(function(v){return v<=cur;}).length/vals.length*100);
     const pos=Math.max(0,Math.min(100,pct));
-    const lab=pct>=80?['연중 높음','#e53935']:pct>=60?['다소 높음','#fb8c00']:pct>=20?['평년 수준','#2e7d32']:['연중 낮음','#1565c0'];
+    const lab=pct>=80?['매우 높은 편','#e53935']:pct>=60?['높은 편','#fb8c00']:pct>=20?['보통 범위','#2e7d32']:['낮은 편','#1565c0'];
+    const rank=pct>=50?'상위 '+(100-pct)+'%':'하위 '+pct+'%';
     return '<div style="margin-top:7px">'
       +'<div style="position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,#90caf9,#a5d6a7,#ffcc80,#ef9a9a)">'
       +'<span style="position:absolute;left:'+pos.toFixed(1)+'%;top:-3px;transform:translateX(-50%);width:3px;height:14px;background:#263238;border-radius:2px"></span></div>'
       +'<small style="color:#889;display:block;margin-top:2px;white-space:nowrap">최근 1년 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m</small>'
-      +'<small style="display:block;white-space:nowrap"><b style="color:'+lab[1]+'">'+lab[0]+'</b><span style="color:#99a"> · 1년 중 하위 '+pct+'%</span></small></div>';
+      +'<small style="display:block;white-space:nowrap"><b style="color:'+lab[1]+'">'+lab[0]+'</b><span style="color:#99a"> · 최근 1년 기준 '+rank+'</span></small></div>';
   };
   const c=_wlYrCache[cd];
   if(c && Date.now()-c.ts<3600000) return Promise.resolve(build(c.vals));
@@ -1702,24 +1727,47 @@ const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
   const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'wl-div',html:'<span class="wl-badge">💧</span>',iconSize:null}),pane:'wlPane'});
   m.bindPopup('<b>💧 '+pmEsc(s.nm)+'</b><br><span class="wl-loading">수위 조회 중…</span>',{minWidth:170});
   m.on('click',function(){
-    _wlGet(s.cd).then(function(rec){
+    _wlGet(s).then(function(rec){
       let h='<b>💧 '+pmEsc(s.nm)+'</b><br>';
       if(rec&&rec.wl&&isFinite(parseFloat(rec.wl))){ const st=_wlStage(rec.wl,s);
         h+='<span style="font-size:19px;font-weight:800">'+parseFloat(rec.wl).toFixed(2)+' m</span> '
           +'<span style="background:'+st[1]+';color:#fff;border-radius:9px;padding:1px 8px;font-size:11.5px;font-weight:700;vertical-align:3px">'+st[0]+'</span>';
         if(isFinite(parseFloat(rec.fw))) h+='<br><small>유량 '+parseFloat(rec.fw).toFixed(1)+' ㎥/s</small>';
-        h+='<br><small style="color:#889">'+_wlTime(rec.t)+' 관측</small>';
+        h+='<br><small style="color:#889">'+_wlTime(rec.t)+' 관측'+(rec.src&&rec.src!=='10M'?' · '+rec.src:'')+(rec.cd&&rec.cd!==s.cd?' · 대체 '+rec.cd:'')+'</small>';
         const ths=[]; if(parseFloat(s.att)) ths.push('관심 '+s.att); if(parseFloat(s.alm)) ths.push('경계 '+s.alm);
         if(ths.length) h+='<br><small style="color:#aab">기준: '+ths.join(' · ')+'m</small>';
         h+='<div id="wlTrend_'+s.cd+'"></div><div id="wlYr_'+s.cd+'"></div>';
       } else h+='<span style="color:#999">관측값 없음</span>';
       m.setPopupContent(h);
-      _wlTrend(s.cd).then(function(svg){ const el=document.getElementById('wlTrend_'+s.cd); if(el&&svg) el.innerHTML=svg; });
-      if(rec) _wlYear(s.cd, parseFloat(rec.wl)).then(function(html){ const el=document.getElementById('wlYr_'+s.cd); if(el&&html) el.innerHTML=html; });
+      const qcd=(rec&&rec.cd)||s.cd;
+      _wlTrend(qcd).then(function(svg){ const el=document.getElementById('wlTrend_'+s.cd); if(el&&svg) el.innerHTML=svg; });
+      if(rec) _wlYear(qcd, parseFloat(rec.wl)).then(function(html){ const el=document.getElementById('wlYr_'+s.cd); if(el&&html) el.innerHTML=html; });
     }).catch(function(){ m.setPopupContent('<b>💧 '+pmEsc(s.nm)+'</b><br><span style="color:#999">수위 서비스 연결 실패</span>'); });
   });
   return m;
 }));
+
+// ---- 수위관측 CCTV 레이어(기본 OFF, Worker 프록시 경유) ----
+const cctvLayer=L.layerGroup();
+let _cctvLoaded=false, _cctvLoading=false;
+function _cctvViewUrl(x){
+  const now=new Date(), m=Math.floor(now.getMinutes()/10)*10;
+  const y=now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2)+('0'+now.getHours()).slice(-2)+('0'+m).slice(-2);
+  return 'https://n.flood.go.kr/main/cctvView.do?obscd='+encodeURIComponent(x.cd)+'&ymdhm='+encodeURIComponent(y)+'&fcodvcd='+encodeURIComponent(x.fcodvcd||'');
+}
+function loadCctv(){
+  if(_cctvLoaded||_cctvLoading) return;
+  _cctvLoading=true;
+  (CCTVS||[]).forEach(function(x){
+    const url=_cctvViewUrl(x);
+    const h='<b>📹 '+pmEsc(x.nm)+'</b><br><small style="color:#889">홍수정보시스템 수위관측 CCTV</small>'
+      +'<br><a href="'+url+'" target="_blank" rel="noopener">CCTV 보기</a>';
+    L.marker([x.lat,x.lng],{icon:L.divIcon({className:'cctv-div',html:'<span class="cctv-badge">📹</span>',iconSize:null}),pane:'cctvPane'})
+      .bindPopup(h,{minWidth:180}).addTo(cctvLayer);
+  });
+  _cctvLoaded=true; _cctvLoading=false;
+}
+map.on('overlayadd', function(e){ if(e&&e.layer===cctvLayer) loadCctv(); });
 
 // ---- 레이어 + 범례 통합 패널 ----
 function _sw(c){ return '<span class="sw" style="background:'+c+'"></span>'; }
@@ -1734,6 +1782,7 @@ _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
 _ov['<span class="rv-sw">⚠️</span>지형지물·보'] = obstacleLayer;     // 기본 ON, 줌≥12 표시
 _ov['<span class="rv-sw">🛣️</span>로드뷰'] = roadviewLayer;   // 기본 OFF
 _ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF, 줌≥12 표시
+_ov['<span class="rv-sw">📹</span>수위관측 CCTV'] = cctvLayer;   // 기본 OFF, 줌≥12 표시
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
 _protectPH.addTo(map); _wlzPH.addTo(map);   // 기본 ON(체크). 실제 면은 줌게이트가 제어. obstacle/수위와 동일 거동.
@@ -2390,6 +2439,7 @@ html = (HTML
         .replace("__PROTECT_VER__", PROTECT_VER)   # 상수원/수상레저 면은 임베드 대신 외부 fetch(아래 버전 토큰)
         .replace("__WLZ_VER__", WLZ_VER)
         .replace("__WLSTN__", json.dumps(wlstn, ensure_ascii=False, separators=(",", ":")))
+        .replace("__CCTVS__", json.dumps(cctvs, ensure_ascii=False, separators=(",", ":")))
         .replace("__WEIRS__", json.dumps(weirs, ensure_ascii=False, separators=(",", ":")))
         .replace("__HRFCO_KEY__", HRFCO_KEY)
         .replace("__COURSES__", json.dumps(courses, ensure_ascii=False, separators=(",", ":")))
