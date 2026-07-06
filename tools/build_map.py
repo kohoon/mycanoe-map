@@ -209,7 +209,7 @@ __GTAG__
   .leaflet-div-icon.wl-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .wl-div .wl-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
   .leaflet-div-icon.cctv-div{background:transparent;border:0;width:auto!important;height:auto!important}
-  .cctv-div .cctv-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
+  .cctv-div .cctv-badge{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#ffeb3b;border:2px solid #111;font-size:18px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.55)}
   .wl-loading{color:#889;font-size:12.5px}
   #pmCat{display:flex;align-items:center;gap:7px;margin:0 0 8px;flex-wrap:wrap}
   #pmCat:empty{display:none}
@@ -1230,9 +1230,9 @@ function courseCmt(kind,id){
 // (레이어 토글과 독립 — 체크 상태 유지한 채 줌으로만 표시/숨김)
 map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
 map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='635';
-map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='636';
+map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='645';
 function _zoomPaneGate(){ const on=map.getZoom()>=12?'':'none';
-  map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on; }
+  map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; }
 map.on('zoomend', _zoomPaneGate);
 const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
 function _obHasName(ty){ return ty==='여울'||ty==='유명지'; }
@@ -1747,7 +1747,7 @@ const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
   return m;
 }));
 
-// ---- 수위관측 CCTV 레이어(기본 OFF, Worker 프록시 경유) ----
+// ---- 수위관측 CCTV 레이어(기본 OFF, 정적 지점 목록 + 공식 팝업 링크) ----
 const cctvLayer=L.layerGroup();
 let _cctvLoaded=false, _cctvLoading=false;
 function _cctvViewUrl(x){
@@ -1762,7 +1762,7 @@ function loadCctv(){
     const url=_cctvViewUrl(x);
     const h='<b>📹 '+pmEsc(x.nm)+'</b><br><small style="color:#889">홍수정보시스템 수위관측 CCTV</small>'
       +'<br><a href="'+url+'" target="_blank" rel="noopener">CCTV 보기</a>';
-    L.marker([x.lat,x.lng],{icon:L.divIcon({className:'cctv-div',html:'<span class="cctv-badge">📹</span>',iconSize:null}),pane:'cctvPane'})
+    L.marker([x.lat,x.lng],{icon:L.divIcon({className:'cctv-div',html:'<span class="cctv-badge">🎥</span>',iconSize:[30,30],iconAnchor:[15,15]}),pane:'cctvPane'})
       .bindPopup(h,{minWidth:180}).addTo(cctvLayer);
   });
   _cctvLoaded=true; _cctvLoading=false;
@@ -1782,7 +1782,7 @@ _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
 _ov['<span class="rv-sw">⚠️</span>지형지물·보'] = obstacleLayer;     // 기본 ON, 줌≥12 표시
 _ov['<span class="rv-sw">🛣️</span>로드뷰'] = roadviewLayer;   // 기본 OFF
 _ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF, 줌≥12 표시
-_ov['<span class="rv-sw">📹</span>수위관측 CCTV'] = cctvLayer;   // 기본 OFF, 줌≥12 표시
+_ov['<span class="rv-sw">📹</span>수위관측 CCTV'] = cctvLayer;   // 기본 OFF
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
 _protectPH.addTo(map); _wlzPH.addTo(map);   // 기본 ON(체크). 실제 면은 줌게이트가 제어. obstacle/수위와 동일 거동.
