@@ -1601,8 +1601,21 @@ function _wlStage(wl, s){
   if(att!=null&&v>=att) return ['관심','#fbc02d'];
   return ['정상','#2e7d32'];
 }
-function _wlTime(t){ return t&&t.length>=12 ? (+t.slice(4,6))+'.'+(+t.slice(6,8))+' '+t.slice(8,10)+':'+t.slice(10,12) : ''; }
+function _wlTime(t){
+  if(!t) return '';
+  if(t.length>=12) return (+t.slice(4,6))+'.'+(+t.slice(6,8))+' '+t.slice(8,10)+':'+t.slice(10,12);
+  if(t.length>=10) return (+t.slice(4,6))+'.'+(+t.slice(6,8))+' '+t.slice(8,10)+':00';
+  return '';
+}
 const _wlCache={};   // cd -> {rec, ts} (10분 클라이언트 캐시)
+function _wlRecent1H(cd){   // 일부 관측소는 최신 10M 엔드포인트가 비어 있어 1H 최신값으로 보완
+  if(!HRFCO_KEY) return Promise.resolve(null);
+  const now=new Date(), from=new Date(now.getTime()-48*3600*1000);
+  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/1H/'+cd+'/'+_hrfcoYmdh(from)+'/'+_hrfcoYmdh(now)+'.json')
+    .then(function(r){return r.json();})
+    .then(function(j){ const rec=(j.content||[]).filter(function(x){return isFinite(parseFloat(x.wl));})[0]; return rec?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm,src:'1H'}:null; })
+    .catch(function(){ return null; });
+}
 function _wlGet(cd){
   const c=_wlCache[cd]; if(c && Date.now()-c.ts<600000) return Promise.resolve(c.rec);
   const direct = HRFCO_KEY
@@ -1610,10 +1623,11 @@ function _wlGet(cd){
         .then(function(r){return r.json();})
         .then(function(j){ const rec=(j.content||[])[0]; return rec?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm}:null; })
     : Promise.reject('nokey');
-  return direct.catch(function(){   // 직접 호출 실패 시 워커 폴백
+  return direct.then(function(rec){ return rec || _wlRecent1H(cd); }).catch(function(){   // 직접 호출 실패 시 워커 폴백
       return fetch(WORKER_URL.replace(/\/+$/,'')+'/waterlevel?obs='+cd)
         .then(function(r){return r.json();}).then(function(d){ return (d&&d[cd])||null; });
-    }).then(function(rec){ _wlCache[cd]={rec:rec,ts:Date.now()}; return rec; });
+    }).then(function(rec){ return rec || _wlRecent1H(cd); })
+    .then(function(rec){ _wlCache[cd]={rec:rec,ts:Date.now()}; return rec; });
 }
 function _hrfcoYmdh(d){ return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+('0'+d.getHours()).slice(-2); }
 function _wlTrend(cd){   // 최근 24시간 1H 수위 → 스파크라인 SVG
