@@ -1426,10 +1426,14 @@ loadFavs();
 // 로드뷰 있는 장소 표식 레이어(기본 OFF, 토글) — 사전계산(properties.rv)
 const _rvCount=POINTS.features.filter(function(f){return f.properties.rv;}).length;
 const roadviewLayer = L.layerGroup(POINTS.features.filter(function(f){return f.properties.rv;}).map(function(f){
-  const c=f.geometry.coordinates;
-  const m=L.marker([c[1],c[0]],{icon:L.divIcon({className:'rv-div',html:'<span class="rv-badge" title="로드뷰 보기">🛣️</span>',iconSize:null})});
-  m.on('click',function(){ openRoadview(c[1],c[0],f.properties.name||'로드뷰'); });
-  return m;
+  const c=f.geometry.coordinates, lat=c[1], lng=c[0], d=0.00013;
+  const name=f.properties.name||'로드뷰';
+  const ln=L.polyline([[lat,lng-d],[lat,lng+d]],{
+    color:'#00acc1', weight:7, opacity:0.92, lineCap:'round', lineJoin:'round'
+  });
+  ln.bindTooltip('🛣️ '+name, {sticky:true, direction:'top', opacity:0.95});
+  ln.on('click',function(){ openRoadview(lat,lng,name); });
+  return ln;
 }));
 
 // ---- 수위 레이어(HRFCO, 기본 OFF) — 마커 탭 시 실시간 수위 ----
@@ -1613,7 +1617,7 @@ _ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup
 _ov[_sw('#ec407a')+'카누명소'] = famousLayer;
 _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
 _ov['<span class="rv-sw">⚠️</span>지형지물·보'] = obstacleLayer;     // 기본 ON, 줌≥12 표시
-_ov['<span class="rv-sw">🛣️</span>로드뷰'] = roadviewLayer;   // 기본 OFF
+_ov['<span class="rv-sw">🛣️</span>로드뷰 구간'] = roadviewLayer;   // 기본 OFF
 _ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF, 줌≥12 표시
 _ov['<span class="rv-sw">📹</span>수위관측 CCTV'] = cctvLayer;   // 기본 OFF, 줌≥12 표시
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
