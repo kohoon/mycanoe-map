@@ -925,6 +925,7 @@ function _applyCourseOver(f){
 function _renderStaticCourses(){
   const groups={};   // 서브카테고리 -> features
   COURSES.features.forEach(function(f){ _applyCourseOver(f); const p=f.properties||{};
+    if(_courseFocusId && String(p.cid)!==String(_courseFocusId)) return;
     if(p.cid!=null) _courseByCid[String(p.cid)]={id:p.cid, static:true, name:p.name||'코스', km:p.km||0, coords:(f.geometry&&f.geometry.coordinates||[]).map(function(c){return [c[1],c[0]];})};
     const sc=courseSubcat(p.name); (groups[sc]=groups[sc]||[]).push(f);
   });
@@ -1737,9 +1738,10 @@ map.on('baselayerchange', function(e){
 const _kvCourseGrp=L.layerGroup();
 const _kvCourses={};   // id -> 코스(KV 등록 코스, 수정용)
 const _kvCourseLayers={};   // id -> {grp,ls} (라이브 삭제용)
-let _courseFocusId='';   // 공유 URL에서 요청된 코스만 표시
+let _courseFocusId=(function(){ const m=(location.search||'').match(/[?&]course=([^&]+)/); return m ? decodeURIComponent(m[1]) : ''; })();   // 공유 URL에서 요청된 코스만 표시
 function renderKVCourse(c){
   if(!c||!c.coords||c.coords.length<2) return;
+  if(_courseFocusId && _courseFocusId !== ('k'+c.id)) return;
   _kvCourses[c.id]=c;
   const sc=courseSubcat(c.name), col=subcatColor(sc), coords=c.coords;
   const lineCol=courseLineColor(sc, c.id);
