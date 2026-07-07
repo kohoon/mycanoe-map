@@ -67,7 +67,60 @@ def hav_km(a, b):
     h = math.sin((la2-la1)/2)**2 + math.cos(la1)*math.cos(la2)*math.sin((lo2-lo1)/2)**2
     return 2*R*math.asin(math.sqrt(h))
 
+def _valid_wl(v):
+    try:
+        return v is not None and str(v).strip() != "" and math.isfinite(float(v))
+    except Exception:
+        return False
+
+def _first_valid(rows):
+    for rec in rows or []:
+        if _valid_wl(rec.get("wl")):
+            return rec
+    return None
+
+def _has_usable_value(key, cd):
+    now = ""
+    try:
+        # 10M: 최신값이 있으면 즉시 통과
+        j = json.loads(urllib.request.urlopen(
+            f"https://api.hrfco.go.kr/{key}/waterlevel/list/10M/{cd}.json", timeout=30
+        ).read().decode("utf-8"))
+        if _first_valid(j.get("content")):
+            return True
+    except Exception:
+        pass
+    # 10M가 비면 1H/1D까지 확인
+    try:
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        from_h = now - timedelta(days=2)
+        ymdh = lambda d: d.strftime("%Y%m%d%H")
+        j = json.loads(urllib.request.urlopen(
+            f"https://api.hrfco.go.kr/{key}/waterlevel/list/1H/{cd}/{ymdh(from_h)}/{ymdh(now)}.json",
+            timeout=30
+        ).read().decode("utf-8"))
+        if _first_valid(j.get("content")):
+            return True
+    except Exception:
+        pass
+    try:
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        from_d = now - timedelta(days=7)
+        ymd = lambda d: d.strftime("%Y%m%d")
+        j = json.loads(urllib.request.urlopen(
+            f"https://api.hrfco.go.kr/{key}/waterlevel/list/1D/{cd}/{ymd(from_d)}/{ymd(now)}.json",
+            timeout=30
+        ).read().decode("utf-8"))
+        if _first_valid(j.get("content")):
+            return True
+    except Exception:
+        pass
+    return False
+
 def main():
+    api_key = key()
     url = f"https://api.hrfco.go.kr/{key()}/waterlevel/info.json"
     info = json.loads(urllib.request.urlopen(url, timeout=60).read().decode("utf-8"))
     stations = []
@@ -98,7 +151,14 @@ def main():
 
     sel = [st for st in stations if st["cd"] not in EXCLUDE_CODES and not st.get("alt") and any(hav_km((st["lat"], st["lng"]), p) <= RADIUS_KM for p in pts)]
     print(f"선별({RADIUS_KM}km 이내): {len(sel)}")
-    (DATA/"hrfco_stations.json").write_text(json.dumps(sel, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+    live = []
+    for i, st in enumerate(sel, 1):
+        if _has_usable_value(api_key, st["cd"]):
+            live.append(st)
+        if i % 25 == 0:
+            print(f"  수위값 확인 {i}/{len(sel)}", flush=True)
+    print(f"유효값 있음: {len(live)} / {len(sel)}")
+    (DATA/"hrfco_stations.json").write_text(json.dumps(live, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
     print("[done] hrfco_stations.json")
 
 if __name__ == "__main__":
