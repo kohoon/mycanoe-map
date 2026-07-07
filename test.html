@@ -950,6 +950,7 @@ function _renderStaticCourses(){
   });
   _hiddenStaticCids.forEach(function(cid){ _hideStaticCourse(cid); });
   if(_favOnly) applyFavFilter();
+  _applyCourseFocus();
 }
 fetch(WORKER_URL.replace(/\/+$/,'')+'/course?over=1').then(function(r){return r.json();}).then(function(o){ Object.assign(_courseOver,o||{}); _renderStaticCourses(); }).catch(function(){ _renderStaticCourses(); });
 
@@ -1736,6 +1737,7 @@ map.on('baselayerchange', function(e){
 const _kvCourseGrp=L.layerGroup();
 const _kvCourses={};   // id -> 코스(KV 등록 코스, 수정용)
 const _kvCourseLayers={};   // id -> {grp,ls} (라이브 삭제용)
+let _courseFocusId='';   // 공유 URL에서 요청된 코스만 표시
 function renderKVCourse(c){
   if(!c||!c.coords||c.coords.length<2) return;
   _kvCourses[c.id]=c;
@@ -1750,8 +1752,9 @@ function renderKVCourse(c){
   _kvCourseLayers[c.id]={grp:grp,ls:[casing,line,hit]};
   _favReg('course_k'+c.id,casing,grp); _favReg('course_k'+c.id,line,grp); _favReg('course_k'+c.id,hit,grp);
   if(_favOnly) applyFavFilter();
+  _applyCourseFocus();
 }
-function loadCourses(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ (list||[]).forEach(renderKVCourse); }).catch(function(){}); }
+function loadCourses(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ (list||[]).forEach(renderKVCourse); _applyCourseFocus(); }).catch(function(){ _applyCourseFocus(); }); }
 // 정적 코스 숨김(관리자 삭제분) 적용
 fetch(fapi('/course')+'?hidden=1').then(function(r){return r.json();}).then(function(a){ (a||[]).forEach(function(cid){ _hiddenStaticCids.add(String(cid)); _hideStaticCourse(cid); }); }).catch(function(){});
 loadCourses();
@@ -1767,8 +1770,9 @@ function focusCourseFromUrl(){
   let id=null; const m=(location.search||'').match(/[?&]course=([^&]+)/); if(m) id=decodeURIComponent(m[1]);
   if(!id){ try{ id=sessionStorage.getItem('mc_course_focus'); }catch(e){} }
   if(!id) return;
-  const u=getUser(); if(!u||!u.uid){ try{ sessionStorage.setItem('mc_course_focus', id); }catch(e){} return; }  // 로그인 후 포커스
   try{ sessionStorage.removeItem('mc_course_focus'); }catch(e){}
+  _courseFocusId=id;
+  _applyCourseFocus();
   if(id.charAt(0)==='k'){ const kid=id.slice(1);   // KV 코스: 별도 조회
     fetch(WORKER_URL.replace(/\/+$/,'')+'/courses').then(function(r){return r.json();}).then(function(list){ const c=(list||[]).find(function(x){return String(x.id)===String(kid);}); if(c) _fitAndPop(c.coords, c.name, c.km); }).catch(function(){});
     return; }
@@ -1783,6 +1787,23 @@ async function deleteStaticCourse(cid){ if(!isAdmin()) return; if(!confirm('이 
   try{ const r=await fetch(fapi('/course'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hidestatic',adminKey:adminKey(),cid:String(cid)})});
     if(r.ok){ _hideStaticCourse(cid); closePlaceModal(); map.closePopup(); gaEvent('course_hide'); } else alert('실패(권한 확인)'); }catch(e){ alert('오류'); } }
 function _hideStaticCourse(cid){ _hiddenStaticCids.add(String(cid)); const arr=_staticCidLayers[String(cid)]; if(arr) arr.forEach(function(e){ e.grp.removeLayer(e.l); }); }
+function _applyCourseFocus(){
+  if(!_courseFocusId) return;
+  const id=String(_courseFocusId);
+  const isKv=id.charAt(0)==='k';
+  const kvId=isKv?id.slice(1):'';
+  const staticId=isKv?'':id;
+  Object.keys(_staticCidLayers).forEach(function(cid){
+    const arr=_staticCidLayers[cid]; if(!arr) return;
+    const keep=!isKv && String(cid)===staticId;
+    arr.forEach(function(e){ if(keep) e.grp.addLayer(e.l); else e.grp.removeLayer(e.l); });
+  });
+  Object.keys(_kvCourseLayers).forEach(function(cid){
+    const e=_kvCourseLayers[cid]; if(!e) return;
+    const keep=isKv && String(cid)===kvId;
+    e.ls.forEach(function(l){ if(keep) e.grp.addLayer(l); else e.grp.removeLayer(l); });
+  });
+}
 
 // ---- 장소 검색 (Nominatim) ----
 const SearchCtl = L.Control.extend({ options:{position:'topleft'},
