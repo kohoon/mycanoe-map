@@ -109,7 +109,8 @@ print(f"수상레저금지 {len(wlz['features'])}구역(해수면+내수면) →
 pfeats = [{"type": "Feature",
            "geometry": {"type": "Point", "coordinates": [v["lng"], v["lat"]]},
            "properties": {"name": v.get("name", ""), "memo": v.get("memo", ""), "id": _ids.get(k),
-                          "rv": bool((_rv.get(str(k)) or {}).get("rv"))}}
+                          "rv": bool((_rv.get(str(k)) or {}).get("rv")),
+                          "rvline": (_rv.get(str(k)) or {}).get("line")}}
           for k, v in items.items() if v.get("lat") is not None]
 points = {"type": "FeatureCollection", "features": pfeats}
 print(f"로드뷰 있음 {sum(1 for f in pfeats if f['properties']['rv'])}/{len(pfeats)}")
@@ -1229,7 +1230,7 @@ function courseCmt(kind,id){
 // 줌 게이팅: 마커를 전용 pane에 넣고 줌<12(런칭/랜딩 아이콘 전환 기준)에서는 pane 자체를 숨김
 // (레이어 토글과 독립 — 체크 상태 유지한 채 줌으로만 표시/숨김)
 map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
-map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='635';
+map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='650';
 map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='645';
 function _zoomPaneGate(){ const on=map.getZoom()>=12?'':'none';
   map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on; }
@@ -1595,7 +1596,10 @@ const _rvCount=POINTS.features.filter(function(f){return f.properties.rv;}).leng
 const roadviewLayer = L.layerGroup(POINTS.features.filter(function(f){return f.properties.rv;}).map(function(f){
   const c=f.geometry.coordinates, lat=c[1], lng=c[0], d=0.00013;
   const name=f.properties.name||'로드뷰';
-  const ln=L.polyline([[lat,lng-d],[lat,lng+d]],{
+  const ll=(f.properties.rvline&&f.properties.rvline.length>=2)
+    ? f.properties.rvline.map(function(p){return [p[0],p[1]];})
+    : [[lat,lng-d],[lat,lng+d]];
+  const ln=L.polyline(ll,{
     color:'#00acc1', weight:7, opacity:0.92, lineCap:'round', lineJoin:'round'
   });
   ln.bindTooltip('🛣️ '+name, {sticky:true, direction:'top', opacity:0.95});
