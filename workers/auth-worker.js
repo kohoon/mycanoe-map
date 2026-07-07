@@ -66,6 +66,18 @@ export default {
     const url = new URL(req.url);
     const REDIRECT = url.origin + url.pathname;   // = 카카오에 등록할 Redirect URI
     const code = url.searchParams.get("code");
+    const back = (() => {
+      const raw = url.searchParams.get("back") || "";
+      if (!raw) return "";
+      try {
+        const u = new URL(raw, env.SITE_URL || "https://kohoon.github.io/mycanoe-map/");
+        const site = new URL(env.SITE_URL || "https://kohoon.github.io/mycanoe-map/");
+        if (u.origin !== site.origin) return "";
+        return u.pathname + u.search;
+      } catch (e) {
+        return "";
+      }
+    })();
 
     // B: 쓰기성 POST는 우리 사이트 Origin에서만(타 사이트 브라우저 JS 차단). Origin 없으면 통과(이미지/툴).
     if (req.method === "POST" && !_allowedOrigin(req, env)) {
@@ -855,7 +867,8 @@ export default {
     if (!code) {
       const auth = "https://kauth.kakao.com/oauth/authorize?response_type=code"
         + "&client_id=" + env.KAKAO_REST_KEY
-        + "&redirect_uri=" + encodeURIComponent(REDIRECT);
+        + "&redirect_uri=" + encodeURIComponent(REDIRECT)
+        + (back ? "&state=" + encodeURIComponent(back) : "");
       return Response.redirect(auth, 302);
     }
 
@@ -901,8 +914,9 @@ export default {
     }
 
     const site = env.SITE_URL || "https://kohoon.github.io/mycanoe-map/";
+    const dest = back ? site.replace(/\/$/, "") + back : site;
     const idTok = await _tokFor(env, String(id));
-    const back = site + "#login=" + encodeURIComponent(id) + "&nick=" + encodeURIComponent(nick) + "&tok=" + encodeURIComponent(idTok);
-    return Response.redirect(back, 302);
+    const backUrl = dest + "#login=" + encodeURIComponent(id) + "&nick=" + encodeURIComponent(nick) + "&tok=" + encodeURIComponent(idTok);
+    return Response.redirect(backUrl, 302);
   },
 };

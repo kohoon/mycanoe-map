@@ -495,6 +495,12 @@ function gaEvent(name, params){ try{ if(window.gtag) gtag('event', name, params|
 function getUser(){ try{ return JSON.parse(localStorage.getItem('mc_user')||'null'); }catch(e){ return null; } }
 function setUser(u){ try{ u?localStorage.setItem('mc_user',JSON.stringify(u)):localStorage.removeItem('mc_user'); }catch(e){} }
 function devType(){ return (('ontouchstart' in window)||navigator.maxTouchPoints>0)?'모바일':'PC'; }
+function loginReturnPath(){
+  return location.pathname + location.search + location.hash.replace(/#login=[^&]+(&nick=[^&]*)?(&tok=[^&]*)?/, '');
+}
+function loginWorkerUrl(){
+  return WORKER_URL + '?back=' + encodeURIComponent(loginReturnPath());
+}
 function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Worker → 시트
   try{ if(adminKey()) return;   // 관리자 기기(mc_admin 보유)는 접속기록 시트에서 제외
     const u=getUser(); if(!u||!u.uid) return;
@@ -539,7 +545,7 @@ function showWelcome(){
 }
 (function(){
   const gb=document.getElementById('gateLogin');
-  if(gb) gb.onclick=function(){ gaEvent('login_start'); location.href=WORKER_URL; };
+  if(gb) gb.onclick=function(){ gaEvent('login_start'); location.href=loginWorkerUrl(); };
   const u=getUser(); if(u&&u.uid){ hideGate(); fetchNotices().then(function(){ updateNoticeBadge(); showWelcome(); }); } else showGate();
 })();
 function renderAuth(){
@@ -551,7 +557,7 @@ function renderAuth(){
     const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); gaEvent('logout'); renderAuth(); showGate(); });
   } else {
     d.innerHTML='<button id="loginA">카카오 로그인</button>';
-    const lb=document.getElementById('loginA'); if(lb) L.DomEvent.on(lb,'click',function(e){ L.DomEvent.stop(e); gaEvent('login_start'); location.href=WORKER_URL; });
+    const lb=document.getElementById('loginA'); if(lb) L.DomEvent.on(lb,'click',function(e){ L.DomEvent.stop(e); gaEvent('login_start'); location.href=loginWorkerUrl(); });
   }
 }
 const AuthCtl=L.Control.extend({ options:{position:'topright'},
@@ -924,8 +930,9 @@ function _applyCourseOver(f){
 }
 function _renderStaticCourses(){
   const groups={};   // 서브카테고리 -> features
+  const focusId=String(_courseFocusId||'').trim();
   COURSES.features.forEach(function(f){ _applyCourseOver(f); const p=f.properties||{};
-    if(_courseFocusId && String(p.cid)!==String(_courseFocusId)) return;
+    if(focusId && String(p.cid)!==focusId) return;
     if(p.cid!=null) _courseByCid[String(p.cid)]={id:p.cid, static:true, name:p.name||'코스', km:p.km||0, coords:(f.geometry&&f.geometry.coordinates||[]).map(function(c){return [c[1],c[0]];})};
     const sc=courseSubcat(p.name); (groups[sc]=groups[sc]||[]).push(f);
   });
@@ -1741,7 +1748,8 @@ const _kvCourseLayers={};   // id -> {grp,ls} (라이브 삭제용)
 let _courseFocusId=(function(){ const m=(location.search||'').match(/[?&]course=([^&]+)/); return m ? decodeURIComponent(m[1]) : ''; })();   // 공유 URL에서 요청된 코스만 표시
 function renderKVCourse(c){
   if(!c||!c.coords||c.coords.length<2) return;
-  if(_courseFocusId && _courseFocusId !== ('k'+c.id)) return;
+  const focusId=String(_courseFocusId||'').trim();
+  if(focusId && focusId !== ('k'+c.id)) return;
   _kvCourses[c.id]=c;
   const sc=courseSubcat(c.name), col=subcatColor(sc), coords=c.coords;
   const lineCol=courseLineColor(sc, c.id);
@@ -1770,9 +1778,7 @@ function _fitAndPop(ll, name, km){ if(!ll||ll.length<2) return; try{ map.fitBoun
   L.popup().setLatLng(ll[Math.floor(ll.length/2)]).setContent('<b>'+pmEsc(name||'코스')+'</b>'+(km?'<br>약 '+km+'km':'')).openOn(map); }
 function focusCourseFromUrl(){
   let id=null; const m=(location.search||'').match(/[?&]course=([^&]+)/); if(m) id=decodeURIComponent(m[1]);
-  if(!id){ try{ id=sessionStorage.getItem('mc_course_focus'); }catch(e){} }
   if(!id) return;
-  try{ sessionStorage.removeItem('mc_course_focus'); }catch(e){}
   _courseFocusId=id;
   _applyCourseFocus();
   if(id.charAt(0)==='k'){ const kid=id.slice(1);   // KV 코스: 별도 조회
