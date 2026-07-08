@@ -2154,7 +2154,7 @@ async function renderCourseAnalysis(course,targetId){
   const routeKm=(course&&course.km)?course.km:0;
   const routeHTML='<div class="cm-route"><div class="cm-route-top"><span>전체 경로</span><span>'+(routeKm?routeKm.toFixed(2)+' km':'')+'</span></div>'
     +'<div class="cm-route-line"><span class="start"></span><span class="mid"></span><span class="end"></span></div>'
-    +'<div class="cm-route-meta"><span>출발 '+(start?start[0].toFixed(3)+', '+start[1].toFixed(3):'-')+'</span><span>중간 '+(mid?mid[0].toFixed(3)+', '+mid[1].toFixed(3):'-')+'</span><span>도착 '+(end?end[0].toFixed(3)+', '+end[1].toFixed(3):'-')+'</span></div></div>';
+    +'<div class="cm-route-meta"><span>출발</span><span>중간</span><span>도착</span></div></div>';
   box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div>'
     +routeHTML
     +'<div class="cm-ana-line">분석 중…</div>';
