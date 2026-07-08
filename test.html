@@ -207,6 +207,8 @@
   .pmodal h3{margin:0 30px 8px 0;font-size:18px;color:#1b3a2b}
   #pmLinks{font-size:13px;margin-bottom:10px}
   .pm-memo{color:#556;font-size:13px;margin-top:6px}
+  .pm-note{font-size:12.5px;font-weight:700;line-height:1.45;border-radius:8px;padding:7px 9px;margin:0 0 8px}
+  .pm-note-warn{background:#fff4e5;color:#8a4b00;border:1px solid #ffd59e}
   .course-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .course-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid #cbd8e5;background:#f7fbff;color:#154b86;border-radius:999px;padding:7px 11px;font:700 12px sans-serif;cursor:pointer;text-decoration:none;line-height:1}
   .course-btn.on{background:#1565c0;color:#fff;border-color:#1565c0}
@@ -1124,7 +1126,8 @@ function openPlaceModal(pl){
   document.getElementById('pmTitle').textContent=(pl.name||'장소');
   renderPmCat(pl);
   _clearPhoto(); renderRateRow();
-  document.getElementById('pmLinks').innerHTML='<div id="pmWx" class="pm-wx"></div>'
+  const warn=(pl.cat==='런칭/랜딩 후보지')?'<div class="pm-note pm-note-warn">⚠️ 런칭/랜딩 가능한지 확인이 필요한 곳</div>':'';
+  document.getElementById('pmLinks').innerHTML=warn+'<div id="pmWx" class="pm-wx"></div>'
     +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'')
     +((isAdmin()&&pl.id!=null)?'<div class="pm-padmin"><a onclick="editPlace()">✏️ 수정</a><a onclick="movePlace()">📍 위치 이동</a><a onclick="deletePlace()">🗑 삭제</a></div>':'');
   placeWeather(pl.lat,pl.lng);
