@@ -245,8 +245,22 @@ __GTAG__
   .cm-analysis{font-size:13px;color:#345;background:#f4f8fc;border-radius:10px;padding:10px 12px;margin:10px 0 8px;border:1px solid #dce7f1}
   .cm-analysis:empty{display:none}
   .cm-analysis-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#1f3a34;margin-bottom:8px}
-  .cm-analysis-grid{display:grid;grid-template-columns:1fr;gap:8px}
-  .cm-ana-card{background:#fff;border:1px solid #e3ebf3;border-radius:8px;padding:8px 9px}
+  .cm-analysis-close{border:0;background:#e9eff5;color:#445;border-radius:50%;width:26px;height:26px;font-size:16px;line-height:1;cursor:pointer;flex:none}
+  .cm-analysis-close:hover{background:#dce7f1}
+  .cm-route{background:#fff;border:1px solid #dce7f1;border-radius:8px;padding:8px 10px;margin-bottom:8px}
+  .cm-route-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#1f3a34;margin-bottom:6px}
+  .cm-route-line{position:relative;height:10px;border-radius:999px;background:linear-gradient(90deg,#c8e6ff,#b2dfdb,#ffe082,#ffccbc);overflow:hidden}
+  .cm-route-line span{position:absolute;top:0;width:10px;height:10px;border-radius:50%;transform:translateX(-50%);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .cm-route-line .start{left:2%;background:#1565c0}
+  .cm-route-line .mid{left:50%;background:#2e7d32}
+  .cm-route-line .end{left:98%;background:#c62828}
+  .cm-route-meta{display:flex;justify-content:space-between;gap:8px;margin-top:5px;font-size:11px;color:#667}
+  .cm-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+  .cm-row::-webkit-scrollbar{height:6px}
+  .cm-row::-webkit-scrollbar-thumb{background:#c7d4df;border-radius:999px}
+  .cm-ana-card{background:#fff;border:1px solid #e3ebf3;border-radius:8px;padding:8px 9px;flex:0 0 auto}
+  .cm-day-card{min-width:126px;max-width:126px}
+  .cm-station-card{min-width:198px;max-width:198px}
   .cm-ana-title{font-weight:800;font-size:12.5px;color:#1f3a34;margin-bottom:4px}
   .cm-ana-line{font-size:12.5px;color:#445;line-height:1.45;word-break:break-word}
   .cm-ana-note{margin-top:8px;font-size:12.5px;color:#23527c;background:#eaf4ff;border-radius:8px;padding:8px 9px}
@@ -260,8 +274,16 @@ __GTAG__
   .wxd-p{font-size:10px;color:#1565c0;min-height:13px}
   .pd-chip{font-size:11px;color:#445;line-height:1.5;margin-top:6px;padding-top:5px;border-top:1px solid #eee}
   .pd-chip:empty{display:none}
-  #fldBanner{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:4000;background:#b71c1c;color:#fff;
-    font:700 12.5px sans-serif;padding:7px 16px;border-radius:0 0 12px 12px;box-shadow:0 2px 10px rgba(0,0,0,.4);max-width:92vw}
+  #fldBanner,.fld-banner{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:4000;background:#b71c1c;color:#fff;
+    font:700 12.5px sans-serif;padding:9px 12px 10px;border-radius:0 0 12px 12px;box-shadow:0 2px 10px rgba(0,0,0,.4);max-width:min(92vw,760px);width:max-content;pointer-events:auto}
+  .fld-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .fld-body{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:160px;overflow:auto}
+  .fld-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:160px;max-width:240px;padding:8px 10px;border:1px solid rgba(255,255,255,.28);border-radius:10px;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;text-align:left}
+  .fld-item b{font-size:12.5px}
+  .fld-item span,.fld-item small,.fld-item em{display:block;font-style:normal;font-size:10.5px;font-weight:600;opacity:.95}
+  .fld-item.off{opacity:.55}
+  .fld-item:hover{background:rgba(255,255,255,.18)}
+  .fld-close{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:50%;width:24px;height:24px;font-size:16px;line-height:1;cursor:pointer;flex:none}
   .rv-pmodal{max-width:560px}
   #rvView{width:100%;height:58vh;max-height:440px;min-height:240px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
   #rvDate{font-size:12px;color:#778;margin-top:7px;min-height:15px;text-align:right}
@@ -1812,12 +1834,41 @@ function _paldang(){
 }
 map.on('overlayadd', function(e){ if(e&&e.layer===waterLevelLayer) _paldang(); });
 // 홍수예보 발령 경고(발령 중일 때만 상단 배지)
+function _floodPlace(x){
+  const nm=(x.obsnm||x.rvrnm||x.stn_nm||x.nm||'').trim();
+  if(!nm) return null;
+  for(let i=0;i<WLSTN.length;i++){ const s=WLSTN[i]; if((s.nm||'').indexOf(nm)>=0 || nm.indexOf(s.nm||'')>=0) return s; }
+  return null;
+}
+function _floodDetail(x){
+  const t=(x.fldfctnm||x.fcodvcd||x.wrnmsg||x.msg||'').trim();
+  const r=(x.rvrnm||x.rivnm||'').trim();
+  const n=(x.obsnm||x.stn_nm||x.nm||'').trim();
+  return {name:n||r||'홍수예보', river:r, type:t};
+}
 (function(){ if(!HRFCO_KEY) return;
   fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/fldfct/list.json').then(function(r){return r.json();})
     .then(function(j){ const list=j.content||[]; if(!list.length) return;
-      const names=list.slice(0,4).map(function(x){return (x.rvrnm||x.obsnm||'').trim();}).filter(Boolean);
-      const d=document.createElement('div'); d.id='fldBanner';
-      d.innerHTML='🚨 홍수예보 발령중('+list.length+'건): '+names.join(', ')+(list.length>4?' 외':'');
+      const d=document.createElement('div'); d.id='fldBanner'; d.className='fld-banner';
+      const items=list.slice(0,6).map(function(x){
+        const z=_floodDetail(x), s=_floodPlace(x), has=s&&isFinite(s.lat)&&isFinite(s.lng);
+        return '<button type="button" class="fld-item'+(has?'':' off')+'" data-lat="'+(has?s.lat:'')+'" data-lng="'+(has?s.lng:'')+'" title="'+pmEsc(z.type||'')+'">'
+          +'<b>'+pmEsc(z.name)+'</b>'+(z.river?'<span>'+pmEsc(z.river)+'</span>':'')
+          +(z.type?'<small>'+pmEsc(z.type)+'</small>':'')
+          +(has?'<em>이동</em>':'<em>좌표 없음</em>')+'</button>';
+      }).join('');
+      d.innerHTML='<div class="fld-h">'
+        +'<span>🚨 홍수예보 발령중('+list.length+'건)</span>'
+        +'<button type="button" class="fld-close" title="닫기">×</button>'
+        +'</div>'
+        +'<div class="fld-body">'+items+'</div>';
+      d.querySelector('.fld-close').onclick=function(){ d.remove(); };
+      d.querySelectorAll('.fld-item').forEach(function(b){
+        b.onclick=function(){
+          const lat=parseFloat(b.getAttribute('data-lat')), lng=parseFloat(b.getAttribute('data-lng'));
+          if(isFinite(lat)&&isFinite(lng)) map.setView([lat,lng], 14);
+        };
+      });
       document.body.appendChild(d);
     }).catch(function(){});
 })();
@@ -2267,10 +2318,19 @@ async function renderCourseAnalysis(course,targetId){
   if(coords.length<2){ box.innerHTML=''; return; }
   const seq=++_courseAnalysisSeq;
   const center=_courseCenter(coords);
-  box.innerHTML='<div class="cm-analysis-h">코스 분석 <span class="beta-tag">BETA</span></div><div class="cm-ana-line">분석 중…</div>';
+  const start=coords[0], end=coords[coords.length-1], mid=coords[Math.floor(coords.length/2)];
+  const routeKm=(course&&course.km)?course.km:0;
+  const routeHTML='<div class="cm-route"><div class="cm-route-top"><span>전체 경로</span><span>'+(routeKm?routeKm.toFixed(2)+' km':'')+'</span></div>'
+    +'<div class="cm-route-line"><span class="start"></span><span class="mid"></span><span class="end"></span></div>'
+    +'<div class="cm-route-meta"><span>출발 '+(start?start[0].toFixed(3)+', '+start[1].toFixed(3):'-')+'</span><span>중간 '+(mid?mid[0].toFixed(3)+', '+mid[1].toFixed(3):'-')+'</span><span>도착 '+(end?end[0].toFixed(3)+', '+end[1].toFixed(3):'-')+'</span></div></div>';
+  box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div>'
+    +routeHTML
+    +'<div class="cm-ana-line">분석 중…</div>';
   const stations=_courseStationRank(coords, 3);
   if(!stations.length){
-    box.innerHTML='<div class="cm-analysis-h">코스 분석 <span class="beta-tag">BETA</span></div><div class="cm-ana-line">주변 수위관측소를 찾지 못했습니다.</div>';
+    box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div>'
+      +routeHTML
+      +'<div class="cm-ana-line">주변 수위관측소를 찾지 못했습니다.</div>';
     return;
   }
   const wxP=center?fetchWeatherData(center.lat, center.lng):Promise.resolve(null);
@@ -2287,7 +2347,7 @@ async function renderCourseAnalysis(course,targetId){
     if(rain24>=30 || wind24>=12) wxRisk=2; else if(rain24>=15 || wind24>=8) wxRisk=1;
     dailyCards=wx.days.slice(0,7).map(function(d){
       const dr=_dayRisk(d), lbl=_riskLabel(dr);
-      return '<div class="cm-ana-card"><div class="cm-ana-title">'+pmEsc(d.label||'')+'</div>'
+      return '<div class="cm-ana-card cm-day-card"><div class="cm-ana-title">'+pmEsc(d.label||'')+'</div>'
         +'<div class="cm-ana-line">'+_wxEmoji(d.code)+' 최고 '+Math.round(d.tmax)+'° · 비 '+_fmtMm(d.rain)+'㎜ · 바람 '+d.wmax.toFixed(1)+'㎧</div>'
         +'<div class="cm-ana-line"><b>'+lbl+'</b> · '+(dr===2?'강수/풍속 주의':dr===1?'변동 관찰':'현재 조건상 무난')+'</div></div>';
     }).join('');
@@ -2297,7 +2357,7 @@ async function renderCourseAnalysis(course,targetId){
     const level=(rec&&isFinite(parseFloat(rec.wl)))?parseFloat(rec.wl):NaN;
     const st=_wlStage(level, s); risk=Math.max(risk,_stageRank(st[0]));
     const extra=tr&&isFinite(tr.delta)?(' · '+_fmtDelta(tr.delta)):'';
-    return '<div class="cm-ana-card"><div class="cm-ana-title">'+pmEsc(s.nm||'수위관측소')+' · '+x.dist.toFixed(1)+'km</div>'
+    return '<div class="cm-ana-card cm-station-card"><div class="cm-ana-title">'+pmEsc(s.nm||'수위관측소')+' · '+x.dist.toFixed(1)+'km</div>'
       +'<div class="cm-ana-line"><b style="color:'+st[1]+'">'+st[0]+'</b> '
       +(isFinite(level)?level.toFixed(2)+'m':'값 없음')+extra
       +(st[0]!=='정상'?' · 기준 '+(s.att||'-')+' / '+(s.wrn||'-')+' / '+(s.alm||'-')+' / '+(s.srs||'-'):'')
@@ -2309,11 +2369,12 @@ async function renderCourseAnalysis(course,targetId){
   const wxLine=wx?('<div class="cm-ana-card"><div class="cm-ana-title">날씨</div><div class="cm-ana-line">'
     +'현재 '+_wxEmoji(wx.code)+' '+wx.temp.toFixed(0)+'° · 바람 '+wx.wind.toFixed(1)+'㎧ · 강수 '+_fmtMm(wx.rain)+'㎜'
     +'</div><div class="cm-ana-line">향후 24시간 강수 '+(wx.rain24||0).toFixed(1)+'㎜ · 최대풍속 '+(wx.wind24||0).toFixed(1)+'㎧</div></div>'):'';
-  box.innerHTML='<div class="cm-analysis-h">코스 분석 <span class="beta-tag">BETA</span></div>'
+  box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div>'
+    +routeHTML
     +(wxLine||'')
     +'<div class="cm-ana-card"><div class="cm-ana-title">판정</div><div class="cm-ana-line"><b>'+(verdict.label)+'</b> · '+verdict.note+'</div></div>'
-    +(dailyCards?'<div class="cm-ana-title" style="margin-top:10px">7일 예보</div><div class="cm-analysis-grid">'+dailyCards+'</div>':'')
-    +'<div class="cm-analysis-grid">'+cards+'</div>';
+    +(dailyCards?'<div class="cm-ana-title" style="margin-top:10px">7일 예보</div><div class="cm-row">'+dailyCards+'</div>':'')
+    +'<div class="cm-ana-title" style="margin-top:10px">주변 수위관측소</div><div class="cm-row">'+cards+'</div>';
 }
 function closeCourseModal(){ document.getElementById('courseModal').classList.remove('open'); }
 function _splitCourse(name){   // 이름 -> {cat, no, desc}
