@@ -242,6 +242,15 @@ __GTAG__
   .pm-wx-days{display:flex;gap:2px;margin-top:6px;padding-top:6px;border-top:1px solid #e2eaf0}
   .pm-wx-hscroll{overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch}
   .pm-wx-hscroll .wxd{flex:0 0 auto;min-width:38px}
+  .cm-analysis{font-size:13px;color:#345;background:#f4f8fc;border-radius:10px;padding:10px 12px;margin:10px 0 8px;border:1px solid #dce7f1}
+  .cm-analysis:empty{display:none}
+  .cm-analysis-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#1f3a34;margin-bottom:8px}
+  .cm-analysis-grid{display:grid;grid-template-columns:1fr;gap:8px}
+  .cm-ana-card{background:#fff;border:1px solid #e3ebf3;border-radius:8px;padding:8px 9px}
+  .cm-ana-title{font-weight:800;font-size:12.5px;color:#1f3a34;margin-bottom:4px}
+  .cm-ana-line{font-size:12.5px;color:#445;line-height:1.45;word-break:break-word}
+  .cm-ana-note{margin-top:8px;font-size:12.5px;color:#23527c;background:#eaf4ff;border-radius:8px;padding:8px 9px}
+  .cm-ana-bad{background:#fff4e5;color:#8a4b00}
   .wxd-day{flex:0 0 auto;writing-mode:vertical-rl;text-align:center;font:700 9.5px sans-serif;color:#1565c0;background:#eef4fb;border-radius:5px;padding:3px 1px;margin:0 1px;align-self:stretch}
   .wxd{flex:1;text-align:center;font-size:11px;line-height:1.45;color:#456;border-radius:7px;padding:2px 0}
   .wxd-we{background:#eaf1f8}
@@ -274,6 +283,7 @@ __GTAG__
   .addform #apSave{background:#00b894;color:#fff;border:0;border-radius:5px;padding:6px 13px;font:600 13px sans-serif;cursor:pointer}
   .addform #apMsg{font-size:12px;color:#666;margin-left:6px}
   .canoe-pin-in{width:26px;height:26px;border-radius:50%;background:#2196f3;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+  .canoe-pin-in.candidate{background:#ff9800}
   .canoe-pin-in svg{width:17px;height:auto}
   .loc-canoe-in{display:flex;align-items:center;justify-content:center;width:40px;height:40px;
     filter:drop-shadow(0 2px 4px rgba(13,71,161,.65));animation:locbob 2.4s ease-in-out infinite}
@@ -290,6 +300,7 @@ __GTAG__
   .wreck-in svg{width:30px;height:30px}
   .dotpin{border-radius:50%;border:1.5px solid #fff;box-sizing:border-box;box-shadow:0 0 3px rgba(0,0,0,.5)}
   .dot-canoe{background:#2196f3}
+  .dot-candidate{background:#ff9800}
   .dot-spot{background:#ec407a}
   .dot-wreck{background:#c62828}
   .locbtn svg{width:22px;height:22px;display:block;margin:auto}
@@ -306,6 +317,8 @@ __GTAG__
   .pm-padmin{margin-top:8px;display:flex;gap:14px}
   .pm-padmin a{cursor:pointer;font-size:12.5px;font-weight:600}
   .pm-padmin a:first-child{color:#1565c0} .pm-padmin a:nth-child(2){color:#2e9e5b} .pm-padmin a:last-child{color:#c62828}
+  .pm-cat a[data-k="candidate"]{border-color:#ffb74d;color:#ef6c00}
+  .pm-cat a[data-k="candidate"].on{background:#ff9800;color:#fff;border-color:#ff9800}
   .pm-editform{margin-top:8px}
   .pm-editform input,.pm-editform textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccd;border-radius:8px;font-size:13.5px;margin-bottom:6px}
   .pe-cancel{cursor:pointer;color:#789;font-size:12.5px;margin-left:8px}
@@ -892,7 +905,7 @@ function suggestPlace(){
     '<h3>제안하기</h3>'
     +'<div class="sg-addr">📍 '+pmEsc(a.name||'선택한 위치')+'</div>'
     +'<div class="sg-label">유형 선택</div>'
-    +'<div class="seg" id="sgSeg"><button type="button" class="seg-b on" data-v="런칭/랜딩">🛶 런칭/랜딩</button><button type="button" class="seg-b" data-v="지형지물">🗺️ 지형지물</button><button type="button" class="seg-b" data-v="기타">📍 기타</button></div>'
+    +'<div class="seg" id="sgSeg"><button type="button" class="seg-b on" data-v="런칭/랜딩">🛶 런칭/랜딩</button><button type="button" class="seg-b" data-v="런칭/랜딩 후보">🟠 후보</button><button type="button" class="seg-b" data-v="지형지물">🗺️ 지형지물</button><button type="button" class="seg-b" data-v="기타">📍 기타</button></div>'
     +'<textarea id="sgText" rows="3" maxlength="200" placeholder="설명/코멘트 (예: 진입로·주차 정보 / 보·징검다리 등 주의사항)"></textarea>'
     +'<label class="sg-photo" id="sgPhotoBtn">📷 사진 첨부<input type="file" id="sgPhoto" accept="image/*"></label><div id="sgPhotoPrev"></div>'
     +'<button class="sg-submit" id="sgSave">제안 보내기</button><div id="sgMsg"></div>';
@@ -925,8 +938,9 @@ let _kvPlaces=[];   // 등록·신규 장소(검색용)
 function addPlaceMarker(pl){
   const id=pl.id||('L'+placeSlug(pl.lat,pl.lng)); const o=_placeOver[id]||{};
   if(o.del) return;
-  const nm=(o.name!=null?o.name:(pl.name||'')); const catv=o.cat?(o.cat==='spot'?'명소':'런칭랜딩'):(pl.cat||'런칭랜딩');
-  const k=(catv==='명소')?'spot':'canoe';
+  const legacyCat=(pl.cat==='런칭랜딩')?'런칭/랜딩':(pl.cat||'런칭/랜딩');
+  const nm=(o.name!=null?o.name:(pl.name||'')); const catv=o.cat?(o.cat==='spot'?'명소':(o.cat==='candidate'?'런칭/랜딩 후보':'런칭/랜딩')):legacyCat;
+  const k=(catv==='명소')?'spot':(catv==='런칭/랜딩 후보'?'candidate':'canoe');
   const lat=(o.lat!=null?o.lat:pl.lat), lng=(o.lng!=null?o.lng:pl.lng);
   const rec={id:id,name:nm,memo:(o.memo!=null?o.memo:(pl.memo||'')),lat:lat,lng:lng,cat:catv};
   const m=makeMarker([lat,lng],k);
@@ -941,16 +955,19 @@ function addPlace(){
   if(!isAdmin()) return; const a=window._curAddr; if(!a) return;
   const html='<div class="addform"><b>장소 등록</b>'
     +'<input id="apName" placeholder="장소 이름" value="'+(a.name||'').replace(/["<>]/g,'')+'">'
-    +'<div class="aprow"><label><input type="radio" name="apc" value="명소">카누명소(핑크)</label>'
-    +'<label><input type="radio" name="apc" value="런칭랜딩" checked>런칭/랜딩(파랑)</label></div>'
+    +'<div class="sg-label">분류 선택</div><div class="seg" id="apSeg">'
+    +'<button type="button" class="seg-b" data-v="명소">📍 카누명소</button>'
+    +'<button type="button" class="seg-b on" data-v="런칭랜딩">🛶 런칭/랜딩</button>'
+    +'<button type="button" class="seg-b" data-v="candidate">🟠 런칭/랜딩 후보</button></div>'
     +'<button id="apSave">저장</button> <span id="apMsg"></span></div>';
   L.popup({minWidth:240}).setLatLng([a.lat,a.lng]).setContent(html).openOn(map);
   setTimeout(function(){ const sv=document.getElementById('apSave'); if(!sv) return;
+    const seg=document.getElementById('apSeg'); if(seg) seg.onclick=function(e){ const t=e.target.closest('.seg-b'); if(!t) return; seg.querySelectorAll('.seg-b').forEach(function(x){x.classList.remove('on');}); t.classList.add('on'); };
     sv.onclick=async function(){
       const nm=(document.getElementById('apName').value||'').trim(); if(!nm){ document.getElementById('apMsg').textContent='이름 입력'; return; }
-      const cc=document.querySelector('input[name=apc]:checked'); const cat=cc?cc.value:'런칭랜딩';
+      const cc=seg?seg.querySelector('.seg-b.on'):null; const cat=cc?cc.getAttribute('data-v'):'런칭랜딩';
       const msg=document.getElementById('apMsg'); msg.textContent='저장 중…';
-      const pid='u'+Date.now(); const catv=(cat==='명소')?'spot':'canoe';
+      const pid='u'+Date.now(); const catv=(cat==='명소')?'spot':(cat==='candidate'?'candidate':'canoe');
       try{ const r=await fetch(fapi('/placeover'),{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({adminKey:adminKey(),id:pid,new:1,name:nm,cat:catv,lat:a.lat,lng:a.lng})});
         if(r.ok){ msg.textContent='완료!'; _placeOver[pid]={new:1,name:nm,cat:catv,lat:a.lat,lng:a.lng,memo:''}; renderNewPlace(pid,_placeOver[pid]); gaEvent('place_add',{cat:cat}); setTimeout(function(){map.closePopup();},700); }
@@ -1106,8 +1123,9 @@ function linkify(s){ return pmEsc(s||'').replace(/(https?:\/\/[^\s<]+)/g,functio
 let _placeOver={};   // 통합 장소 오버라이드(KV placeover): id -> {name,memo,cat,del,new,lat,lng}
 function featPlace(f){ const p=f.properties||{},c=f.geometry.coordinates; const o=_placeOver[p.id]||{};
   const nm=(o.name!=null?o.name:p.name)||''; const mo=(o.memo!=null?o.memo:p.memo)||'';
-  return {name:nm,lat:c[1],lng:c[0],memo:mo,cat:isSpot(nm)?'명소':'런칭랜딩',id:p.id,rv:!!p.rv}; }
-// ---- 현재 날씨(Open-Meteo, 키·CORS 불필요) — 장소 좌표 기준 ----
+  const cat=o.cat==='spot'?'명소':(o.cat==='candidate'?'런칭/랜딩 후보':(isSpot(nm)?'명소':'런칭/랜딩'));
+  return {name:nm,lat:c[1],lng:c[0],memo:mo,cat:cat,id:p.id,rv:!!p.rv}; }
+// ---- 현재 날씨(Open-Meteo, 키·CORS 불필요) — 장소/코스 좌표 기준 ----
 const _wxCache={};
 function _wxEmoji(c){ if(c===0) return '☀️'; if(c<=2) return '🌤️'; if(c===3) return '☁️'; if(c<=48) return '🌫️';
   if(c<=67) return '🌧️'; if(c<=77) return '❄️'; if(c<=82) return '🌦️'; if(c<=86) return '❄️'; return '⛈️'; }
@@ -1117,21 +1135,51 @@ function _wxText(c){ if(c===0) return '맑음'; if(c<=2) return '구름조금'; 
 function _wxDir(d){ return ['북','북동','동','남동','남','남서','서','북서'][Math.round(((d%360)+360)%360/45)%8]; }
 function _windCol(v){ return v>=8?'#c62828':(v>=5?'#e65100':'#667'); }
 let _wxView='h'; try{ _wxView=localStorage.getItem('mc_wxview')||'h'; }catch(e){}
-function placeWeather(lat,lng){
-  const el=document.getElementById('pmWx'); if(!el) return;
-  const key=lat.toFixed(2)+','+lng.toFixed(2);
-  const c=_wxCache[key];
+function _weatherKey(lat,lng){ return lat.toFixed(2)+','+lng.toFixed(2); }
+function _weatherFromJson(j){
+  const cu=j&&j.current; if(!cu) return null;
+  const w={temp:cu.temperature_2m, wind:cu.wind_speed_10m, dir:cu.wind_direction_10m, rain:cu.precipitation||0, code:cu.weather_code, days:[], hours:[]};
+  const dl=j.daily;
+  if(dl&&dl.time){ const WD=['일','월','화','수','목','금','토'];
+    for(var i=0;i<dl.time.length;i++){ const dt=new Date(dl.time[i]+'T00:00:00');
+      w.days.push({label:i===0?'오늘':WD[dt.getDay()], we:(dt.getDay()===0||dt.getDay()===6),
+        code:dl.weather_code[i], tmax:dl.temperature_2m_max[i],
+        wmax:dl.wind_speed_10m_max[i], wdir:dl.wind_direction_10m_dominant[i]||0,
+        rain:dl.precipitation_sum[i]||0, pp:dl.precipitation_probability_max[i]||0}); } }
+  const hl=j.hourly;
+  if(hl&&hl.time){ const WD2=['일','월','화','수','목','금','토']; let prevDay=null;
+    var start=0; for(var k=0;k<hl.time.length;k++){ if(new Date(hl.time[k]).getTime()>=Date.now()-1800000){ start=k; break; } }
+    for(var i2=start;i2<hl.time.length && w.hours.length<16;i2+=3){ const ht=new Date(hl.time[i2]);
+      const dk=ht.getDate(), newDay=(prevDay!==null && dk!==prevDay); prevDay=dk;
+      w.hours.push({label:ht.getHours()+'시', day:newDay?((ht.getMonth()+1)+'/'+dk+'('+WD2[ht.getDay()]+')'):'',
+        code:hl.weather_code[i2], temp:hl.temperature_2m[i2],
+        wind:hl.wind_speed_10m[i2], wdir:hl.wind_direction_10m[i2]||0,
+        rain:hl.precipitation[i2]||0, pp:hl.precipitation_probability[i2]||0}); } }
+  return w;
+}
+function fetchWeatherData(lat,lng){
+  const key=_weatherKey(lat,lng), c=_wxCache[key];
+  if(c && Date.now()-c.ts<600000) return Promise.resolve(c.w);
+  return fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng
+    +'&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code'
+    +'&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,weather_code&forecast_hours=51'
+    +'&daily=weather_code,temperature_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_sum,precipitation_probability_max&forecast_days=7'
+    +'&wind_speed_unit=ms&timezone=Asia%2FSeoul')
+    .then(function(r){return r.json();})
+    .then(function(j){ const w=_weatherFromJson(j); if(w) _wxCache[key]={w:w,ts:Date.now()}; return w; })
+    .catch(function(){ return null; });
+}
+function _renderWeatherBox(el,w){
   const AR=['↓','↙','←','↖','↑','↗','→','↘'];   // 풍향(불어오는 방향) → 부는 쪽 화살표
-  function render(w){
-    if(!w){ el.innerHTML=''; return; }
-    const wind=w.wind, col=_windCol(wind);
-    let h='<div class="pm-wx-now"><span>'+_wxEmoji(w.code)+' '+w.temp.toFixed(0)+'° '+_wxText(w.code)+'</span>'
-      +'<span style="color:'+col+';font-weight:'+(wind>=5?'700':'400')+'">바람 '+wind.toFixed(1)+'㎧ '+_wxDir(w.dir)+(wind>=8?' ⚠️강풍':wind>=5?' 주의':'')+'</span>'
-      +'<span style="color:#1565c0">강수 '+((w.rain||0)<10?(w.rain||0):Math.round(w.rain))+'㎜</span>'+'</div>';
-    // 탭: 시간대별 / 주간
+  function render(one){
+    if(!one){ el.innerHTML=''; return; }
+    const wind=one.wind, col=_windCol(wind);
+    let h='<div class="pm-wx-now"><span>'+_wxEmoji(one.code)+' '+one.temp.toFixed(0)+'° '+_wxText(one.code)+'</span>'
+      +'<span style="color:'+col+';font-weight:'+(wind>=5?'700':'400')+'">바람 '+wind.toFixed(1)+'㎧ '+_wxDir(one.dir)+(wind>=8?' ⚠️강풍':wind>=5?' 주의':'')+'</span>'
+      +'<span style="color:#1565c0">강수 '+((one.rain||0)<10?(one.rain||0):Math.round(one.rain))+'㎜</span>'+'</div>';
     h+='<div class="pm-wx-tabs"><a data-v="h" class="'+(_wxView==='h'?'on':'')+'">시간대별</a><a data-v="d" class="'+(_wxView==='d'?'on':'')+'">주간</a></div>';
-    if(_wxView==='h' && w.hours && w.hours.length){   // 시간대별(현재~48h, 3시간 간격, 2일치 가로 스크롤)
-      h+='<div class="pm-wx-days pm-wx-hscroll">'+w.hours.map(function(d){
+    if(_wxView==='h' && one.hours && one.hours.length){
+      h+='<div class="pm-wx-days pm-wx-hscroll">'+one.hours.map(function(d){
         const ar=AR[Math.round(((d.wdir%360)+360)%360/45)%8];
         return (d.day?'<div class="wxd-day">'+d.day+'</div>':'')
           +'<div class="wxd"><div class="wxd-n">'+d.label+'</div><div>'+_wxEmoji(d.code)+'</div>'
@@ -1140,8 +1188,8 @@ function placeWeather(lat,lng){
           +'<div class="wxd-p">'+(d.pp>=10?d.pp+'%':'')+'</div>'
           +'<div class="wxd-p">'+(d.rain>=0.3?(d.rain<10?d.rain.toFixed(1):Math.round(d.rain))+'㎜':'')+'</div></div>';
       }).join('')+'</div>';
-    } else if(w.days&&w.days.length){   // 주간(요일/날씨/기온/바람/강수)
-      h+='<div class="pm-wx-days">'+w.days.map(function(d){
+    } else if(one.days&&one.days.length){
+      h+='<div class="pm-wx-days">'+one.days.map(function(d){
         const ar=AR[Math.round(((d.wdir%360)+360)%360/45)%8];
         return '<div class="wxd'+(d.we?' wxd-we':'')+'"><div class="wxd-n">'+d.label+'</div><div>'+_wxEmoji(d.code)+'</div>'
           +'<div class="wxd-t">'+Math.round(d.tmax)+'°</div>'
@@ -1151,37 +1199,23 @@ function placeWeather(lat,lng){
       }).join('')+'</div>';
     }
     el.innerHTML=h;
-    el.querySelectorAll('.pm-wx-tabs a').forEach(function(a){ a.onclick=function(){ _wxView=a.getAttribute('data-v'); try{localStorage.setItem('mc_wxview',_wxView);}catch(e){} render(w); }; });
+    el.querySelectorAll('.pm-wx-tabs a').forEach(function(a){ a.onclick=function(){ _wxView=a.getAttribute('data-v'); try{localStorage.setItem('mc_wxview',_wxView);}catch(e){} render(one); }; });
   }
-  if(c && Date.now()-c.ts<600000){ render(c.w); return; }
+  render(w);
+}
+function placeWeather(lat,lng){
+  const el=document.getElementById('pmWx'); if(!el) return;
+  const key=_weatherKey(lat,lng), c=_wxCache[key];
+  if(c && Date.now()-c.ts<600000){ _renderWeatherBox(el,c.w); return; }
   el.innerHTML='<span class="wl-loading">날씨 조회…</span>';
-  fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng
-    +'&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code'
-    +'&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,precipitation_probability,weather_code&forecast_hours=51'
-    +'&daily=weather_code,temperature_2m_max,wind_speed_10m_max,wind_direction_10m_dominant,precipitation_sum,precipitation_probability_max&forecast_days=7'
-    +'&wind_speed_unit=ms&timezone=Asia%2FSeoul')
-    .then(function(r){return r.json();})
-    .then(function(j){ const cu=j&&j.current; if(!cu){ render(null); return; }
-      const w={temp:cu.temperature_2m, wind:cu.wind_speed_10m, dir:cu.wind_direction_10m, rain:cu.precipitation||0, code:cu.weather_code, days:[], hours:[]};
-      const dl=j.daily;
-      if(dl&&dl.time){ const WD=['일','월','화','수','목','금','토'];
-        for(var i=0;i<dl.time.length;i++){ const dt=new Date(dl.time[i]+'T00:00:00');
-          w.days.push({label:i===0?'오늘':WD[dt.getDay()], we:(dt.getDay()===0||dt.getDay()===6),
-            code:dl.weather_code[i], tmax:dl.temperature_2m_max[i],
-            wmax:dl.wind_speed_10m_max[i], wdir:dl.wind_direction_10m_dominant[i]||0,
-            rain:dl.precipitation_sum[i]||0, pp:dl.precipitation_probability_max[i]||0}); } }
-      const hl=j.hourly;
-      if(hl&&hl.time){ const WD2=['일','월','화','수','목','금','토']; let prevDay=null;
-        // 현재 시각 이후 첫 인덱스 찾아 3시간 간격으로 2일치(16개)
-        var start=0; for(var k=0;k<hl.time.length;k++){ if(new Date(hl.time[k]).getTime()>=Date.now()-1800000){ start=k; break; } }
-        for(var i2=start;i2<hl.time.length && w.hours.length<16;i2+=3){ const ht=new Date(hl.time[i2]);
-          const dk=ht.getDate(), newDay=(prevDay!==null && dk!==prevDay); prevDay=dk;
-          w.hours.push({label:ht.getHours()+'시', day:newDay?((ht.getMonth()+1)+'/'+dk+'('+WD2[ht.getDay()]+')'):'',
-            code:hl.weather_code[i2], temp:hl.temperature_2m[i2],
-            wind:hl.wind_speed_10m[i2], wdir:hl.wind_direction_10m[i2]||0,
-            rain:hl.precipitation[i2]||0, pp:hl.precipitation_probability[i2]||0}); } }
-      _wxCache[key]={w:w,ts:Date.now()}; render(w);
-    }).catch(function(){ render(null); });
+  fetchWeatherData(lat,lng).then(function(w){ _renderWeatherBox(el,w); }).catch(function(){ _renderWeatherBox(el,null); });
+}
+function courseWeather(lat,lng){
+  const el=document.getElementById('cmWx'); if(!el) return;
+  const key=_weatherKey(lat,lng), c=_wxCache[key];
+  if(c && Date.now()-c.ts<600000){ _renderWeatherBox(el,c.w); return; }
+  el.innerHTML='<span class="wl-loading">날씨 조회…</span>';
+  fetchWeatherData(lat,lng).then(function(w){ _renderWeatherBox(el,w); }).catch(function(){ _renderWeatherBox(el,null); });
 }
 let _pmPlace=null,_pmSlug=null;
 function openPlaceModal(pl){
@@ -1405,7 +1439,9 @@ function ptPopup(f){ const p=f.properties, c=f.geometry.coordinates;
 const spotFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return isSpot(f.properties.name);})};
 const landFeats={type:'FeatureCollection',features:POINTS.features.filter(function(f){return !isSpot(f.properties.name);})};
 const CANOE_SVG='<svg viewBox="0 0 64 40"><path d="M2 20C2 13 16 10 32 10C48 10 62 13 62 20C62 27 48 30 32 30C16 30 2 27 2 20Z" fill="#fff"/><path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#cfe3f5"/><path d="M23 15.5V24.5M41 15.5V24.5" stroke="#5a9bd4" stroke-width="2.2" stroke-linecap="round"/></svg>';
-function canoeIcon(){ return L.divIcon({className:'canoe-pin',html:'<span class="canoe-pin-in">'+CANOE_SVG+'</span>',iconSize:[26,26],iconAnchor:[13,13]}); }
+const CANDIDATE_SVG='<svg viewBox="0 0 64 40"><path d="M2 20C2 13 16 10 32 10C48 10 62 13 62 20C62 27 48 30 32 30C16 30 2 27 2 20Z" fill="#fff"/><path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#fff3e0"/><path d="M23 15.5V24.5M41 15.5V24.5" stroke="#ef6c00" stroke-width="2.2" stroke-linecap="round"/></svg>';
+function canoeSvg(kind){ return kind==='candidate'?CANDIDATE_SVG:CANOE_SVG; }
+function canoeIcon(kind){ kind=kind||'canoe'; return L.divIcon({className:'canoe-pin'+(kind==='candidate'?' candidate':''),html:'<span class="canoe-pin-in'+(kind==='candidate'?' candidate':'')+'">'+canoeSvg(kind)+'</span>',iconSize:[26,26],iconAnchor:[13,13]}); }
 const WRECK_SVG='<svg viewBox="0 0 48 48"><path d="M0 27q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#4aa3e0"/><circle cx="11" cy="19" r="3.7" fill="#ffd2a6"/><path d="M7.5 23 L4 18 M14.5 23 L18 18" stroke="#ffd2a6" stroke-width="2.6" stroke-linecap="round"/><g transform="rotate(-20 30 27)"><path d="M16 25Q31 17 44 25Q41 31 30 32Q19 31 16 25Z" fill="#fff"/><path d="M20 25Q31 20 40 25" fill="none" stroke="#bcd6ea" stroke-width="1.4"/></g><path d="M0 31q6-4 12 0t12 0 12 0 12 0V48H0Z" fill="#2f80c9"/></svg>';
 function wreckIcon(){ return L.divIcon({className:'wreck-pin',html:'<span class="wreck-in">'+WRECK_SVG+'</span>',iconSize:[34,34],iconAnchor:[17,17]}); }
 function isWreck(nm){ return (nm||'').replace(/\s/g,'').indexOf('번버리')>=0; }
@@ -1413,8 +1449,8 @@ const BOATHOUSE_SVG='<svg viewBox="0 0 32 28"><path d="M16 2L30 13H27V26H5V13H2Z
 function boathouseIcon(){ return L.divIcon({className:'spot-pin',html:'<span class="spot-pin-in">'+BOATHOUSE_SVG+'</span>',iconSize:[30,30],iconAnchor:[15,15]}); }
 // 줌아웃: 작은 점 / 줌인(>=Z_ICON): 아이콘
 const Z_ICON=12;
-function dotIcon(kind){ const c=kind==='spot'?'dot-spot':kind==='wreck'?'dot-wreck':'dot-canoe'; return L.divIcon({className:'dotpin '+c,html:'',iconSize:[10,10],iconAnchor:[5,5]}); }
-function fullIcon(kind){ return kind==='spot'?boathouseIcon():kind==='wreck'?wreckIcon():canoeIcon(); }
+function dotIcon(kind){ const c=kind==='spot'?'dot-spot':kind==='wreck'?'dot-wreck':(kind==='candidate'?'dot-candidate':'dot-canoe'); return L.divIcon({className:'dotpin '+c,html:'',iconSize:[10,10],iconAnchor:[5,5]}); }
+function fullIcon(kind){ return kind==='spot'?boathouseIcon():kind==='wreck'?wreckIcon():canoeIcon(kind); }
 function makeMarker(ll,kind){ const dot=map.getZoom()<Z_ICON; const m=L.marker(ll,{icon:dot?dotIcon(kind):fullIcon(kind)}); m._kind=kind; m._isDot=dot; return m; }
 const _placeMarkerById={};   // id -> {m, cat:'spot'|'canoe', name}
 const famousLayer = L.geoJSON(spotFeats, {
@@ -1431,10 +1467,10 @@ const canoeLayer = L.geoJSON(landFeats, {
 }).addTo(map);
 // 카테고리 오버라이드(관리자가 바꾼 분류) — KV에서 로드해 적용
 function setPlaceKind(id, cat, save){
-  const e=_placeMarkerById[id]; if(!e || (cat!=='spot'&&cat!=='canoe')) return;
+  const e=_placeMarkerById[id]; if(!e || (cat!=='spot'&&cat!=='canoe'&&cat!=='candidate')) return;
   if(e.cat!==cat){
     (e.cat==='spot'?famousLayer:canoeLayer).removeLayer(e.m);
-    const ik=(cat==='spot')?'spot':(isWreck(e.name)?'wreck':'canoe');
+    const ik=(cat==='spot')?'spot':(cat==='candidate'?'candidate':(isWreck(e.name)?'wreck':'canoe'));
     e.m._kind=ik; const dot=map.getZoom()<Z_ICON; e.m._isDot=dot; e.m.setIcon(dot?dotIcon(ik):fullIcon(ik));
     (cat==='spot'?famousLayer:canoeLayer).addLayer(e.m); e.cat=cat;
   }
@@ -1444,8 +1480,8 @@ function setPlaceKind(id, cat, save){
 fetch(fapi('/placecat')).then(function(r){return r.json();}).then(function(m){ Object.keys(m||{}).forEach(function(id){ setPlaceKind(id,m[id],false); }); }).catch(function(){});
 // ---- 통합 장소 오버라이드(placeover): 임베드 점 수정/삭제/분류 + 신규 점 ----
 function renderNewPlace(id,o){ if(_placeMarkerById[id]||o.del||o.lat==null) return;
-  const k=(o.cat==='spot'||o.cat==='명소')?'spot':'canoe';
-  const rec={id:id,name:o.name||'',memo:o.memo||'',lat:o.lat,lng:o.lng,cat:(k==='spot'?'명소':'런칭랜딩'),_new:true};
+  const k=(o.cat==='spot'||o.cat==='명소')?'spot':(o.cat==='candidate'?'candidate':'canoe');
+  const rec={id:id,name:o.name||'',memo:o.memo||'',lat:o.lat,lng:o.lng,cat:(k==='spot'?'명소':(k==='candidate'?'런칭/랜딩 후보':'런칭/랜딩')),_new:true};
   const m=makeMarker([o.lat,o.lng],k); m.on('click',function(){ openPlaceModal(rec); }); m.addTo(k==='spot'?famousLayer:canoeLayer);
   _favReg(placeSlug(o.lat,o.lng),m,null);
   _placeMarkerById[id]={m:m,cat:k,name:o.name||'',rec:rec}; _kvPlaces.push(rec); }
@@ -1526,7 +1562,8 @@ function renderPmCat(pl){   // 관리자 전용: 장소 분류(명소/런칭·�
   const cur=_placeMarkerById[pl.id].cat;
   el.innerHTML='<span class="pm-catlbl">분류(관리자)</span>'
     +'<a data-k="spot" class="pm-cat'+(cur==='spot'?' on':'')+'">📍 카누명소</a>'
-    +'<a data-k="canoe" class="pm-cat'+(cur==='canoe'?' on':'')+'">🛶 런칭/랜딩</a>';
+    +'<a data-k="canoe" class="pm-cat'+(cur==='canoe'?' on':'')+'">🛶 런칭/랜딩</a>'
+    +'<a data-k="candidate" class="pm-cat'+(cur==='candidate'?' on':'')+'">🟠 후보</a>';
   el.querySelectorAll('a').forEach(function(a){ a.onclick=function(){ const k=a.getAttribute('data-k');
     setPlaceKind(pl.id,k,true);
     el.querySelectorAll('a').forEach(function(x){ x.classList.toggle('on',x===a); }); }; });
@@ -2119,12 +2156,112 @@ function finishMeasure(){
   if(isAdmin()){   // 관리자: 이 경로를 코스로 등록
     let cc=[]; measSegs.forEach(function(sg,i){ cc=cc.concat(i?sg.coords.slice(1):sg.coords); });
     _lastCourse={coords:cc.map(function(p){return [+(+p[0]).toFixed(6),+(+p[1]).toFixed(6)];}), km:Math.round(km*100)/100};
-    L.popup({closeButton:true}).setLatLng(end).setContent('<b>측정 '+km.toFixed(2)+'km</b><br><button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록</button>').openOn(map);
+    L.popup({closeButton:true}).setLatLng(end).setContent('<b>측정 '+km.toFixed(2)+'km</b><br><button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록 <span class="beta-tag">BETA</span></button>').openOn(map);
   }
   measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn(); _showMeasMode(false); measHint(false);
 }
 let _lastCourse=null, _cmMode='add', _cmCourse=null;
+let _courseAnalysisSeq=0;
 const COURSE_CATS=['초심자코스','엑스페디션','기타'];
+function _deg2rad(n){ return n*Math.PI/180; }
+function _haversineKm(a,b){
+  if(!a||!b) return Infinity;
+  const R=6371;
+  const dLat=_deg2rad((b[0]-a[0]||0));
+  const dLng=_deg2rad((b[1]-a[1]||0));
+  const la1=_deg2rad(a[0]), la2=_deg2rad(b[0]);
+  const h=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function _courseCenter(coords){
+  if(!coords||!coords.length) return null;
+  let lat=0,lng=0,n=0;
+  coords.forEach(function(p){ if(p&&isFinite(p[0])&&isFinite(p[1])){ lat+=+p[0]; lng+=+p[1]; n++; } });
+  return n?{lat:lat/n,lng:lng/n}:null;
+}
+function _coursePointMinKm(pt, coords){
+  let best=Infinity;
+  coords.forEach(function(p){ const d=_haversineKm(pt,p); if(d<best) best=d; });
+  return best;
+}
+function _courseStationRank(coords, limit){
+  const list=(WLSTN||[]).map(function(s){
+    const pt=[+s.lat,+s.lng];
+    let d=_coursePointMinKm(pt, coords);
+    return {s:s, d:d};
+  }).filter(function(x){ return isFinite(x.d); }).sort(function(a,b){ return a.d-b.d; });
+  const seen=new Set(), out=[];
+  list.forEach(function(x){ if(out.length>=limit) return; if(seen.has(String(x.s.cd))) return; seen.add(String(x.s.cd)); out.push(x); });
+  return out;
+}
+function _stageRank(label){ return label==='심각'?4:label==='경계'?3:label==='주의'?2:label==='관심'?1:0; }
+function _trendClass(d){ return d>0.03?'up':(d<-0.03?'down':'flat'); }
+function _fmtDelta(d){ if(!isFinite(d)) return '변화 없음'; if(Math.abs(d)<0.01) return '보합'; return (d>0?'▲ +':'▼ ')+Math.abs(d).toFixed(2)+'m/24h'; }
+function _fmtMm(v){ return isFinite(v)?(v<10?v.toFixed(1):Math.round(v)):'-'; }
+function _wlRecentTrend(cd){
+  if(!HRFCO_KEY) return Promise.resolve(null);
+  const now=new Date(), from=new Date(now.getTime()-24*3600*1000);
+  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/1H/'+cd+'/'+_hrfcoYmdh(from)+'/'+_hrfcoYmdh(now)+'.json')
+    .then(function(r){return r.json();})
+    .then(function(j){
+      const vals=(j.content||[]).map(function(x){return parseFloat(x.wl);}).filter(isFinite).reverse();
+      if(vals.length<2) return null;
+      const first=vals[0], last=vals[vals.length-1];
+      return {start:first,end:last,delta:last-first,min:Math.min.apply(null,vals),max:Math.max.apply(null,vals)};
+    })
+    .catch(function(){ return null; });
+}
+function _courseVerdict(risk,wx){
+  if(risk>=3) return {label:'비추천', cls:'cm-ana-bad', note:'경보 수위 또는 그에 준하는 상태입니다.'};
+  if(risk===2 || (wx&&(wx.rain24>=15 || wx.wind24>=8))) return {label:'주의', cls:'', note:'수위 또는 날씨 조건을 함께 봐야 합니다.'};
+  return {label:'적합', cls:'', note:'현재 기준으로는 무난합니다.'};
+}
+async function renderCourseAnalysis(course){
+  const box=document.getElementById('cmAnalysis');
+  const wxBox=document.getElementById('cmWx');
+  if(!box) return;
+  const coords=(course&&course.coords)||[];
+  if(coords.length<2){ box.innerHTML=''; if(wxBox) wxBox.innerHTML=''; return; }
+  const seq=++_courseAnalysisSeq;
+  const center=_courseCenter(coords);
+  box.innerHTML='<div class="cm-analysis-h">코스 분석 <span class="beta-tag">BETA</span></div><div class="cm-ana-line">분석 중…</div>';
+  if(center) courseWeather(center.lat, center.lng);
+  const stations=_courseStationRank(coords, 3);
+  if(!stations.length){
+    box.innerHTML='<div class="cm-analysis-h">코스 분석 <span class="beta-tag">BETA</span></div><div class="cm-ana-line">주변 수위관측소를 찾지 못했습니다.</div>';
+    return;
+  }
+  const wxP=center?fetchWeatherData(center.lat, center.lng):Promise.resolve(null);
+  const wlPs=stations.map(function(x){ return Promise.all([_wlGet(x.s), _wlRecentTrend(x.s.cd)]).then(function(arr){
+    return {station:x.s, dist:x.d, rec:arr[0], tr:arr[1]};
+  }); });
+  const [wx, rows]=await Promise.all([wxP, Promise.all(wlPs)]);
+  if(seq!==_courseAnalysisSeq) return;
+  let risk=0, wxRisk=0;
+  if(wx){ const rain24=wx.hours.slice(0,8).reduce(function(s,h){ return s+(+h.rain||0); },0); const wind24=Math.max.apply(null, wx.hours.slice(0,8).map(function(h){ return +h.wind||0; }).concat([0])); wx.rain24=rain24; wx.wind24=wind24;
+    if(rain24>=30 || wind24>=12) wxRisk=2; else if(rain24>=15 || wind24>=8) wxRisk=1; }
+  const cards=rows.map(function(x){
+    const s=x.station, rec=x.rec||{}, tr=x.tr||null;
+    const level=(rec&&isFinite(parseFloat(rec.wl)))?parseFloat(rec.wl):NaN;
+    const st=_wlStage(level, s); risk=Math.max(risk,_stageRank(st[0]));
+    const extra=tr&&isFinite(tr.delta)?(' · '+_fmtDelta(tr.delta)):'';
+    return '<div class="cm-ana-card"><div class="cm-ana-title">'+pmEsc(s.nm||'수위관측소')+' · '+x.dist.toFixed(1)+'km</div>'
+      +'<div class="cm-ana-line"><b style="color:'+st[1]+'">'+st[0]+'</b> '
+      +(isFinite(level)?level.toFixed(2)+'m':'값 없음')+extra
+      +(st[0]!=='정상'?' · 기준 '+(s.att||'-')+' / '+(s.wrn||'-')+' / '+(s.alm||'-')+' / '+(s.srs||'-'):'')
+      +'</div>'
+      +(tr&&isFinite(tr.delta)?'<div class="cm-ana-line" style="color:#778">24시간 범위 '+tr.min.toFixed(2)+'~'+tr.max.toFixed(2)+'m</div>':'')
+      +'</div>';
+  }).join('');
+  const verdict=_courseVerdict(Math.max(risk,wxRisk), wx);
+  const wxLine=wx?('<div class="cm-ana-card"><div class="cm-ana-title">날씨</div><div class="cm-ana-line">'
+    +'현재 '+_wxEmoji(wx.code)+' '+wx.temp.toFixed(0)+'° · 바람 '+wx.wind.toFixed(1)+'㎧ · 강수 '+_fmtMm(wx.rain)+'㎜'
+    +'</div><div class="cm-ana-line">향후 24시간 강수 '+(wx.rain24||0).toFixed(1)+'㎜ · 최대풍속 '+(wx.wind24||0).toFixed(1)+'㎧</div></div>'):'';
+  box.innerHTML='<div class="cm-analysis-h">코스 분석 <span class="beta-tag">BETA</span></div>'
+    +(wxLine||'')
+    +'<div class="cm-ana-card"><div class="cm-ana-title">판정</div><div class="cm-ana-line"><b>'+(verdict.label)+'</b> · '+verdict.note+'</div></div>'
+    +'<div class="cm-analysis-grid">'+cards+'</div>';
+}
 function closeCourseModal(){ document.getElementById('courseModal').classList.remove('open'); }
 function _splitCourse(name){   // 이름 -> {cat, no, desc}
   for(let i=0;i<2;i++){
@@ -2161,8 +2298,10 @@ function openCourseModal(mode, course){
   else { if(!_lastCourse) return; km=_lastCourse.km; npts=_lastCourse.coords.length; }
   let seg=''; for(let i=0;i<COURSE_CATS.length;i++){ const c=COURSE_CATS[i]; seg+='<button class="seg-b'+(c===cat?' on':'')+'" data-cat="'+c+'" onclick="cmPickCat(this)">'+c+'</button>'; }
   document.getElementById('cmBody').innerHTML=
-    '<h3>'+((mode==='edit'||mode==='editstatic')?'✏️ 코스 수정':'💾 코스 등록')+'</h3>'
+    '<h3>'+((mode==='edit'||mode==='editstatic')?'✏️ 코스 수정':'💾 코스 등록')+' <span class="beta-tag">BETA</span></h3>'
     +(km?'<div class="cm-stat"><b>'+km.toFixed(2)+'</b> km · '+npts+'개 점</div>':'')
+    +'<div id="cmWx" class="pm-wx"></div>'
+    +'<div id="cmAnalysis" class="cm-analysis"></div>'
     +'<div class="sg-label">카테고리 (색상 분류)</div><div class="seg">'+seg+'</div>'
     +'<div id="cmNoRow" style="display:'+(cat==='기타'?'none':'block')+'"><div class="sg-label"># 번호</div>'
     +'<input id="cmNo" placeholder="예: 2" maxlength="12" oninput="cmPreview()"></div>'
@@ -2176,6 +2315,7 @@ function openCourseModal(mode, course){
   document.getElementById('cmSave').onclick=doSaveCourse;
   cmPreview();
   setTimeout(function(){ const i=document.getElementById('cmName'); if(i) i.focus(); }, 60);
+  if(course||_lastCourse) renderCourseAnalysis(course||_lastCourse).catch(function(){});
 }
 function saveCoursePrompt(){ openCourseModal('add'); }
 function editCourse(id){ const c=_kvCourses[id]; if(c) openCourseModal('edit', c); }

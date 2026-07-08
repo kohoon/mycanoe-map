@@ -145,7 +145,7 @@ export default {
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
         const lat = Number(b.lat), lng = Number(b.lng);
         const name = String(b.name || "").slice(0, 60);
-        const cat = b.cat === "명소" ? "명소" : "런칭랜딩";
+        const cat = (b.cat === "명소" || b.cat === "spot") ? "명소" : (b.cat === "candidate" ? "candidate" : "런칭랜딩");
         if (!name || !isFinite(lat) || !isFinite(lng))
           return new Response("bad", { status: 400, headers: cors });
         let arr = [];
@@ -284,7 +284,7 @@ export default {
     }
 
     // 0-3b) 일반 사용자 장소 제안 → Google Sheet(suggestions 탭)
-    // 0-2e) 장소 카테고리 오버라이드(관리자) — KV "placecat" = {placeId: 'spot'|'canoe'}
+    // 0-2e) 장소 카테고리 오버라이드(관리자) — KV "placecat" = {placeId: 'spot'|'canoe'|'candidate'}
     if (url.pathname.endsWith("/placecat")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
@@ -299,7 +299,7 @@ export default {
         let m = {}; try { m = JSON.parse((await KV.get("placecat")) || "{}"); } catch (e) {}
         const id = String(b.id || "").slice(0, 20);
         if (!id) return new Response("bad", { status: 400, headers: cors });
-        const cat = (b.cat === "spot" || b.cat === "canoe") ? b.cat : null;
+        const cat = (b.cat === "spot" || b.cat === "canoe" || b.cat === "candidate") ? b.cat : null;
         if (cat) m[id] = cat; else delete m[id];   // null = 기본 분류 복원
         await KV.put("placecat", JSON.stringify(m));
         return J(JSON.stringify({ ok: true }));
@@ -328,7 +328,7 @@ export default {
           const cur = m[id] || {};
           if (b.name != null) cur.name = String(b.name).slice(0, 60);
           if (b.memo != null) cur.memo = String(b.memo).slice(0, 500);
-          if (b.cat != null) { const c = (b.cat === "spot" || b.cat === "canoe") ? b.cat : null; if (c) cur.cat = c; }
+          if (b.cat != null) { const c = (b.cat === "spot" || b.cat === "canoe" || b.cat === "candidate") ? b.cat : null; if (c) cur.cat = c; }
           if (b.del != null) cur.del = b.del ? 1 : 0;
           if (b.new) cur.new = 1;
           if (b.lat != null && isFinite(Number(b.lat))) cur.lat = Number(b.lat);
