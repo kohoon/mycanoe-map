@@ -247,14 +247,6 @@ __GTAG__
   .cm-analysis-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#1f3a34;margin-bottom:8px}
   .cm-analysis-close{border:0;background:#e9eff5;color:#445;border-radius:50%;width:26px;height:26px;font-size:16px;line-height:1;cursor:pointer;flex:none}
   .cm-analysis-close:hover{background:#dce7f1}
-  .cm-route{background:#fff;border:1px solid #dce7f1;border-radius:8px;padding:8px 10px;margin-bottom:8px}
-  .cm-route-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#1f3a34;margin-bottom:6px}
-  .cm-route-line{position:relative;height:10px;border-radius:999px;background:linear-gradient(90deg,#c8e6ff,#b2dfdb,#ffe082,#ffccbc);overflow:hidden}
-  .cm-route-line span{position:absolute;top:0;width:10px;height:10px;border-radius:50%;transform:translateX(-50%);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-  .cm-route-line .start{left:2%;background:#1565c0}
-  .cm-route-line .mid{left:50%;background:#2e7d32}
-  .cm-route-line .end{left:98%;background:#c62828}
-  .cm-route-meta{display:flex;justify-content:space-between;gap:8px;margin-top:5px;font-size:11px;color:#667}
   .cm-row-hint{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 5px;font-size:11px;color:#688;font-weight:700}
   .cm-row-hint span{display:inline-flex;align-items:center;gap:6px}
   .cm-row-hint b{font-size:12px;color:#456}
@@ -2321,19 +2313,10 @@ async function renderCourseAnalysis(course,targetId){
   if(coords.length<2){ box.innerHTML=''; return; }
   const seq=++_courseAnalysisSeq;
   const center=_courseCenter(coords);
-  const start=coords[0], end=coords[coords.length-1], mid=coords[Math.floor(coords.length/2)];
-  const routeKm=(course&&course.km)?course.km:0;
-  const routeHTML='<div class="cm-route"><div class="cm-route-top"><span>전체 경로</span><span>'+(routeKm?routeKm.toFixed(2)+' km':'')+'</span></div>'
-    +'<div class="cm-route-line"><span class="start"></span><span class="mid"></span><span class="end"></span></div>'
-    +'<div class="cm-route-meta"><span>출발</span><span>중간</span><span>도착</span></div></div>';
-  box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div>'
-    +routeHTML
-    +'<div class="cm-ana-line">분석 중…</div>';
+  box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div><div class="cm-ana-line">분석 중…</div>';
   const stations=_courseStationRank(coords, 3);
   if(!stations.length){
-    box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div>'
-      +routeHTML
-      +'<div class="cm-ana-line">주변 수위관측소를 찾지 못했습니다.</div>';
+    box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div><div class="cm-ana-line">주변 수위관측소를 찾지 못했습니다.</div>';
     return;
   }
   const wxP=center?fetchWeatherData(center.lat, center.lng):Promise.resolve(null);
@@ -2373,7 +2356,6 @@ async function renderCourseAnalysis(course,targetId){
     +'현재 '+_wxEmoji(wx.code)+' '+wx.temp.toFixed(0)+'° · 바람 '+wx.wind.toFixed(1)+'㎧ · 강수 '+_fmtMm(wx.rain)+'㎜'
     +'</div><div class="cm-ana-line">향후 24시간 강수 '+(wx.rain24||0).toFixed(1)+'㎜ · 최대풍속 '+(wx.wind24||0).toFixed(1)+'㎧</div></div>'):'';
   box.innerHTML='<div class="cm-analysis-h"><span>코스 분석 <span class="beta-tag">BETA</span></span><button type="button" class="cm-analysis-close" onclick="toggleCourseAnalysis()" title="닫기">×</button></div>'
-    +routeHTML
     +(wxLine||'')
     +'<div class="cm-ana-card"><div class="cm-ana-title">판정</div><div class="cm-ana-line"><b>'+(verdict.label)+'</b> · '+verdict.note+'</div></div>'
     +(dailyCards?'<div class="cm-row-hint"><span>7일 예보</span><span>← 좌우로 스크롤 →</span></div><div class="cm-row">'+dailyCards+'</div>':'')
