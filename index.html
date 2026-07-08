@@ -190,9 +190,13 @@
   .pmodal h3{margin:0 30px 8px 0;font-size:18px;color:#1b3a2b}
   #pmLinks{font-size:13px;margin-bottom:10px}
   .pm-memo{color:#556;font-size:13px;margin-top:6px}
-  .pm-padmin{margin-top:8px;display:flex;gap:14px}
-  .pm-padmin a{cursor:pointer;font-size:12.5px;font-weight:600}
-  .pm-padmin a:first-child{color:#1565c0} .pm-padmin a:nth-child(2){color:#2e9e5b} .pm-padmin a:last-child{color:#c62828}
+  .course-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .course-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid #cbd8e5;background:#f7fbff;color:#154b86;border-radius:999px;padding:7px 11px;font:700 12px sans-serif;cursor:pointer;text-decoration:none;line-height:1}
+  .course-btn.on{background:#1565c0;color:#fff;border-color:#1565c0}
+  .course-btn.ghost{background:#fff;color:#455a64}
+  .course-btn.danger{background:#fff;color:#c62828;border-color:#efb4b4}
+  .course-btn.danger.on{background:#c62828;color:#fff;border-color:#c62828}
+  .pm-padmin{display:flex;flex-wrap:wrap;gap:6px}
   .pm-cat a[data-k="candidate"]{border-color:#ffb74d;color:#ef6c00}
   .pm-cat a[data-k="candidate"].on{background:#ff9800;color:#fff;border-color:#ff9800}
   .pm-editform{margin-top:8px}
@@ -1111,16 +1115,18 @@ function openCourseComments(key,course,shareId){
   document.getElementById('pmTitle').textContent='🛶 '+(name||'코스');
   document.getElementById('pmCat').innerHTML='';
   _clearPhoto(); renderRateRow();
-  let _cadm='', _cbtn='';
+  const canAnalyze=!!(course.coords && course.coords.length>=2);
+  const actions=[
+    (shareId?'<a class="course-btn" onclick="shareCourse(\''+shareId+'\')">🔗 공유</a>':''),
+    (canAnalyze?'<a class="course-btn ghost" onclick="toggleCourseAnalysis()">📊 분석</a>':'')
+  ].join('');
+  let _cadm='';
   if(isAdmin()&&shareId){ if(String(shareId).charAt(0)==='k'){ const kid=String(shareId).slice(1);
-      _cadm='<div class="pm-padmin"><a onclick="editCourse(\''+kid+'\')">✏️ 수정</a><a onclick="deleteCourse(\''+kid+'\')">🗑 삭제</a></div>'; }
-    else { _cadm='<div class="pm-padmin"><a onclick="editStaticCourse(\''+shareId+'\')">✏️ 수정</a><a onclick="deleteStaticCourse(\''+shareId+'\')" style="color:#c62828">🗑 삭제</a></div>'; } }
-  if(course.coords && course.coords.length>=2){
-    _cbtn='<a class="course-share" onclick="toggleCourseAnalysis()">📊 코스 분석</a>';
-  }
+      _cadm='<div class="pm-padmin"><a class="course-btn ghost" onclick="editCourse(\''+kid+'\')">✏️ 수정</a><a class="course-btn danger" onclick="deleteCourse(\''+kid+'\')">🗑 삭제</a></div>'; }
+    else { _cadm='<div class="pm-padmin"><a class="course-btn ghost" onclick="editStaticCourse(\''+shareId+'\')">✏️ 수정</a><a class="course-btn danger" onclick="deleteStaticCourse(\''+shareId+'\')">🗑 삭제</a></div>'; } }
   document.getElementById('pmLinks').innerHTML=(km?'<div class="pm-memo">약 '+km+'km</div>':'')
-    +(shareId?'<a class="course-share" onclick="shareCourse(\''+shareId+'\')">🔗 코스 공유</a>':'')
-    +_cbtn+_cadm
+    +((actions||_cadm)?'<div class="course-actions">'+actions+'</div>':'')
+    +_cadm
     +'<div id="courseAnalysisPanel" class="cm-analysis" style="display:none"></div>';
   document.getElementById('pmAdmin').innerHTML='';
   document.getElementById('pmCmts').innerHTML='<div class="pm-empty">불러오는 중…</div>';
