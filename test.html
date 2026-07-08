@@ -1718,7 +1718,7 @@ function _floodDetail(x){
         return '<button type="button" class="fld-item'+(has?'':' off')+'" data-lat="'+(has?s.lat:'')+'" data-lng="'+(has?s.lng:'')+'" title="'+pmEsc(z.type||'')+'">'
           +'<b>'+pmEsc(z.name)+'</b>'+(z.river?'<span>'+pmEsc(z.river)+'</span>':'')
           +(z.type?'<small>'+pmEsc(z.type)+'</small>':'')
-          +(has?'<em>이동</em>':'<em>좌표 없음</em>')+'</button>';
+          +(has?'<em>핀이 표시됩니다</em>':'<em>좌표 없음</em>')+'</button>';
       }).join('');
       d.innerHTML='<div class="fld-h">'
         +'<span>🚨 홍수예보 발령중('+list.length+'건)</span>'
@@ -1729,7 +1729,7 @@ function _floodDetail(x){
       d.querySelectorAll('.fld-item').forEach(function(b){
         b.onclick=function(){
           const lat=parseFloat(b.getAttribute('data-lat')), lng=parseFloat(b.getAttribute('data-lng'));
-          if(isFinite(lat)&&isFinite(lng)) map.setView([lat,lng], 14);
+          if(isFinite(lat)&&isFinite(lng)){ showSearchPin(lat,lng,'홍수예보'); map.setView([lat,lng], 14); }
         };
       });
       document.body.appendChild(d);
