@@ -2145,7 +2145,7 @@ function _dayRisk(wxDay){
   if((+wxDay.rain||0)>=15 || (+wxDay.wmax||0)>=8) return 1;
   return 0;
 }
-function _riskLabel(v){ return v>=2?'위험':(v===1?'주의':'안정'); }
+function _riskLabel(v){ return v>=2?'위험':(v===1?'⚠️ 주의':'안정'); }
 async function renderCourseAnalysis(course,targetId){
   const box=document.getElementById(targetId||'cmAnalysis');
   if(!box) return;
