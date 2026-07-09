@@ -134,16 +134,6 @@
   .wxd-p{font-size:10px;color:#1565c0;min-height:13px}
   .pd-chip{font-size:11px;color:#445;line-height:1.5;margin-top:6px;padding-top:5px;border-top:1px solid #eee}
   .pd-chip:empty{display:none}
-  #fldBanner,.fld-banner{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:4000;background:#b71c1c;color:#fff;
-    font:700 12.5px sans-serif;padding:9px 12px 10px;border-radius:0 0 12px 12px;box-shadow:0 2px 10px rgba(0,0,0,.4);max-width:min(92vw,760px);width:max-content;pointer-events:auto}
-  .fld-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .fld-body{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:160px;overflow:auto}
-  .fld-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:160px;max-width:240px;padding:8px 10px;border:1px solid rgba(255,255,255,.28);border-radius:10px;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;text-align:left}
-  .fld-item b{font-size:12.5px}
-  .fld-item span,.fld-item small,.fld-item em{display:block;font-style:normal;font-size:10.5px;font-weight:600;opacity:.95}
-  .fld-item.off{opacity:.55}
-  .fld-item:hover{background:rgba(255,255,255,.18)}
-  .fld-close{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:50%;width:24px;height:24px;font-size:16px;line-height:1;cursor:pointer;flex:none}
   .rv-pmodal{max-width:560px}
   #rvView{width:100%;height:58vh;max-height:440px;min-height:240px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
   #rvDate{font-size:12px;color:#778;margin-top:7px;min-height:15px;text-align:right}
@@ -1204,18 +1194,20 @@ function courseCmt(kind,id){
 map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
 map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='650';
 map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='645';
-function _zoomPaneGate(){ const on=map.getZoom()>=12?'':'none';
-  map.getPane('obsPane').style.display=on; map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on; }
+function _zoomPaneGate(){ const on=map.getZoom()>=13?'':'none';
+  map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on;
+  map.getPane('obsPane').style.display=map.getZoom()>=19?'':'none'; }
 map.on('zoomend', _zoomPaneGate);
 const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
 function _obHasName(ty){ return ty==='여울'||ty==='유명지'; }
 const obstacleLayer=L.layerGroup();
 const _obstacles={};
+function staticWeirId(w){ return 'weir:'+encodeURIComponent(String(w.nm||'보'))+'|'+Number(w.lat).toFixed(5)+'|'+Number(w.lng).toFixed(5); }
 function obsIcon(type,name){ const t=OBS_TYPES[type]||OBS_TYPES['보']; const disp=(name&&String(name).trim())?pmEsc(String(name).trim()):t.label; return L.divIcon({className:'obs-div',html:'<span class="obs-ic '+t.c+'">'+t.e+' '+disp+'</span>',iconSize:null}); }
 function obsPopup(o){ const t=OBS_TYPES[o.type]||OBS_TYPES['보']; const nm=(o.name&&String(o.name).trim())?pmEsc(String(o.name).trim()):'';
   return '<span class="obs-ic '+t.c+'">'+t.e+' '+(nm||t.label)+'</span>'+(nm?'<small style="color:#99a;margin-left:6px">'+t.label+'</small>':'')+(o.note?'<div style="margin:7px 0 4px;color:#445;font-size:13px">'+linkify(o.note)+'</div>':'<br>')
     +(isAdmin()?'<a onclick="editObstacle(\''+o.id+'\')" style="color:#1565c0;cursor:pointer;margin-right:10px">✏️ 수정</a><a onclick="moveObstacle(\''+o.id+'\')" style="color:#2e9e5b;cursor:pointer;margin-right:10px">📍 이동</a><a onclick="deleteObstacle(\''+o.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':''); }
-function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
+function renderObstacle(o){ if(!o||o.lat==null||o.del) return; _obstacles[o.id]=o;
   const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type,o.name),pane:'obsPane'});
   if(isAdmin()) m.bindPopup(obsPopup(o));   // 관리자만 클릭 팝업(수정/이동/삭제). 일반 사용자는 말풍선 없음
   m.addTo(obstacleLayer); o._m=m; }
@@ -1223,16 +1215,22 @@ function renderObstacle(o){ if(!o||o.lat==null) return; _obstacles[o.id]=o;
 function _refreshObsPopups(){ const on=isAdmin(); Object.keys(_obstacles).forEach(function(id){ const o=_obstacles[id]; if(!o||!o._m) return;
   if(on) o._m.bindPopup(obsPopup(o)); else o._m.unbindPopup(); }); }
 function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();})
-  .then(function(list){ (list||[]).forEach(renderObstacle); }).catch(function(){}); }
-// 전국 보(어도 현황 기반, 정적) — 관리자 등록 지형지물과 동일 아이콘, 관리자에게만 이름 팝업
-WEIRS.forEach(function(w){
-  const m=L.marker([w.lat,w.lng],{icon:obsIcon('보'),pane:'obsPane'});
-  m.on('click',function(){ if(isAdmin()) m.bindPopup('<b>🚧 '+pmEsc(w.nm)+'</b>'+(w.river?'<br><small>'+pmEsc(w.river)+'</small>':'')+'<br><small style="color:#99a">어도 현황 데이터(정적)</small>').openPopup(); });
-  m.addTo(obstacleLayer);
-});
+  .then(function(list){ (list||[]).forEach(function(o){ if(o&&!o.del) renderObstacle(o); }); }).catch(function(){}); }
+function syncStaticWeirs(){
+  return fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then(function(r){return r.json();}).then(function(list){
+    const seen={}; (list||[]).forEach(function(o){ if(o&&o.id!=null) seen[String(o.id)]=1; });
+    const miss=WEIRS.filter(function(w){ return !seen[staticWeirId(w)]; });
+    if(!miss.length) return null;
+    return Promise.all(miss.map(function(w){
+      return fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        action:'add',obsId:staticWeirId(w),lat:w.lat,lng:w.lng,type:'보',note:'',name:w.nm
+      })}).catch(function(){});
+    }));
+  }).catch(function(){});
+}
 obstacleLayer.addTo(map);   // 기본 ON — 별도 토글(통합 패널), 줌<12에서는 pane 게이팅으로 숨김
 _zoomPaneGate();
-loadObstacles();
+syncStaticWeirs().then(loadObstacles);
 // 지형지물 추가(관리자 전용 버튼 — 거리측정 버튼 옆)
 let obsPlaceMode=false;
 const ObstacleCtl=L.Control.extend({ options:{position:'topleft'},
@@ -1663,13 +1661,14 @@ function _wlYear(cd, cur){   // 지난 1년(1D) 일자료 분포에서 현재 �
     if(mx-mn<0.01) return '';
     const pct=Math.round(vals.filter(function(v){return v<=cur;}).length/vals.length*100);
     const pos=Math.max(0,Math.min(100,pct));
+    const rel=((cur-mn)/(mx-mn))*100;
+    const fromMin=Math.max(0,cur-mn), toMax=Math.max(0,mx-cur);
     const lab=pct>=80?['매우 높은 편','#e53935']:pct>=60?['높은 편','#fb8c00']:pct>=20?['보통 범위','#2e7d32']:['낮은 편','#1565c0'];
-    const rank=pct>=50?'상위 '+(100-pct)+'%':'하위 '+pct+'%';
     return '<div style="margin-top:7px">'
       +'<div style="position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,#90caf9,#a5d6a7,#ffcc80,#ef9a9a)">'
       +'<span style="position:absolute;left:'+pos.toFixed(1)+'%;top:-3px;transform:translateX(-50%);width:3px;height:14px;background:#263238;border-radius:2px"></span></div>'
       +'<small style="color:#889;display:block;margin-top:2px;white-space:nowrap">최근 1년 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m</small>'
-      +'<small style="display:block;white-space:nowrap"><b style="color:'+lab[1]+'">'+lab[0]+'</b><span style="color:#99a"> · 최근 1년 일자료 기준 '+rank+'</span></small></div>';
+      +'<small style="display:block;white-space:nowrap"><b style="color:'+lab[1]+'">'+lab[0]+'</b><span style="color:#99a"> · 최저 대비 +'+fromMin.toFixed(2)+'m · 최고 대비 -'+toMax.toFixed(2)+'m · '+rel.toFixed(0)+'% 지점</span></small></div>';
   };
   const c=_wlYrCache[cd];
   if(c && Date.now()-c.ts<3600000) return Promise.resolve(build(c.vals));
@@ -1696,45 +1695,6 @@ function _paldang(){
     }).catch(function(){ el._loaded=false; });
 }
 map.on('overlayadd', function(e){ if(e&&e.layer===waterLevelLayer) _paldang(); });
-// 홍수예보 발령 경고(발령 중일 때만 상단 배지)
-function _floodPlace(x){
-  const nm=(x.obsnm||x.rvrnm||x.stn_nm||x.nm||'').trim();
-  if(!nm) return null;
-  for(let i=0;i<WLSTN.length;i++){ const s=WLSTN[i]; if((s.nm||'').indexOf(nm)>=0 || nm.indexOf(s.nm||'')>=0) return s; }
-  return null;
-}
-function _floodDetail(x){
-  const t=(x.fldfctnm||x.fcodvcd||x.wrnmsg||x.msg||'').trim();
-  const r=(x.rvrnm||x.rivnm||'').trim();
-  const n=(x.obsnm||x.stn_nm||x.nm||'').trim();
-  return {name:n||r||'홍수예보', river:r, type:t};
-}
-(function(){ if(!HRFCO_KEY) return;
-  fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/fldfct/list.json').then(function(r){return r.json();})
-    .then(function(j){ const list=j.content||[]; if(!list.length) return;
-      const d=document.createElement('div'); d.id='fldBanner'; d.className='fld-banner';
-      const items=list.slice(0,6).map(function(x){
-        const z=_floodDetail(x), s=_floodPlace(x), has=s&&isFinite(s.lat)&&isFinite(s.lng);
-        return '<button type="button" class="fld-item'+(has?'':' off')+'" data-lat="'+(has?s.lat:'')+'" data-lng="'+(has?s.lng:'')+'" title="'+pmEsc(z.type||'')+'">'
-          +'<b>'+pmEsc(z.name)+'</b>'+(z.river?'<span>'+pmEsc(z.river)+'</span>':'')
-          +(z.type?'<small>'+pmEsc(z.type)+'</small>':'')
-          +(has?'<em>핀이 표시됩니다</em>':'<em>좌표 없음</em>')+'</button>';
-      }).join('');
-      d.innerHTML='<div class="fld-h">'
-        +'<span>🚨 홍수예보 발령중('+list.length+'건)</span>'
-        +'<button type="button" class="fld-close" title="닫기">×</button>'
-        +'</div>'
-        +'<div class="fld-body">'+items+'</div>';
-      d.querySelector('.fld-close').onclick=function(){ d.remove(); };
-      d.querySelectorAll('.fld-item').forEach(function(b){
-        b.onclick=function(){
-          const lat=parseFloat(b.getAttribute('data-lat')), lng=parseFloat(b.getAttribute('data-lng'));
-          if(isFinite(lat)&&isFinite(lng)){ showSearchPin(lat,lng,'홍수예보'); map.setView([lat,lng], 14); }
-        };
-      });
-      document.body.appendChild(d);
-    }).catch(function(){});
-})();
 const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
   const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'wl-div',html:'<span class="wl-badge">💧</span>',iconSize:null}),pane:'wlPane'});
   m.bindPopup('<b>💧 '+pmEsc(s.nm)+'</b><br><span class="wl-loading">수위 조회 중…</span>',{minWidth:170});
@@ -2107,7 +2067,7 @@ function finishMeasure(){
   if(isAdmin()){   // 관리자: 이 경로를 코스로 등록
     let cc=[]; measSegs.forEach(function(sg,i){ cc=cc.concat(i?sg.coords.slice(1):sg.coords); });
     _lastCourse={coords:cc.map(function(p){return [+(+p[0]).toFixed(6),+(+p[1]).toFixed(6)];}), km:Math.round(km*100)/100};
-    L.popup({closeButton:true}).setLatLng(end).setContent('<b>측정 '+km.toFixed(2)+'km</b><br><button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록 <span class="beta-tag">BETA</span></button>').openOn(map);
+    L.popup({closeButton:true}).setLatLng(end).setContent('<b>측정 '+km.toFixed(2)+'km</b><br><button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록</button>').openOn(map);
   }
   measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn(); _showMeasMode(false); measHint(false);
 }
@@ -2203,7 +2163,7 @@ async function renderCourseAnalysis(course,targetId){
       const dr=_dayRisk(d), lbl=_riskLabel(dr);
       return '<div class="cm-ana-card cm-day-card"><div class="cm-ana-title">'+pmEsc(d.label||'')+'</div>'
         +'<div class="cm-ana-line">'+_wxEmoji(d.code)+' 최고 '+Math.round(d.tmax)+'° · 비 '+_fmtMm(d.rain)+'㎜ · 바람 '+d.wmax.toFixed(1)+'㎧</div>'
-        +'<div class="cm-ana-line"><b>'+lbl+'</b> · '+(dr===2?'강수/풍속이 높은 편':dr===1?'변동 가능성이 있음':'현재 조건상 안정적')+'</div></div>';
+        +'<div class="cm-ana-line"><b>'+lbl+'</b> · '+(dr===2?'강수/풍속이 높은 편':dr===1?'비·바람 영향 가능':'현재 조건상 안정적')+'</div></div>';
     }).join('');
   }
   const cards=rows.map(function(x){
@@ -2265,7 +2225,7 @@ function openCourseModal(mode, course){
   else { if(!_lastCourse) return; km=_lastCourse.km; npts=_lastCourse.coords.length; }
   let seg=''; for(let i=0;i<COURSE_CATS.length;i++){ const c=COURSE_CATS[i]; seg+='<button class="seg-b'+(c===cat?' on':'')+'" data-cat="'+c+'" onclick="cmPickCat(this)">'+c+'</button>'; }
   document.getElementById('cmBody').innerHTML=
-    '<h3>'+((mode==='edit'||mode==='editstatic')?'✏️ 코스 수정':'💾 코스 등록')+' <span class="beta-tag">BETA</span></h3>'
+    '<h3>'+((mode==='edit'||mode==='editstatic')?'✏️ 코스 수정':'💾 코스 등록')+'</h3>'
     +(km?'<div class="cm-stat"><b>'+km.toFixed(2)+'</b> km · '+npts+'개 점</div>':'')
     +'<div class="sg-label">카테고리 (색상 분류)</div><div class="seg">'+seg+'</div>'
     +'<div id="cmNoRow" style="display:'+(cat==='기타'?'none':'block')+'"><div class="sg-label"># 번호</div>'

@@ -659,25 +659,53 @@ export default {
       if (req.method === "GET") { const d = KV ? await KV.get("obstacles") : null; return J(d || "[]"); }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
-        if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
         const TYPES = ["보", "징검다리", "낮은바닥", "여울", "유명지"];
         let arr = []; try { arr = JSON.parse((await KV.get("obstacles")) || "[]"); } catch (e) {}
         let created = null;
+        const seedAdd = b.action === "add" && String(b.obsId || "").startsWith("weir:");
+        if (!seedAdd && (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY))) return new Response("forbidden", { status: 403, headers: cors });
         if (b.action === "delete") {
-          arr = arr.filter((x) => String(x.id) !== String(b.obsId));
-        } else if (b.action === "edit") {
           const it = arr.find((x) => String(x.id) === String(b.obsId));
+          if (it && String(b.obsId || "").startsWith("weir:")) {
+            it.del = true;
+            it.t = Date.now();
+          } else {
+            arr = arr.filter((x) => String(x.id) !== String(b.obsId));
+          }
+        } else if (b.action === "edit") {
+          let it = arr.find((x) => String(x.id) === String(b.obsId));
+          if (!it && String(b.obsId || "").trim()) {
+            it = { id: String(b.obsId), lat: null, lng: null, type: "보", note: "", name: "", t: Date.now() };
+            arr.unshift(it);
+          }
           if (!it) return new Response("notfound", { status: 404, headers: cors });
+          if (it.del) delete it.del;
           if (b.type && TYPES.indexOf(b.type) >= 0) it.type = b.type;
           if (b.note != null) it.note = String(b.note).slice(0, 200);
           if (b.name != null) it.name = String(b.name).slice(0, 40);
           if (b.lat != null && b.lng != null) { it.lat = Number(b.lat); it.lng = Number(b.lng); }
+        } else if (b.action === "add" && String(b.obsId || "").trim()) {
+          const lat = Number(b.lat), lng = Number(b.lng);
+          if (!isFinite(lat) || !isFinite(lng)) return new Response("bad", { status: 400, headers: cors });
+          const id = String(b.obsId).trim();
+          let it = arr.find((x) => String(x.id) === id);
+          if (it) {
+            if (it.del) delete it.del;
+            if (b.type && TYPES.indexOf(b.type) >= 0) it.type = b.type;
+            it.note = String(b.note || "").slice(0, 200);
+            it.name = String(b.name || "").slice(0, 40);
+            it.lat = lat; it.lng = lng;
+            created = it;
+          } else {
+            created = { id: id, lat: lat, lng: lng, type: TYPES.indexOf(b.type) >= 0 ? b.type : "보", note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), t: Date.now() };
+            arr.unshift(created);
+          }
         } else {
           const lat = Number(b.lat), lng = Number(b.lng);
           if (!isFinite(lat) || !isFinite(lng)) return new Response("bad", { status: 400, headers: cors });
           const type = TYPES.indexOf(b.type) >= 0 ? b.type : "보";
-          created = { id: Date.now(), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), t: Date.now() };
+          created = { id: String(b.obsId || Date.now()), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), t: Date.now() };
           arr.unshift(created);
           if (arr.length > 500) arr = arr.slice(0, 500);
         }
