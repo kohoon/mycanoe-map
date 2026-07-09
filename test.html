@@ -1196,7 +1196,7 @@ map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='650';
 map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='645';
 function _zoomPaneGate(){ const on=map.getZoom()>=13?'':'none';
   map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on;
-  map.getPane('obsPane').style.display=map.getZoom()>=19?'':'none'; }
+  map.getPane('obsPane').style.display=map.getZoom()>=13?'':'none'; }
 map.on('zoomend', _zoomPaneGate);
 const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
 function _obHasName(ty){ return ty==='여울'||ty==='유명지'; }
@@ -1211,6 +1211,7 @@ function renderObstacle(o){ if(!o||o.lat==null||o.del) return; _obstacles[o.id]=
   const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type,o.name),pane:'obsPane'});
   if(isAdmin()) m.bindPopup(obsPopup(o));   // 관리자만 클릭 팝업(수정/이동/삭제). 일반 사용자는 말풍선 없음
   m.addTo(obstacleLayer); o._m=m; }
+function renderStaticWeir(w){ if(!w||w.lat==null) return; renderObstacle({id:staticWeirId(w),lat:w.lat,lng:w.lng,type:'보',note:'',name:w.nm}); }
 // 관리자 인증이 로드 뒤에 될 수 있어, 관리자 활성 시 지형지물 팝업 재바인딩
 function _refreshObsPopups(){ const on=isAdmin(); Object.keys(_obstacles).forEach(function(id){ const o=_obstacles[id]; if(!o||!o._m) return;
   if(on) o._m.bindPopup(obsPopup(o)); else o._m.unbindPopup(); }); }
@@ -1230,7 +1231,8 @@ function syncStaticWeirs(){
 }
 obstacleLayer.addTo(map);   // 기본 ON — 별도 토글(통합 패널), 줌<12에서는 pane 게이팅으로 숨김
 _zoomPaneGate();
-syncStaticWeirs().then(loadObstacles);
+WEIRS.forEach(renderStaticWeir);
+loadObstacles();
 // 지형지물 추가(관리자 전용 버튼 — 거리측정 버튼 옆)
 let obsPlaceMode=false;
 const ObstacleCtl=L.Control.extend({ options:{position:'topleft'},
