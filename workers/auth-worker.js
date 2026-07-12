@@ -60,6 +60,15 @@ async function _rateLimited(env, bucket, ip, max) {
   await KV.put(k, String(n + 1), { expirationTtl: 120 });
   return false;
 }
+async function _cacheJson(ctx, key, build, ttl = 60) {
+  const cache = caches.default;
+  const ck = new Request(key, { method: "GET" });
+  const hit = await cache.match(ck);
+  if (hit) return hit;
+  const resp = await build();
+  if (resp && resp.status === 200) ctx.waitUntil(cache.put(ck, resp.clone()));
+  return resp;
+}
 
 export default {
   async fetch(req, env, ctx) {
@@ -67,11 +76,13 @@ export default {
     const REDIRECT = url.origin + url.pathname;   // = 카카오에 등록할 Redirect URI
     const code = url.searchParams.get("code");
     const back = (() => {
-      const raw = url.searchParams.get("back") || "";
+      const raw = url.searchParams.get("back") || url.searchParams.get("state") || "";
       if (!raw) return "";
       try {
         const u = new URL(raw, env.SITE_URL || "https://kohoon.github.io/mycanoe-map/");
         const site = new URL(env.SITE_URL || "https://kohoon.github.io/mycanoe-map/");
+        const isLocal = (u.protocol === "http:" || u.protocol === "https:") && (u.hostname === "localhost" || u.hostname === "127.0.0.1");
+        if (isLocal) return u.origin + u.pathname + u.search;
         if (u.origin !== site.origin) return "";
         return u.pathname + u.search;
       } catch (e) {
@@ -134,8 +145,10 @@ export default {
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
       if (req.method === "GET") {
-        const data = KV ? await KV.get("places") : null;
-        return new Response(data || "[]", { headers: { ...cors, "Content-Type": "application/json" } });
+        return _cacheJson(ctx, url.toString(), async () => {
+          const data = KV ? await KV.get("places") : null;
+          return new Response(data || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
+        }, 60);
       }
       if (req.method === "POST") {
         let b = {};
@@ -170,8 +183,10 @@ export default {
       const EMPTY = '{"admin":"","list":[]}';
       if (req.method === "GET") {
         const slug = (url.searchParams.get("place") || "").slice(0, 40);
-        const data = KV && slug ? await KV.get("cmt:" + slug) : null;
-        return new Response(data || EMPTY, { headers: { ...cors, "Content-Type": "application/json" } });
+        return _cacheJson(ctx, url.toString(), async () => {
+          const data = KV && slug ? await KV.get("cmt:" + slug) : null;
+          return new Response(data || EMPTY, { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
+        }, 60);
       }
       if (req.method === "POST") {
         let b = {};
@@ -291,7 +306,10 @@ export default {
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
-      if (req.method === "GET") { const d = KV ? await KV.get("placecat") : null; return J(d || "{}"); }
+      if (req.method === "GET") { return _cacheJson(ctx, url.toString(), async () => {
+        const d = KV ? await KV.get("placecat") : null;
+        return new Response(d || "{}", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
+      }, 60); }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
@@ -315,7 +333,10 @@ export default {
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
-      if (req.method === "GET") { const d = KV ? await KV.get("placeover") : null; return J(d || "{}"); }
+      if (req.method === "GET") { return _cacheJson(ctx, url.toString(), async () => {
+        const d = KV ? await KV.get("placeover") : null;
+        return new Response(d || "{}", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
+      }, 60); }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
@@ -506,15 +527,33 @@ export default {
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
       if (req.method === "GET") {
-        if (url.searchParams.get("hidden")) { const h = KV ? await KV.get("course_hidden") : null; return J(h || "[]"); }   // 정적 코스 숨김 cid 목록
-        if (url.searchParams.get("over")) { const o = KV ? await KV.get("course_over") : null; return J(o || "{}"); }   // 정적 코스 이름/분류/거리 오버라이드
-        const d = KV ? await KV.get("courses") : null; return J(d || "[]");
+        return _cacheJson(ctx, url.toString(), async () => {
+          if (url.searchParams.get("mine")) {
+            const uid = (url.searchParams.get("uid") || "").slice(0, 40);
+            if (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok")))) return J("[]");
+            const d = KV ? await KV.get("courses") : null;
+            let arr = []; try { arr = JSON.parse(d || "[]"); } catch (e) {}
+            arr = arr.filter((x) => String(x.owner || "") === String(uid));
+            return new Response(JSON.stringify(arr), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
+          }
+          if (url.searchParams.get("hidden")) { const h = KV ? await KV.get("course_hidden") : null; return new Response(h || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } }); }   // 정적 코스 숨김 cid 목록
+          if (url.searchParams.get("over")) { const o = KV ? await KV.get("course_over") : null; return new Response(o || "{}", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } }); }   // 정적 코스 이름/분류/거리 오버라이드
+          const d = KV ? await KV.get("courses") : null; return new Response(d || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
+        }, 60);
       }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
-        if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        const uid = String(b.id || "").slice(0, 40);
+        const tokOk = uid && (await _tokOk(env, uid, b.tok));
+        const adminOk = !!env.ADMIN_KEY && String(b.adminKey) === String(env.ADMIN_KEY);
+        const ownerEditOk = async (courseId) => {
+          const arr0 = JSON.parse((await KV.get("courses")) || "[]");
+          const it = arr0.find((x) => String(x.id) === String(courseId));
+          return !!(it && uid && String(it.owner || "") === uid && tokOk);
+        };
         if (b.action === "hidestatic" || b.action === "unhidestatic") {   // 정적(임베드) 코스 숨김/복원 — KV "course_hidden"
+          if (!adminOk) return new Response("forbidden", { status: 403, headers: cors });
           const cid = String(b.cid || "").slice(0, 20); if (!cid) return new Response("bad", { status: 400, headers: cors });
           let hid = []; try { hid = JSON.parse((await KV.get("course_hidden")) || "[]"); } catch (e) {}
           hid = hid.filter((x) => String(x) !== cid);
@@ -523,6 +562,7 @@ export default {
           return J(JSON.stringify({ ok: true }));
         }
         if (b.action === "editstatic") {   // 정적 코스는 원본 GeoJSON 비파괴, 표시 메타만 KV 오버라이드
+          if (!adminOk) return new Response("forbidden", { status: 403, headers: cors });
           const cid = String(b.cid || "").slice(0, 20); if (!cid) return new Response("bad", { status: 400, headers: cors });
           let over = {}; try { over = JSON.parse((await KV.get("course_over")) || "{}"); } catch (e) {}
           const name = String(b.name || "").slice(0, 80);
@@ -537,18 +577,28 @@ export default {
           return J(JSON.stringify({ ok: true }));
         }
         let arr = []; try { arr = JSON.parse((await KV.get("courses")) || "[]"); } catch (e) {}
-        if (b.action === "delete") {
+        if (b.action === "delete" || b.action === "deleteuser") {
+          if (!adminOk && !(await ownerEditOk(b.courseId))) return new Response("forbidden", { status: 403, headers: cors });
           arr = arr.filter((x) => String(x.id) !== String(b.courseId));
-        } else if (b.action === "edit") {
+        } else if (b.action === "edit" || b.action === "edituser") {
           const it = arr.find((x) => String(x.id) === String(b.courseId));
           if (!it) return new Response("notfound", { status: 404, headers: cors });
+          if (!adminOk && !(uid && String(it.owner || "") === uid && tokOk)) return new Response("forbidden", { status: 403, headers: cors });
           it.name = String(b.name || it.name || "코스").slice(0, 80);
           if (b.km != null) it.km = Number(b.km) || 0;
-        } else {
+        } else if (b.action === "add" || b.action === "adduser" || !b.action) {
           const coords = Array.isArray(b.coords) ? b.coords.slice(0, 5000) : [];
           if (coords.length < 2) return new Response("bad", { status: 400, headers: cors });
-          arr.unshift({ id: Date.now(), name: String(b.name || "코스").slice(0, 80), coords: coords, km: Number(b.km) || 0, t: Date.now() });
+          if (!adminOk && !(uid && tokOk)) return new Response("relogin", { status: 401, headers: cors });
+          const segments = Array.isArray(b.segments) ? b.segments.slice(0, 40).map((s) => ({
+            name: String((s && s.name) || "구간").slice(0, 30),
+            km: Number(s && s.km) || 0,
+            mode: String((s && s.mode) || "").slice(0, 12),
+          })) : [];
+          arr.unshift({ id: Date.now(), name: String(b.name || "코스").slice(0, 80), coords: coords, km: Number(b.km) || 0, segments: segments, t: Date.now(), owner: adminOk ? "admin" : uid, nick: String(b.nick || "").slice(0, 20) });
           if (arr.length > 200) arr = arr.slice(0, 200);
+        } else {
+          return new Response("bad", { status: 400, headers: cors });
         }
         await KV.put("courses", JSON.stringify(arr));
         return J(JSON.stringify({ ok: true }));
@@ -656,7 +706,10 @@ export default {
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
-      if (req.method === "GET") { const d = KV ? await KV.get("obstacles") : null; return J(d || "[]"); }
+      if (req.method === "GET") { return _cacheJson(ctx, url.toString(), async () => {
+        const d = KV ? await KV.get("obstacles") : null;
+        return new Response(d || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
+      }, 60); }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
@@ -722,7 +775,10 @@ export default {
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
-      if (req.method === "GET") { const d = KV ? await KV.get("notices") : null; return J(d || "[]"); }
+      if (req.method === "GET") { return _cacheJson(ctx, url.toString(), async () => {
+        const d = KV ? await KV.get("notices") : null;
+        return new Response(d || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
+      }, 60); }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
@@ -942,7 +998,7 @@ export default {
     }
 
     const site = env.SITE_URL || "https://kohoon.github.io/mycanoe-map/";
-    const dest = back ? site.replace(/\/$/, "") + back : site;
+    const dest = back ? (/^https?:\/\//.test(back) ? back : site.replace(/\/$/, "") + back) : site;
     const idTok = await _tokFor(env, String(id));
     const backUrl = dest + "#login=" + encodeURIComponent(id) + "&nick=" + encodeURIComponent(nick) + "&tok=" + encodeURIComponent(idTok);
     return Response.redirect(backUrl, 302);

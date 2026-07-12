@@ -18,3 +18,4 @@ __pycache__/
 *.output
 _kakao_profile/
 admin_key.txt
+.wrangler/
