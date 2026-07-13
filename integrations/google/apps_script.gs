@@ -13,6 +13,7 @@
  *   comment {cid, place, nick, text, stars, img}         → comments
  *   suggest {cat, place, nick, text, lat, lng, img}      → suggestions
  *   collect {status, added, detail}                      → collect
+ *   soyang_travers {id, nick, name, cafeNick, phone}     → soyang_travers
  */
 
 function doPost(e) {
@@ -36,6 +37,11 @@ function doPost(e) {
       appendRow_(ss, "collect",
         ["시각", "상태", "신규", "상세"],
         [now, d.status || "", d.added || 0, d.detail || ""]);
+
+    } else if (d.type === "soyang_travers") {
+      appendRow_(ss, "soyang_travers",
+        ["시각", "카카오ID", "카카오닉네임", "실명", "카페닉네임", "휴대전화", "동의"],
+        [now, d.id || "", d.nick || "", d.name || "", d.cafeNick || "", d.phone || "", "Y"]);
 
     } else { // visit (기본)
       appendRow_(ss, "logins",

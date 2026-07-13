@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>소양호 카누잉 종주 참여 확인</title>
+  <meta name="description" content="소양호 카누잉 종주 자발적 모임 참여 확인">
+  <style>
+    :root{color-scheme:light;--ink:#17332e;--muted:#64756f;--line:#dfe8e5;--green:#12725f;--blue:#1565c0;--danger:#b3261e}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);background:linear-gradient(180deg,#e7f4f8 0%,#f7fbf8 56%,#eef7f0 100%)}
+    .wrap{width:min(720px,100%);margin:0 auto;padding:28px 18px 42px}
+    .brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand a{font-size:13px;color:#35665d;text-decoration:none;font-weight:700}
+    h1{font-size:26px;line-height:1.18;margin:0;color:#102b27;letter-spacing:0}
+    .lead{font-size:14px;line-height:1.6;color:var(--muted);margin:9px 0 0}
+    .panel{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 12px 32px rgba(35,84,88,.13)}
+    .login{display:flex;align-items:center;justify-content:space-between;gap:14px}
+    .who{font-size:13px;color:var(--muted);line-height:1.5}
+    button,.openlink{border:0;border-radius:11px;padding:13px 16px;font:800 15px/1.2 inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+    .kakao{background:#fee500;color:#191600;box-shadow:0 5px 14px rgba(254,229,0,.35)}
+    .submit{width:100%;background:var(--green);color:#fff;margin-top:16px}
+    .submit:disabled{background:#a8b8b2;cursor:not-allowed}
+    .openlink{background:var(--blue);color:#fff;width:100%;margin-top:14px}
+    .consent{margin:18px 0 16px;padding:14px;border:1px solid #ffd1cc;background:#fff8f6;border-radius:12px}
+    .consent label{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;font-size:14px;line-height:1.68;color:#3d2925}
+    .consent input{margin-top:5px;width:18px;height:18px}
+    .field{margin-top:13px}
+    .field label{display:block;font-weight:800;font-size:13px;margin-bottom:7px;color:#263d37}
+    input[type=text],input[type=tel]{width:100%;border:1px solid #cbd8d3;border-radius:10px;padding:13px 12px;font-size:16px;background:#fff;color:#172b28}
+    input:focus{outline:2px solid rgba(21,101,192,.16);border-color:#76a7da}
+    .msg{min-height:20px;margin-top:10px;font-size:13px;color:var(--danger);line-height:1.45}
+    .done{display:none}
+    .done.open{display:block}
+    .formbox.hidden,.loginbox.hidden{display:none}
+    .heroimg{display:block;width:100%;border-radius:14px;border:1px solid #d8e6e7;margin:0 0 16px;background:#d9edf4}
+    .code{background:#f2f7fb;border:1px solid #d8e6f2;border-radius:12px;padding:13px 14px;margin-top:13px;font-size:15px;line-height:1.55}
+    .code b{font-size:17px;color:#0d47a1}
+    .small{font-size:12px;color:#778985;line-height:1.5;margin-top:13px}
+    @media(max-width:520px){
+      .wrap{padding:20px 14px 34px}
+      h1{font-size:23px}
+      .panel{padding:17px 15px}
+      .login{align-items:stretch;flex-direction:column}
+      button,.openlink{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand">
+      <div>
+        <h1>소양호 카누잉 종주</h1>
+        <p class="lead">참여 확인 후 오픈채팅방 초대 링크가 표시됩니다.</p>
+      </div>
+      <a href="../">마이카누 지도</a>
+    </div>
+
+    <section id="loginBox" class="panel loginbox">
+      <div>
+        <strong>카카오 로그인</strong>
+        <div class="who">참여 확인은 카카오 로그인 후 진행됩니다.</div>
+      </div>
+      <button class="kakao" id="loginBtn" type="button">카카오 로그인</button>
+    </section>
+
+    <section id="formBox" class="panel formbox hidden">
+      <div class="login">
+        <div>
+          <strong id="hello">참여 확인</strong>
+          <div class="who">모든 항목에 동의 및 입력해야 다음으로 진행됩니다.</div>
+        </div>
+        <button class="kakao" id="logoutBtn" type="button">로그아웃</button>
+      </div>
+
+      <form id="entryForm" novalidate>
+        <div class="consent">
+          <label>
+            <input id="agree" type="checkbox" required>
+            <span>이번 소양호 카누잉 종주는 주최자가 따로 없는, 참여자들의 자발적 모임으로, 각자의 안전은 각자 책임집니다. 안전에 필요한 모든 안정장비는 스스로 준비해야 하며, 전문자격이나 경험을 보유한 구조자, 의료인력을 동반하지 않습니다. 악천후, 바람, 동력보트 등에 의해 언제든지 물에 빠질 수 있고, 최악의 경우 저체온증 등으로 사망까지 이를 수 있습니다. 이 모든 위험을 스스로 감당하고 책임질 수 있는 분만 참여하실 수 있습니다. 이에 전적으로 동의하실 경우 체크해주세요.</span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label for="realName">실명 이름</label>
+          <input id="realName" type="text" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="cafeNick">카페닉네임</label>
+          <input id="cafeNick" type="text" autocomplete="nickname" required>
+        </div>
+        <div class="field">
+          <label for="phone">휴대전화 연락처</label>
+          <input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" required>
+        </div>
+
+        <button class="submit" id="submitBtn" type="submit">제출</button>
+        <div class="msg" id="msg"></div>
+      </form>
+    </section>
+
+    <section id="doneBox" class="panel done">
+      <img class="heroimg" src="soyang-lake.svg" alt="소양호 카누잉 이미지">
+      <h1>참여 확인 완료</h1>
+      <p class="lead">아래 링크로 오픈채팅방에 입장해주세요.</p>
+      <a class="openlink" href="https://open.kakao.com/o/g2uKnODi" target="_blank" rel="noopener">오픈채팅방 열기</a>
+      <div class="code">참여코드: <b>soyangho</b></div>
+      <div class="small">입력하신 정보는 참여 확인 및 긴급 연락 목적의 구글시트에 기록됩니다.</div>
+    </section>
+  </main>
+
+  <script>
+    const WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/";
+    function getUser(){ try{return JSON.parse(localStorage.getItem("mc_user")||"null");}catch(e){return null;} }
+    function setUser(u){ try{u?localStorage.setItem("mc_user",JSON.stringify(u)):localStorage.removeItem("mc_user");}catch(e){} }
+    function cleanHash(){ return location.hash.replace(/#login=[^&]+(&nick=[^&]*)?(&tok=[^&]*)?/,""); }
+    function loginReturnPath(){ return location.origin + location.pathname + location.search + cleanHash(); }
+    function loginWorkerUrl(){ return WORKER_URL + "?back=" + encodeURIComponent(loginReturnPath()); }
+    function esc(s){ return (s||"").replace(/[<>&]/g,function(c){return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c];}); }
+    function parseLogin(){
+      const h=location.hash||"", m=h.match(/login=([^&]+)/), nk=h.match(/nick=([^&]*)/), tk=h.match(/tok=([^&]*)/);
+      if(m){
+        setUser({uid:decodeURIComponent(m[1]),nick:nk?decodeURIComponent(nk[1]):"",tok:tk?decodeURIComponent(tk[1]):""});
+        history.replaceState(null,"",location.pathname+location.search);
+      }
+    }
+    function render(){
+      const u=getUser(), loginBox=document.getElementById("loginBox"), formBox=document.getElementById("formBox"), doneBox=document.getElementById("doneBox");
+      if(doneBox.classList.contains("open")){ loginBox.classList.add("hidden"); formBox.classList.add("hidden"); return; }
+      if(u&&u.uid){
+        loginBox.classList.add("hidden"); formBox.classList.remove("hidden");
+        document.getElementById("hello").innerHTML = esc(u.nick||"회원") + "님 참여 확인";
+      } else {
+        loginBox.classList.remove("hidden"); formBox.classList.add("hidden");
+      }
+    }
+    parseLogin();
+    document.getElementById("loginBtn").onclick=function(){ location.href=loginWorkerUrl(); };
+    document.getElementById("logoutBtn").onclick=function(){ setUser(null); render(); };
+    document.getElementById("entryForm").addEventListener("submit", async function(e){
+      e.preventDefault();
+      const u=getUser(), msg=document.getElementById("msg"), btn=document.getElementById("submitBtn");
+      msg.textContent="";
+      if(!u||!u.uid){ msg.textContent="카카오 로그인 후 제출해주세요."; render(); return; }
+      const agreed=document.getElementById("agree").checked;
+      const name=document.getElementById("realName").value.trim();
+      const cafeNick=document.getElementById("cafeNick").value.trim();
+      const phone=document.getElementById("phone").value.trim();
+      if(!agreed||!name||!cafeNick||!phone){ msg.textContent="동의 체크와 모든 입력 항목을 완료해주세요."; return; }
+      btn.disabled=true; btn.textContent="제출 중...";
+      try{
+        const r=await fetch(WORKER_URL.replace(/\/+$/,"")+"/soyang-travers",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({id:u.uid,tok:u.tok||"",nick:u.nick||"",agreed,name,cafeNick,phone})
+        });
+        if(r.ok){
+          document.getElementById("formBox").classList.add("hidden");
+          document.getElementById("loginBox").classList.add("hidden");
+          document.getElementById("doneBox").classList.add("open");
+          window.scrollTo({top:0,behavior:"smooth"});
+        } else if(r.status===401){
+          setUser(null); msg.textContent="로그인이 만료되었습니다. 다시 로그인해주세요."; render();
+        } else {
+          msg.textContent="제출에 실패했습니다. 잠시 후 다시 시도해주세요.";
+        }
+      }catch(err){
+        msg.textContent="네트워크 오류입니다. 잠시 후 다시 시도해주세요.";
+      }finally{
+        btn.disabled=false; btn.textContent="제출";
+      }
+    });
+    render();
+  </script>
+</body>
+</html>

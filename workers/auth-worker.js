@@ -84,7 +84,7 @@ export default {
         const isLocal = (u.protocol === "http:" || u.protocol === "https:") && (u.hostname === "localhost" || u.hostname === "127.0.0.1");
         if (isLocal) return u.origin + u.pathname + u.search;
         if (u.origin !== site.origin) return "";
-        return u.pathname + u.search;
+        return u.origin + u.pathname + u.search;
       } catch (e) {
         return "";
       }
@@ -945,6 +945,58 @@ export default {
         }
         return TXT("method", 405);
       }
+    }
+
+    // 0-10) 소양호 카누잉 종주 참가 확인 — 로그인 사용자만 제출, KV "soyang_traverse_signups"
+    if (url.pathname.endsWith("/soyang-travers")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (req.method !== "POST") return new Response("method", { status: 405, headers: cors });
+      const KV = env.PLACES;
+      if (!KV) return new Response("no-store", { status: 500, headers: cors });
+      let b = {}; try { b = await req.json(); } catch (e) {}
+      const uid = String(b.id || "").slice(0, 40);
+      if (!uid || !(await _tokOk(env, uid, b.tok))) return new Response("relogin", { status: 401, headers: cors });
+      const name = String(b.name || "").trim().slice(0, 40);
+      const cafeNick = String(b.cafeNick || "").trim().slice(0, 40);
+      const phone = String(b.phone || "").trim().slice(0, 30);
+      const agreed = !!b.agreed;
+      if (!agreed || !name || !cafeNick || !phone) return new Response("bad", { status: 400, headers: cors });
+      let arr = []; try { arr = JSON.parse((await KV.get("soyang_traverse_signups")) || "[]"); } catch (e) {}
+      const rec = {
+        uid,
+        kakaoNick: String(b.nick || "").slice(0, 40),
+        name,
+        cafeNick,
+        phone,
+        agreed,
+        ua: String(req.headers.get("User-Agent") || "").slice(0, 160),
+        t: Date.now(),
+      };
+      arr = arr.filter((x) => String(x.uid || "") !== uid);
+      arr.unshift(rec);
+      if (arr.length > 500) arr = arr.slice(0, 500);
+      await KV.put("soyang_traverse_signups", JSON.stringify(arr));
+      if (env.LOG_WEBHOOK) ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "suggest",
+          cat: "소양호종주",
+          place: "soyang-travers",
+          nick: rec.kakaoNick,
+          text: "카카오ID: " + uid + " / 실명: " + name + " / 카페닉네임: " + cafeNick + " / 휴대전화: " + phone + " / 동의: Y",
+          lat: "",
+          lng: "",
+          img: "",
+        }),
+      }).catch(() => {}));
+      return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     // 1) 로그인 시작
