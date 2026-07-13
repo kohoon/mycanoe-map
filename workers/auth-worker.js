@@ -966,7 +966,8 @@ export default {
       const cafeNick = String(b.cafeNick || "").trim().slice(0, 40);
       const phone = String(b.phone || "").trim().slice(0, 30);
       const agreed = !!b.agreed;
-      if (!agreed || !name || !cafeNick || !phone) return new Response("bad", { status: 400, headers: cors });
+      const privacyAgreed = !!b.privacyAgreed;
+      if (!agreed || !privacyAgreed || !name || !cafeNick || !phone) return new Response("bad", { status: 400, headers: cors });
       let arr = []; try { arr = JSON.parse((await KV.get("soyang_traverse_signups")) || "[]"); } catch (e) {}
       const rec = {
         uid,
@@ -975,6 +976,7 @@ export default {
         cafeNick,
         phone,
         agreed,
+        privacyAgreed,
         ua: String(req.headers.get("User-Agent") || "").slice(0, 160),
         t: Date.now(),
       };
@@ -990,7 +992,7 @@ export default {
           cat: "소양호종주",
           place: "soyang-travers",
           nick: rec.kakaoNick,
-          text: "카카오ID: " + uid + " / 실명: " + name + " / 카페닉네임: " + cafeNick + " / 휴대전화: " + phone + " / 동의: Y",
+          text: "카카오ID: " + uid + " / 실명: " + name + " / 카페닉네임: " + cafeNick + " / 휴대전화: " + phone + " / 안전동의: Y / 개인정보동의: Y",
           lat: "",
           lng: "",
           img: "",
