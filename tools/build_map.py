@@ -2290,7 +2290,11 @@ function updateMeasBtn(){
   if(!measureMode){ b.innerHTML='📏 거리측정'; return; }
   const km=measSegs.reduce(function(s,x){return s+x.km;},0);
   b.innerHTML = (measPts.length<1) ? '📍 출발점 클릭'
-    : '🏁 완료 ('+km.toFixed(1)+'km)<span class="mx" id="measCancel">취소</span>';
+    : '🏁 완료 ('+km.toFixed(1)+'km)'
+      +(measSegs.length?'<span class="mx" id="measUndo">한구간취소</span>':'')
+      +'<span class="mx" id="measCancel">취소</span>';
+  const u=document.getElementById('measUndo');
+  if(u) L.DomEvent.on(u,'click',function(e){ L.DomEvent.stop(e); undoLastMeasureSegment(); });
   const c=document.getElementById('measCancel');
   if(c) L.DomEvent.on(c,'click',function(e){ L.DomEvent.stop(e); cancelMeasure(); });
 }
@@ -2315,6 +2319,23 @@ function _addSegLabel(grp, coords, text){
   const m=_segMid(coords); if(!m) return;
   L.marker(m,{icon:L.divIcon({className:'meas-seg-label',html:pmEsc(text),iconSize:null,iconAnchor:[42,12]}),interactive:false}).addTo(grp);
 }
+function _redrawMeasDraft(){
+  measDraft.clearLayers();
+  measSegs.forEach(function(sg,i){
+    L.polyline(sg.coords,{color:'#ff7043',weight:4,opacity:.85,dashArray:sg.straight?'6,8':null}).addTo(measDraft);
+    _addSegLabel(measDraft, sg.coords, '구간 '+(i+1)+' · '+sg.km.toFixed(2)+'km');
+  });
+  measPts.forEach(function(p){ L.circleMarker(p,{radius:5,color:'#bf360c',fillColor:'#ff7043',fillOpacity:1}).addTo(measDraft); });
+}
+function undoLastMeasureSegment(){
+  if(!measureMode || !measSegs.length) return;
+  if(_measRunning || _measQueue.length){ measHint('계산 중인 구간이 끝난 뒤 한 구간 취소할 수 있어요'); return; }
+  measSegs.pop();
+  measPts.pop();
+  _redrawMeasDraft();
+  updateMeasBtn();
+  measHint(measSegs.length?'마지막 구간을 취소했습니다':'출발점만 남았습니다');
+}
 map.on('click', function(e){
   if(!measureMode) return;
   _measPickPoint(e.latlng);
@@ -2323,7 +2344,7 @@ async function _runMeasQueue(){
   if(_measRunning) return; _measRunning=true;
   while(_measQueue.length){
     const item=_measQueue.shift(), pt=item.pt, segMode=item.mode||measMode;
-    if(measPts.length===0){ measPts.push(pt); updateMeasBtn(); continue; }
+    if(measPts.length===0){ measPts.push(pt); _redrawMeasDraft(); updateMeasBtn(); continue; }
     const last=measPts[measPts.length-1];
     let seg=null;
     if(segMode==='straight'){   // 직선 모드: 즉시 직선 구간
@@ -2334,11 +2355,10 @@ async function _runMeasQueue(){
     }
     if(!seg || seg.err){
       L.popup({closeButton:false}).setLatLng(pt).setContent(seg&&seg.err==='overpass'?'서버 혼잡 — 잠시 후 다시 클릭':'이 구간 물길 못 찾음<br><small>더 가까운 점/경유지를 찍어보세요</small>').openOn(map);
+      _redrawMeasDraft();
       updateMeasBtn(); continue;   // 이 점은 건너뛰고 다음 점은 마지막 성공점에서 이어감
     }
-    L.polyline(seg.coords,{color:'#ff7043',weight:4,opacity:.85,dashArray:seg.straight?'6,8':null}).addTo(measDraft);
-    _addSegLabel(measDraft, seg.coords, '구간 '+(measSegs.length+1)+' · '+seg.km.toFixed(2)+'km');
-    measSegs.push(seg); measPts.push(pt); updateMeasBtn();
+    measSegs.push(seg); measPts.push(pt); _redrawMeasDraft(); updateMeasBtn();
     measHint('지점 '+measPts.length+'개 · 계속 탭하거나, 좌상단 "🏁 완료"를 누르면 거리가 나와요');
   }
   _measRunning=false;
