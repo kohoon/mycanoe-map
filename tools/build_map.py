@@ -2183,14 +2183,14 @@ function _damSpark24M(d){
     const yOf=function(v){ return padT+plotH-(v-mn)/rng*plotH; };
     const pts=rows.map(function(r){ return xOf(r.t).toFixed(1)+','+yOf(r.v).toFixed(1); }).join(' ');
     let ticks='', labs='';
-    const cursor=new Date(rows[0].t.getFullYear(), Math.floor(rows[0].t.getMonth()/3)*3, 1);
+    const cursor=new Date(rows[0].t.getFullYear(), rows[0].t.getMonth(), 1);
     while(cursor<=rows[rows.length-1].t){
-      const x=xOf(cursor);
+      const x=xOf(cursor), quarter=cursor.getMonth()%3===0;
       if(x>=padL-1&&x<=W-padR+1){
-        ticks+='<line x1="'+x.toFixed(1)+'" y1="'+padT+'" x2="'+x.toFixed(1)+'" y2="'+(padT+plotH+3)+'" stroke="#d6dee2" stroke-width="1"/>';
-        labs+='<text x="'+x.toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle" font-size="7" fill="#789">'+String(cursor.getFullYear()).slice(2)+'.'+(cursor.getMonth()+1)+'</text>';
+        ticks+='<line x1="'+x.toFixed(1)+'" y1="'+padT+'" x2="'+x.toFixed(1)+'" y2="'+(padT+plotH+(quarter?3:0))+'" stroke="'+(quarter?'#cbd5da':'#e8edef')+'" stroke-width="'+(quarter?'1':'.7')+'"/>';
+        if(quarter) labs+='<text x="'+x.toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle" font-size="7" fill="#789">'+String(cursor.getFullYear()).slice(2)+'.'+(cursor.getMonth()+1)+'</text>';
       }
-      cursor.setMonth(cursor.getMonth()+3);
+      cursor.setMonth(cursor.getMonth()+1);
     }
     const cur=vals[vals.length-1], dlt=cur-vals[0];
     const dTxt=Math.abs(dlt)<0.05?'보합':(dlt>0?'+'+dlt.toFixed(1)+'m':dlt.toFixed(1)+'m');
