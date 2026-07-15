@@ -277,6 +277,9 @@ __GTAG__
   .wxd-p{font-size:10px;color:#1565c0;min-height:13px}
   .pd-chip{font-size:11px;color:#445;line-height:1.5;margin-top:6px;padding-top:5px;border-top:1px solid #eee}
   .pd-chip:empty{display:none}
+  .pd-chip-btn{display:block;width:100%;box-sizing:border-box;text-align:left;background:#fff7f7;border:1px solid #ffcdd2;border-radius:6px;color:#37474f;padding:6px 7px;line-height:1.45;cursor:pointer;font:inherit}
+  .pd-chip-btn:hover{background:#ffebee;border-color:#ef9a9a}
+  .pd-chip-act{display:inline-block;margin-top:2px;color:#1565c0;font-weight:700}
   .rv-pmodal{max-width:560px}
   #rvView{width:100%;height:58vh;max-height:440px;min-height:240px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
   #rvDate{font-size:12px;color:#778;margin-top:7px;min-height:15px;text-align:right}
@@ -1957,6 +1960,17 @@ function _wlYear(cd, cur){   // 지난 1년(1D) 일자료 분포에서 현재 �
     .catch(function(){ return ''; });
 }
 // 팔당댐 방류량 + 한강(서울) 무동력 운항 기준(1,500/3,000 m³/s — 서울시 운항규칙)
+const PALDANG_POS={lat:37.525,lng:127.284722,name:'팔당댐'};
+function _goPaldang(q, stText){
+  const p=PALDANG_POS, hasQ=isFinite(q);
+  map.setView([p.lat,p.lng],13);
+  L.popup({maxWidth:260}).setLatLng([p.lat,p.lng]).setContent(
+    '<b>팔당댐 방류 기준 위치</b><br>'
+    +(hasQ?'현재 방류 '+Math.round(q).toLocaleString()+'㎥/s<br>':'')
+    +(stText?'한강(서울) '+pmEsc(stText)+'<br>':'')
+    +extLinks(p.lat,p.lng,p.name)
+  ).openOn(map);
+}
 function _paldang(){
   if(!HRFCO_KEY) return;
   const el=document.getElementById('pdChip'); if(!el||el._loaded) return; el._loaded=true;
@@ -1967,7 +1981,12 @@ function _paldang(){
       const st= q>=3000?'<span style="color:#b71c1c;font-weight:700">전면 통제</span>'
               : q>=1500?'<span style="color:#e53935;font-weight:700">무동력 통제</span>'
               :'<span style="color:#2e7d32;font-weight:700">운항 가능</span>';
-      el.innerHTML='팔당댐 방류 '+Math.round(q).toLocaleString()+'㎥/s<br>한강(서울) '+st;
+      const plain=q>=3000?'전면 통제':q>=1500?'무동력 통제':'운항 가능';
+      el.innerHTML='<button type="button" class="pd-chip-btn" title="팔당댐 위치 보기">'
+        +'팔당댐 방류 '+Math.round(q).toLocaleString()+'㎥/s<br>한강(서울) '+st
+        +'<br><span class="pd-chip-act">위치보기</span></button>';
+      const b=el.querySelector('button');
+      if(b) b.onclick=function(ev){ if(ev) ev.stopPropagation(); _goPaldang(q, plain); };
     }).catch(function(){ el._loaded=false; });
 }
 map.on('overlayadd', function(e){ if(e&&e.layer===waterLevelLayer) _paldang(); });
@@ -1996,7 +2015,7 @@ const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
 }));
 
 // ---- 호수·댐 저수위 레이어(HRFCO dam/list, 기본 OFF) ----
-const _damCache={}, _damYrCache={};
+const _damCache={}, _damYrCache={}, _damSparkCache={};
 function _damRecent1H(cd){
   if(!HRFCO_KEY) return Promise.resolve(null);
   const now=new Date(), from=new Date(now.getTime()-48*3600*1000);
@@ -2052,6 +2071,49 @@ function _damYear(d, cur){
       _damYrCache[d.cd]={vals:vals,ts:Date.now()}; return build(vals); })
     .catch(function(){ return ''; });
 }
+function _damSpark24M(d){
+  if(!HRFCO_KEY) return Promise.resolve('');
+  const build=function(rows){
+    rows=(rows||[]).filter(function(x){return x&&isFinite(x.v)&&x.v>0&&x.t;}).sort(function(a,b){return a.t-b.t;});
+    if(rows.length<120) return '';
+    const vals=rows.map(function(x){return x.v;});
+    const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=(mx-mn)||0.01;
+    const W=210,H=54,padL=3,padR=3,padT=5,padB=15,plotW=W-padL-padR,plotH=H-padT-padB;
+    const first=rows[0].t.getTime(), last=rows[rows.length-1].t.getTime(), span=(last-first)||1;
+    const xOf=function(t){ return padL+(t.getTime()-first)/span*plotW; };
+    const yOf=function(v){ return padT+plotH-(v-mn)/rng*plotH; };
+    const pts=rows.map(function(r){ return xOf(r.t).toFixed(1)+','+yOf(r.v).toFixed(1); }).join(' ');
+    let ticks='', labs='';
+    const cursor=new Date(rows[0].t.getFullYear(), Math.floor(rows[0].t.getMonth()/3)*3, 1);
+    while(cursor<=rows[rows.length-1].t){
+      const x=xOf(cursor);
+      if(x>=padL-1&&x<=W-padR+1){
+        ticks+='<line x1="'+x.toFixed(1)+'" y1="'+padT+'" x2="'+x.toFixed(1)+'" y2="'+(padT+plotH+3)+'" stroke="#d6dee2" stroke-width="1"/>';
+        labs+='<text x="'+x.toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle" font-size="7" fill="#789">'+(cursor.getMonth()+1)+'월</text>';
+      }
+      cursor.setMonth(cursor.getMonth()+3);
+    }
+    const cur=vals[vals.length-1], dlt=cur-vals[0];
+    const dTxt=Math.abs(dlt)<0.05?'보합':(dlt>0?'+'+dlt.toFixed(1)+'m':dlt.toFixed(1)+'m');
+    return '<div style="margin-top:8px"><small style="color:#667;font-weight:700">지난 24개월 저수위 추이</small>'
+      +'<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block;margin-top:2px;max-width:100%">'
+      +'<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="6" fill="#f7fafb"/>'
+      +ticks+'<polyline points="'+pts+'" fill="none" stroke="#1976d2" stroke-width="1.7"/>'
+      +'<circle cx="'+xOf(rows[rows.length-1].t).toFixed(1)+'" cy="'+yOf(cur).toFixed(1)+'" r="2.3" fill="#263238"/>'
+      +labs+'</svg>'
+      +'<small style="color:#889;display:block;margin-top:1px">24개월 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m · 변화 '+dTxt+'</small></div>';
+  };
+  const c=_damSparkCache[d.cd];
+  if(c && Date.now()-c.ts<3600000) return Promise.resolve(build(c.rows));
+  function ymd(x){ return x.getFullYear()+('0'+(x.getMonth()+1)).slice(-2)+('0'+x.getDate()).slice(-2); }
+  function parseDay(s){ s=String(s||''); if(s.length<8) return null; return new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8)); }
+  const now=new Date(), from=new Date(now.getTime()-730*86400000);
+  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/1D/'+d.cd+'/'+ymd(from)+'/'+ymd(now)+'.json')
+    .then(function(r){return r.json();})
+    .then(function(j){ const rows=(j.content||[]).map(function(x){return {t:parseDay(x.ymdhm||x.ymd),v:parseFloat(x.swl)};}).filter(function(x){return x.t&&isFinite(x.v)&&x.v>0;});
+      _damSparkCache[d.cd]={rows:rows,ts:Date.now()}; return build(rows); })
+    .catch(function(){ return ''; });
+}
 function _damPopupHtml(d, rec){
   let h='<b>🏞️ '+pmEsc(d.lake)+'</b> <small style="color:#889">('+pmEsc(d.nm)+')</small><br>';
   if(!rec||!isFinite(parseFloat(rec.swl))) return h+'<span style="color:#999">저수위 조회 실패</span>';
@@ -2063,7 +2125,7 @@ function _damPopupHtml(d, rec){
   }
   const refs=[]; if(isFinite(fld)) refs.push('제한수위까지 '+(fld-swl).toFixed(2)+'m'); if(isFinite(pfh)) refs.push('계획홍수위까지 '+(pfh-swl).toFixed(2)+'m');
   if(refs.length) h+='<br><small style="color:#aab">'+refs.join(' · ')+'</small>';
-  h+='<div id="damYr_'+d.cd+'"></div>';
+  h+='<div id="damSpark_'+d.cd+'"></div><div id="damYr_'+d.cd+'"></div>';
   return h;
 }
 const damLevelLayer=L.layerGroup(DAMS.map(function(d){
@@ -2072,7 +2134,10 @@ const damLevelLayer=L.layerGroup(DAMS.map(function(d){
   m.on('click',function(){
     _damGet(d).then(function(rec){
       m.setPopupContent(_damPopupHtml(d,rec));
-      if(rec) _damYear(d, parseFloat(rec.swl)).then(function(html){ const el=document.getElementById('damYr_'+d.cd); if(el&&html) el.innerHTML=html; });
+      if(rec){
+        _damSpark24M(d).then(function(html){ const el=document.getElementById('damSpark_'+d.cd); if(el&&html) el.innerHTML=html; });
+        _damYear(d, parseFloat(rec.swl)).then(function(html){ const el=document.getElementById('damYr_'+d.cd); if(el&&html) el.innerHTML=html; });
+      }
     }).catch(function(){ m.setPopupContent('<b>🏞️ '+pmEsc(d.lake)+'</b><br><span style="color:#999">댐 저수위 조회 실패</span>'); });
   });
   return m;
