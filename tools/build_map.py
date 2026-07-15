@@ -207,6 +207,15 @@ __GTAG__
   .sat-src button{font:600 12.5px sans-serif;border:0;border-left:1px solid #d3def0;background:#fff;color:#41566b;padding:7px 12px;cursor:pointer;white-space:nowrap;line-height:1}
   .sat-src button:first-of-type{border-left:0}
   .sat-src button.on{background:#185fa5;color:#fff;font-weight:700}
+  .wayback-ctl{display:none;margin:5px 0 7px 4px;padding:8px;border:1px solid #b9cadf;border-radius:7px;background:#f7fbff;color:#31465a}
+  .wayback-ctl.on{display:block}
+  .wayback-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;font-size:12px;font-weight:700}
+  .wayback-head button{border:0;background:transparent;color:#607d8b;font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
+  .wayback-ctl select{display:block;width:100%;box-sizing:border-box;border:1px solid #afc2d4;border-radius:5px;background:#fff;padding:6px;font:12px sans-serif;color:#263746}
+  .wayback-opacity{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11.5px}
+  .wayback-opacity input{min-width:0;flex:1}
+  .wayback-note{display:block;margin-top:5px;color:#718292;font-size:10.5px;line-height:1.35}
+  .dam-wayback{margin-top:8px;border:1px solid #90a4ae;border-radius:6px;background:#fff;color:#254b65;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer}
   .sw-course{background:linear-gradient(90deg,#7c4dff 0 33%,#d500f9 33% 66%,#00897b 66% 100%)!important}
   .rv-sw{display:inline-block;width:14px;margin-right:6px;text-align:center;font-size:12px;flex:none}
   .leaflet-div-icon.rv-div{background:transparent;border:0;width:auto!important;height:auto!important}
@@ -806,6 +815,60 @@ function setSatSource(src){
   _syncSatToggle();
 }
 setSatSource(_satSrc);   // baseSat 초기 채움(토글 UI는 아직 없으니 _syncSatToggle 은 no-op)
+
+// ESRI World Imagery Wayback: 선택한 호수 주변 타일만 과거 배포본으로 덮는다.
+const WAYBACK_CAP='https://wayback.maptiles.arcgis.com/arcgis/rest/services/world_imagery/wmts?request=GetCapabilities&service=WMTS&version=1.0.0';
+let _wbVersions=null, _wbLayer=null, _wbTarget=null;
+function _wbBounds(d){ return L.latLngBounds([d.lat-.09,d.lng-.12],[d.lat+.09,d.lng+.12]); }
+function _wbLoadVersions(){
+  if(_wbVersions) return Promise.resolve(_wbVersions);
+  return fetch(WAYBACK_CAP).then(function(r){ if(!r.ok) throw new Error('Wayback '+r.status); return r.text(); }).then(function(txt){
+    const xml=(new DOMParser()).parseFromString(txt,'application/xml');
+    const rows=Array.from(xml.getElementsByTagNameNS('*','Layer')).map(function(x){
+      const tt=x.getElementsByTagNameNS('*','Title')[0], rr=x.getElementsByTagNameNS('*','ResourceURL')[0];
+      const title=tt?tt.textContent:'', tpl=rr?rr.getAttribute('template'):'';
+      const dm=title.match(/Wayback\s+(\d{4}-\d{2}-\d{2})/), im=tpl.match(/MapServer\/tile\/(\d+)\//);
+      return (dm&&im)?{date:dm[1],id:im[1]}:null;
+    }).filter(Boolean);
+    if(!rows.length) throw new Error('Wayback versions empty');
+    _wbVersions=rows; return rows;
+  });
+}
+function _wbDraw(){
+  if(!_wbTarget) return;
+  const sel=document.getElementById('waybackDate'), op=document.getElementById('waybackOpacity');
+  if(!sel||!sel.value) return;
+  if(_wbLayer) map.removeLayer(_wbLayer);
+  const url='https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/'+sel.value+'/{z}/{y}/{x}';
+  _wbLayer=L.tileLayer(url,{bounds:_wbBounds(_wbTarget),maxNativeZoom:18,maxZoom:19,opacity:op?parseFloat(op.value):.75,attribution:'Historical imagery © Esri Wayback'}).addTo(map);
+  _wbLayer.bringToFront(); if(map.hasLayer(satLabels)) satLabels.bringToFront();
+  try{ localStorage.setItem('mc_wayback_id',sel.value); }catch(e){}
+}
+function _closeWayback(){
+  if(_wbLayer){ map.removeLayer(_wbLayer); _wbLayer=null; }
+  _wbTarget=null;
+  const p=document.getElementById('waybackCtl'); if(p) p.classList.remove('on');
+  const c=_layerControl&&_layerControl.getContainer(); if(c) c.style.width='';
+}
+function _openWayback(cd){
+  const d=(DAMS||[]).find(function(x){return String(x.cd)===String(cd);}); if(!d) return;
+  _wbTarget=d;
+  if(map.hasLayer(baseOSM)) map.removeLayer(baseOSM);
+  if(!map.hasLayer(baseSat)) baseSat.addTo(map);
+  if(_layerControl&&_layerControl._update) _layerControl._update();
+  map.setMaxZoom(SAT_MAXZOOM_E); if(map.getZoom()<11) map.setView([d.lat,d.lng],11); else map.panTo([d.lat,d.lng]);
+  const p=document.getElementById('waybackCtl'), sel=document.getElementById('waybackDate'), nm=document.getElementById('waybackName');
+  if(!p||!sel) return;
+  p.classList.add('on'); if(nm) nm.textContent=d.lake+' 주변';
+  const c=_layerControl&&_layerControl.getContainer(); if(c) c.style.width='232px';
+  sel.disabled=true; sel.innerHTML='<option>과거 영상 목록 불러오는 중…</option>';
+  _wbLoadVersions().then(function(rows){
+    let saved=''; try{ saved=localStorage.getItem('mc_wayback_id')||''; }catch(e){}
+    sel.innerHTML=rows.map(function(v){return '<option value="'+v.id+'"'+(v.id===saved?' selected':'')+'>'+v.date+' 배포본</option>';}).join('');
+    sel.disabled=false; _wbDraw();
+  }).catch(function(){ sel.innerHTML='<option>영상 목록을 불러오지 못했습니다</option>'; });
+  _syncSatToggle(); gaEvent('wayback_open');
+}
 
 // ---- 외부 지도 딥링크 (안드로이드 intent / iOS scheme / 데스크톱 웹) ----
 function extLinks(lat,lng,label,hasRv){   // hasRv===false 면 로드뷰 링크 숨김(없는 곳)
@@ -2156,7 +2219,8 @@ function _damSpark24M(d){
 }
 function _damPopupHtml(d, rec){
   let h='<b>🏞️ '+pmEsc(d.lake)+'</b> <small style="color:#889">('+pmEsc(d.nm)+')</small><br>';
-  if(!rec||!isFinite(parseFloat(rec.swl))) return h+'<span style="color:#999">저수위 조회 실패</span>';
+  const wb='<br><button type="button" class="dam-wayback" onclick="_openWayback(\''+String(d.cd).replace(/'/g,'')+'\')">과거 위성사진 보기</button>';
+  if(!rec||!isFinite(parseFloat(rec.swl))) return h+'<span style="color:#999">저수위 조회 실패</span>'+wb;
   const swl=parseFloat(rec.swl), pfh=parseFloat(d.pfh), fld=parseFloat(d.fld);
   h+='<span style="font-size:19px;font-weight:800">'+swl.toFixed(2)+' EL.m</span>';
   h+='<br><small style="color:#889">'+_wlTime(rec.t)+' 관측'+(rec.src&&rec.src!=='10M'?' · '+rec.src:'')+'</small>';
@@ -2169,7 +2233,7 @@ function _damPopupHtml(d, rec){
   if(isFinite(fld)) refs.push('제한수위'+fldTip+'까지 '+(fld-swl).toFixed(2)+'m');
   if(isFinite(pfh)) refs.push('계획홍수위'+pfhTip+'까지 '+(pfh-swl).toFixed(2)+'m');
   if(refs.length) h+='<br><small style="color:#aab">'+refs.join(' · ')+'</small>';
-  h+='<div id="damSpark_'+d.cd+'"></div><div id="damDay_'+d.cd+'"></div><div id="damYr_'+d.cd+'"></div>';
+  h+='<div id="damSpark_'+d.cd+'"></div><div id="damDay_'+d.cd+'"></div><div id="damYr_'+d.cd+'"></div>'+wb;
   return h;
 }
 const damLevelLayer=L.layerGroup(DAMS.map(function(d){
@@ -2283,10 +2347,30 @@ function _syncSatToggle(){
     L.DomEvent.on(b,'click',function(ev){ L.DomEvent.stop(ev); setSatSource(b.getAttribute('data-src')); gaEvent('sat_src_'+b.getAttribute('data-src')); });
   });
 })();
+// 과거 영상 컨트롤은 호수 팝업의 버튼을 누른 뒤에만 표시한다.
+(function(){
+  const c=_layerControl&&_layerControl.getContainer(); if(!c) return;
+  const base=c.querySelector('.leaflet-control-layers-base'); if(!base) return;
+  const p=L.DomUtil.create('div','wayback-ctl'); p.id='waybackCtl';
+  p.innerHTML='<div class="wayback-head"><span>과거 위성 · <span id="waybackName"></span></span><button id="waybackClose" type="button" title="과거 영상 닫기">×</button></div>'
+    +'<select id="waybackDate" aria-label="과거 위성영상 배포일"></select>'
+    +'<label class="wayback-opacity"><span>과거 영상</span><input id="waybackOpacity" type="range" min="0.2" max="1" step="0.1" value="0.8"><span id="waybackOpacityVal">80%</span></label>'
+    +'<small class="wayback-note">선택일은 ESRI 배포일입니다. 실제 촬영일은 지역별로 다를 수 있습니다.</small>';
+  const src=document.getElementById('satSrcToggle');
+  if(src) src.insertAdjacentElement('afterend',p); else base.insertAdjacentElement('afterend',p);
+  L.DomEvent.disableClickPropagation(p); L.DomEvent.disableScrollPropagation(p);
+  const sel=document.getElementById('waybackDate'), op=document.getElementById('waybackOpacity');
+  L.DomEvent.on(sel,'change',function(){ _wbDraw(); gaEvent('wayback_date'); });
+  L.DomEvent.on(op,'input',function(){
+    const v=parseFloat(op.value); document.getElementById('waybackOpacityVal').textContent=Math.round(v*100)+'%';
+    if(_wbLayer) _wbLayer.setOpacity(v);
+  });
+  L.DomEvent.on(document.getElementById('waybackClose'),'click',function(e){ L.DomEvent.stop(e); _closeWayback(); });
+})();
 // 위성지도 최대 줌(출처별) + 선택 저장 + 서브토글 동기화
 map.on('baselayerchange', function(e){
   if(e.name==='위성지도'){ const mz=(_satSrc==='vworld')?SAT_MAXZOOM_V:SAT_MAXZOOM_E; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); }
-  else { map.setMaxZoom(19); }
+  else { map.setMaxZoom(19); _closeWayback(); }
   _syncSatToggle();
   try{ localStorage.setItem('mc_basemap', e.name); }catch(err){} });
 // 저장된 베이스맵으로 시작(기본 일반지도)
