@@ -212,6 +212,8 @@ __GTAG__
   .rv-div .rv-badge{position:absolute;transform:translate(-50%,-150%);font-size:15px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
   .leaflet-div-icon.wl-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .wl-div .wl-badge{position:absolute;transform:translate(-50%,-50%);font-size:14px;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+  .leaflet-div-icon.dam-div{background:transparent;border:0;width:auto!important;height:auto!important}
+  .dam-div .dam-badge{position:absolute;transform:translate(-50%,-50%);font-size:18px;cursor:pointer;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55))}
   .leaflet-div-icon.cctv-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .cctv-div .cctv-badge{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#ffeb3b;border:2px solid #111;font-size:18px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.55)}
   .wl-year-meta{display:flex;flex-wrap:wrap;gap:2px 7px;max-width:100%;min-width:0;margin-top:1px;font-size:11px;line-height:1.35;color:#99a}
@@ -625,6 +627,7 @@ let _protectWanted = true, _wlzWanted = true;      // 기본 ON 의도(토글이
 const WLSTN = __WLSTN__;   // 수위관측소(HRFCO, 카누 장소 근처 선별)
 const CCTVS = __CCTVS__;   // 수위관측 CCTV 지점(홍수정보시스템, 영상은 공식 팝업)
 const WEIRS = __WEIRS__;   // 전국 보 위치(해수부 어도 현황 기반, 근처 선별)
+const DAMS = [{"lake":"소양호","cd":"1012110","nm":"소양강댐","lat":37.946111,"lng":127.812222,"pfh":"198","fld":"190.3"},{"lake":"파로호","cd":"1010310","nm":"화천댐","lat":38.117778,"lng":127.778889,"pfh":"183","fld":"175"},{"lake":"춘천호","cd":"1010320","nm":"춘천댐","lat":37.966667,"lng":127.670833,"pfh":"104.9","fld":"102"},{"lake":"의암호","cd":"1013310","nm":"의암댐","lat":37.836667,"lng":127.675833,"pfh":"73.36","fld":"70.5"},{"lake":"청평호","cd":"1015310","nm":"청평댐","lat":37.725278,"lng":127.421111,"pfh":"52","fld":"50"},{"lake":"팔당호","cd":"1017310","nm":"팔당댐","lat":37.525,"lng":127.284722,"pfh":"27","fld":""},{"lake":"충주호","cd":"1003110","nm":"충주댐","lat":37.003611,"lng":127.995556,"pfh":"145","fld":"138"},{"lake":"괴산호","cd":"1004310","nm":"괴산댐","lat":36.7625,"lng":127.845,"pfh":"136.93","fld":"134"},{"lake":"횡성호","cd":"1006110","nm":"횡성댐","lat":37.545,"lng":128.0325,"pfh":"180","fld":"178.2"},{"lake":"군남홍수조절지","cd":"1021701","nm":"군남댐","lat":38.105,"lng":127.015833,"pfh":"40","fld":""},{"lake":"한탄강댐 저수지","cd":"1022701","nm":"한탄강댐","lat":38.063889,"lng":127.133333,"pfh":"114.4","fld":""},{"lake":"안동호","cd":"2001110","nm":"안동댐","lat":36.585,"lng":128.773889,"pfh":"161.7","fld":"160"},{"lake":"임하호","cd":"2002110","nm":"임하댐","lat":36.537778,"lng":128.883333,"pfh":"164.7","fld":"161.7"},{"lake":"합천호","cd":"2015110","nm":"합천댐","lat":35.533889,"lng":128.031667,"pfh":"179","fld":"176"},{"lake":"진양호","cd":"2018110","nm":"남강댐","lat":35.164722,"lng":128.036944,"pfh":"46","fld":"41"},{"lake":"밀양호","cd":"2021110","nm":"밀양댐","lat":35.482778,"lng":128.931944,"pfh":"210.2","fld":"207.2"},{"lake":"용담호","cd":"3001110","nm":"용담댐","lat":35.941667,"lng":127.528889,"pfh":"265.5","fld":"261.5"},{"lake":"대청호","cd":"3008110","nm":"대청댐","lat":36.478611,"lng":127.480556,"pfh":"80","fld":"76.5"},{"lake":"보령호","cd":"3203310","nm":"보령댐","lat":36.249722,"lng":126.648611,"pfh":"75.5","fld":"74"},{"lake":"옥정호","cd":"4001110","nm":"섬진강댐","lat":35.539444,"lng":127.113611,"pfh":"197.7","fld":"194"},{"lake":"주암호","cd":"4007110","nm":"주암댐","lat":35.059167,"lng":127.239167,"pfh":"110.5","fld":"108.5"},{"lake":"장흥호","cd":"5101110","nm":"장흥댐","lat":34.750556,"lng":126.885278,"pfh":"82.8","fld":"79"}];   // 주요 호수의 댐 저수위 관측 지점
 const HRFCO_KEY = "__HRFCO_KEY__";   // 수위 API(도메인잠금 없음 — 남용 시 재발급)
 const COURSES = __COURSES__;
 const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직접 호출. 비면 Nominatim
@@ -1428,9 +1431,11 @@ function courseCmt(kind,id){
 // (레이어 토글과 독립 — 체크 상태 유지한 채 줌으로만 표시/숨김)
 map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
 map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='650';
+map.createPane('damPane'); map.getPane('damPane').style.zIndex='648';
 map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='645';
 function _zoomPaneGate(){ const on=map.getZoom()>=13?'':'none';
   map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on;
+  map.getPane('damPane').style.display=map.getZoom()>=10?'':'none';
   map.getPane('obsPane').style.display=map.getZoom()>=13?'':'none'; }
 map.on('zoomend', _zoomPaneGate);
 const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
@@ -1990,6 +1995,89 @@ const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
   return m;
 }));
 
+// ---- 호수·댐 저수위 레이어(HRFCO dam/list, 기본 OFF) ----
+const _damCache={}, _damYrCache={};
+function _damRecent1H(cd){
+  if(!HRFCO_KEY) return Promise.resolve(null);
+  const now=new Date(), from=new Date(now.getTime()-48*3600*1000);
+  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/1H/'+cd+'/'+_hrfcoYmdh(from)+'/'+_hrfcoYmdh(now)+'.json')
+    .then(function(r){return r.json();})
+    .then(function(j){ const rec=(j.content||[]).filter(function(x){return parseFloat(x.swl)>0;})[0]; return rec?{swl:rec.swl,inf:rec.inf,tototf:rec.tototf,t:rec.ymdhm,src:'1H'}:null; })
+    .catch(function(){ return null; });
+}
+function _damRecent1D(cd){
+  if(!HRFCO_KEY) return Promise.resolve(null);
+  const now=new Date(), from=new Date(now.getTime()-14*86400000);
+  function ymd(d){ return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/1D/'+cd+'/'+ymd(from)+'/'+ymd(now)+'.json')
+    .then(function(r){return r.json();})
+    .then(function(j){ const rec=(j.content||[]).filter(function(x){return parseFloat(x.swl)>0;})[0]; return rec?{swl:rec.swl,inf:rec.inf,tototf:rec.tototf,t:rec.ymdhm||rec.ymd,src:'1D'}:null; })
+    .catch(function(){ return null; });
+}
+function _damGet(d){
+  const c=_damCache[d.cd]; if(c && Date.now()-c.ts<600000) return Promise.resolve(c.rec);
+  const direct=HRFCO_KEY
+    ? fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/10M/'+d.cd+'.json')
+        .then(function(r){return r.json();})
+        .then(function(j){ const rec=(j.content||[])[0]; return (rec&&parseFloat(rec.swl)>0)?{swl:rec.swl,inf:rec.inf,tototf:rec.tototf,t:rec.ymdhm,src:'10M'}:null; })
+    : Promise.resolve(null);
+  return direct.catch(function(){ return null; })
+    .then(function(rec){ return rec || _damRecent1H(d.cd); })
+    .then(function(rec){ return rec || _damRecent1D(d.cd); })
+    .then(function(rec){ _damCache[d.cd]={rec:rec,ts:Date.now()}; return rec; });
+}
+function _damYear(d, cur){
+  if(!HRFCO_KEY||!isFinite(cur)) return Promise.resolve('');
+  const build=function(vals){
+    if(!vals||vals.length<60) return '';
+    const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+    if(mx-mn<0.01) return '';
+    const pct=Math.round(vals.filter(function(v){return v<=cur;}).length/vals.length*100);
+    const pos=Math.max(0,Math.min(100,pct));
+    const rel=((cur-mn)/(mx-mn))*100;
+    const lab=pct>=80?['매우 높은 편','#e53935']:pct>=60?['높은 편','#fb8c00']:pct>=20?['보통 범위','#2e7d32']:['낮은 편','#1565c0'];
+    return '<div style="margin-top:7px">'
+      +'<div style="position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,#90caf9,#a5d6a7,#ffcc80,#ef9a9a)">'
+      +'<span style="position:absolute;left:'+pos.toFixed(1)+'%;top:-3px;transform:translateX(-50%);width:3px;height:14px;background:#263238;border-radius:2px"></span></div>'
+      +'<small style="color:#889;display:block;margin-top:2px;white-space:normal;overflow-wrap:anywhere">최근 1년 저수위 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m</small>'
+      +'<div class="wl-year-meta"><b style="color:'+lab[1]+'">'+lab[0]+'</b><span>최저 대비 +'+Math.max(0,cur-mn).toFixed(2)+'m</span><span>최고 대비 -'+Math.max(0,mx-cur).toFixed(2)+'m</span><span>'+rel.toFixed(0)+'% 지점</span></div></div>';
+  };
+  const c=_damYrCache[d.cd];
+  if(c && Date.now()-c.ts<3600000) return Promise.resolve(build(c.vals));
+  function ymd(x){ return x.getFullYear()+('0'+(x.getMonth()+1)).slice(-2)+('0'+x.getDate()).slice(-2); }
+  const now=new Date(), from=new Date(now.getTime()-365*86400000);
+  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/1D/'+d.cd+'/'+ymd(from)+'/'+ymd(now)+'.json')
+    .then(function(r){return r.json();})
+    .then(function(j){ const vals=(j.content||[]).map(function(x){return parseFloat(x.swl);}).filter(function(v){return isFinite(v)&&v>0;});
+      _damYrCache[d.cd]={vals:vals,ts:Date.now()}; return build(vals); })
+    .catch(function(){ return ''; });
+}
+function _damPopupHtml(d, rec){
+  let h='<b>🏞️ '+pmEsc(d.lake)+'</b> <small style="color:#889">('+pmEsc(d.nm)+')</small><br>';
+  if(!rec||!isFinite(parseFloat(rec.swl))) return h+'<span style="color:#999">저수위 조회 실패</span>';
+  const swl=parseFloat(rec.swl), pfh=parseFloat(d.pfh), fld=parseFloat(d.fld);
+  h+='<span style="font-size:19px;font-weight:800">'+swl.toFixed(2)+' EL.m</span>';
+  h+='<br><small style="color:#889">'+_wlTime(rec.t)+' 관측'+(rec.src&&rec.src!=='10M'?' · '+rec.src:'')+'</small>';
+  if(isFinite(parseFloat(rec.inf))||isFinite(parseFloat(rec.tototf))){
+    h+='<br><small>유입 '+(isFinite(parseFloat(rec.inf))?parseFloat(rec.inf).toFixed(1):'-')+' ㎥/s · 방류 '+(isFinite(parseFloat(rec.tototf))?parseFloat(rec.tototf).toFixed(1):'-')+' ㎥/s</small>';
+  }
+  const refs=[]; if(isFinite(fld)) refs.push('제한수위까지 '+(fld-swl).toFixed(2)+'m'); if(isFinite(pfh)) refs.push('계획홍수위까지 '+(pfh-swl).toFixed(2)+'m');
+  if(refs.length) h+='<br><small style="color:#aab">'+refs.join(' · ')+'</small>';
+  h+='<div id="damYr_'+d.cd+'"></div>';
+  return h;
+}
+const damLevelLayer=L.layerGroup(DAMS.map(function(d){
+  const m=L.marker([d.lat,d.lng],{icon:L.divIcon({className:'dam-div',html:'<span class="dam-badge">🏞️</span>',iconSize:null}),pane:'damPane'});
+  m.bindPopup('<b>🏞️ '+pmEsc(d.lake)+'</b><br><span class="wl-loading">댐 저수위 조회 중…</span>',{minWidth:210});
+  m.on('click',function(){
+    _damGet(d).then(function(rec){
+      m.setPopupContent(_damPopupHtml(d,rec));
+      if(rec) _damYear(d, parseFloat(rec.swl)).then(function(html){ const el=document.getElementById('damYr_'+d.cd); if(el&&html) el.innerHTML=html; });
+    }).catch(function(){ m.setPopupContent('<b>🏞️ '+pmEsc(d.lake)+'</b><br><span style="color:#999">댐 저수위 조회 실패</span>'); });
+  });
+  return m;
+}));
+
 // ---- 수위관측 CCTV 레이어(기본 OFF, 정적 지점 목록 + 공식 팝업 링크) ----
 const cctvLayer=L.layerGroup();
 let _cctvLoaded=false, _cctvLoading=false;
@@ -2025,6 +2113,7 @@ _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
 _ov['<span class="rv-sw">⚠️</span>지형지물·보'] = obstacleLayer;     // 기본 ON, 줌≥12 표시
 _ov['<span class="rv-sw">🛣️</span>로드뷰 구간'] = roadviewLayer;   // 기본 OFF
 _ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본 OFF, 줌≥12 표시
+_ov['<span class="rv-sw">🏞️</span>호수·댐 수위'] = damLevelLayer;  // 기본 OFF, 줌≥10 표시
 _ov['<span class="rv-sw">📹</span>수위관측 CCTV'] = cctvLayer;   // 기본 OFF, 줌≥12 표시
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
