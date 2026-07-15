@@ -699,7 +699,7 @@ export default {
       return new Response(JSON.stringify(out), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 0-3e) 지형지물(보/징검다리/낮은바닥/여울/유명지) — 관리자. KV "obstacles". 여울·유명지는 name 보유
+    // 0-3e) 지형지물(보/징검다리/잠수교/낮은바닥/여울/유명지) — 관리자. KV "obstacles". 여울·유명지는 name 보유
     if (url.pathname.endsWith("/obstacles") || url.pathname.endsWith("/obstacle")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
@@ -713,7 +713,7 @@ export default {
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
-        const TYPES = ["보", "징검다리", "낮은바닥", "여울", "유명지"];
+        const TYPES = ["보", "징검다리", "잠수교", "낮은바닥", "여울", "유명지"];
         let arr = []; try { arr = JSON.parse((await KV.get("obstacles")) || "[]"); } catch (e) {}
         let created = null;
         const seedAdd = b.action === "add" && String(b.obsId || "").startsWith("weir:");

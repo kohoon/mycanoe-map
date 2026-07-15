@@ -183,6 +183,7 @@ __GTAG__
   .obs-bo{background:#e53935}
   .obs-jing{background:#fb8c00}
   .obs-shal{background:#fdd835;color:#5a4500}
+  .obs-lowbridge{background:#6d4c41}
   .obs-yeoul{background:#1e88e5}
   .obs-spot{background:#2e9e5b}
   #obName{width:100%;box-sizing:border-box;padding:9px;border:1px solid #ccd;border-radius:9px;font-size:13.5px}
@@ -1429,7 +1430,7 @@ function courseCmt(kind,id){
   if(kind==='c'){ const c=_courseByCid[String(id)]; if(c) openCourseComments('course_c'+id, c, id); }
   else { const c=_kvCourses[id]; if(c) openCourseComments('course_k'+id, c, 'k'+id); }
 }
-// ---- 지형지물(보/징검다리/낮은바닥/여울/유명지) — 여울·유명지는 이름 지정 ----
+// ---- 지형지물(보/징검다리/잠수교/낮은바닥/여울/유명지) — 여울·유명지는 이름 지정 ----
 // 줌 게이팅: 마커를 전용 pane에 넣고 줌<12(런칭/랜딩 아이콘 전환 기준)에서는 pane 자체를 숨김
 // (레이어 토글과 독립 — 체크 상태 유지한 채 줌으로만 표시/숨김)
 map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
@@ -1441,7 +1442,7 @@ function _zoomPaneGate(){ const on=map.getZoom()>=13?'':'none';
   map.getPane('damPane').style.display=map.getZoom()>=10?'':'none';
   map.getPane('obsPane').style.display=map.getZoom()>=13?'':'none'; }
 map.on('zoomend', _zoomPaneGate);
-const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
+const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'잠수교':{c:'obs-lowbridge',e:'🌉',label:'잠수교'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
 function _obHasName(ty){ return ty==='여울'||ty==='유명지'; }
 const obstacleLayer=L.layerGroup();
 const _obstacles={};
@@ -1487,7 +1488,7 @@ function openObsModal(mode,data){ if(!isAdmin()) return;
   _obMode=mode; let ty='보', note='', name='';
   if(mode==='edit'){ _obCur=data; _obLL={lat:data.lat,lng:data.lng}; ty=data.type; note=data.note||''; name=data.name||''; }
   else { _obCur=null; _obLL={lat:data.lat,lng:data.lng}; }
-  const tys=['보','징검다리','낮은바닥','여울','유명지'];
+  const tys=['보','징검다리','잠수교','낮은바닥','여울','유명지'];
   let seg=''; for(let i=0;i<tys.length;i++){ const t=tys[i],info=OBS_TYPES[t]; seg+='<button class="seg-b'+(t===ty?' on':'')+'" data-ty="'+t+'" onclick="obPick(this)">'+info.e+' '+t+'</button>'; }
   document.getElementById('obBody').innerHTML=
     '<h3>'+(mode==='edit'?'✏️ 지형지물 수정':'🗺️ 지형지물 추가')+'</h3>'
@@ -1974,10 +1975,11 @@ function _goPaldang(q, stText){
 function _paldang(){
   if(!HRFCO_KEY) return;
   const el=document.getElementById('pdChip'); if(!el||el._loaded) return; el._loaded=true;
+  el.innerHTML='<span style="color:#889">팔당댐 방류 조회 중…</span>';
   fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/10M/1017310.json')
     .then(function(r){return r.json();})
-    .then(function(j){ const rec=(j.content||[])[0]; if(!rec) return;
-      const q=parseFloat(rec.tototf); if(!isFinite(q)) return;
+    .then(function(j){ const rec=(j.content||[])[0]; if(!rec){ el._loaded=false; el.innerHTML=''; return; }
+      const q=parseFloat(rec.tototf); if(!isFinite(q)){ el._loaded=false; el.innerHTML=''; return; }
       const st= q>=3000?'<span style="color:#b71c1c;font-weight:700">전면 통제</span>'
               : q>=1500?'<span style="color:#e53935;font-weight:700">무동력 통제</span>'
               :'<span style="color:#2e7d32;font-weight:700">운항 가능</span>';
@@ -2217,6 +2219,7 @@ _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
   L.DomEvent.on(h,'click',function(e){ L.DomEvent.stop(e); c.classList.toggle('lc-collapsed'); });
   if(isTouch) c.classList.add('lc-collapsed');   // 모바일: 기본 닫힘
+  _paldang();   // 수위 레이어 토글 여부와 무관하게 범례 칩은 항상 표시
 })();
 // ---- 위성 출처 서브토글(안 B): 위성지도 활성 시에만 Esri↔VWorld 노출 ----
 function _syncSatToggle(){
