@@ -220,6 +220,9 @@ __GTAG__
   .wl-year-meta{display:flex;flex-wrap:wrap;gap:2px 7px;max-width:100%;min-width:0;margin-top:1px;font-size:11px;line-height:1.35;color:#99a}
   .wl-year-meta b{font-weight:800}
   .wl-year-meta span{display:inline-block;white-space:normal;overflow-wrap:anywhere;word-break:keep-all}
+  .info-tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:3px;border-radius:50%;background:#eef3f6;color:#546e7a;border:1px solid #cfd8dc;font:800 10px/1 sans-serif;cursor:help;position:relative;vertical-align:middle}
+  .info-tip::after{content:attr(data-tip);display:none;position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:20;width:210px;box-sizing:border-box;padding:7px 8px;border-radius:6px;background:#263238;color:#fff;font:12px/1.45 sans-serif;text-align:left;white-space:normal;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .info-tip:hover::after,.info-tip:focus::after{display:block}
   .wl-loading{color:#889;font-size:12.5px}
   #pmCat{display:flex;align-items:center;gap:7px;margin:0 0 8px;flex-wrap:wrap}
   #pmCat:empty{display:none}
@@ -2091,28 +2094,32 @@ function _damSpark24M(d){
       const x=xOf(cursor);
       if(x>=padL-1&&x<=W-padR+1){
         ticks+='<line x1="'+x.toFixed(1)+'" y1="'+padT+'" x2="'+x.toFixed(1)+'" y2="'+(padT+plotH+3)+'" stroke="#d6dee2" stroke-width="1"/>';
-        labs+='<text x="'+x.toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle" font-size="7" fill="#789">'+(cursor.getMonth()+1)+'월</text>';
+        labs+='<text x="'+x.toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle" font-size="7" fill="#789">'+String(cursor.getFullYear()).slice(2)+'.'+(cursor.getMonth()+1)+'</text>';
       }
       cursor.setMonth(cursor.getMonth()+3);
     }
     const cur=vals[vals.length-1], dlt=cur-vals[0];
     const dTxt=Math.abs(dlt)<0.05?'보합':(dlt>0?'+'+dlt.toFixed(1)+'m':dlt.toFixed(1)+'m');
-    return '<div style="margin-top:8px"><small style="color:#667;font-weight:700">지난 24개월 저수위 추이</small>'
+    const months=Math.max(1,Math.round((rows[rows.length-1].t-rows[0].t)/(30.4375*86400000)));
+    const period=rows[0].t.getFullYear()+'.'+(rows[0].t.getMonth()+1)+'~'+rows[rows.length-1].t.getFullYear()+'.'+(rows[rows.length-1].t.getMonth()+1);
+    return '<div style="margin-top:8px"><small style="color:#667;font-weight:700">지난 '+months+'개월 저수위 추이</small>'
       +'<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block;margin-top:2px;max-width:100%">'
       +'<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="6" fill="#f7fafb"/>'
       +ticks+'<polyline points="'+pts+'" fill="none" stroke="#1976d2" stroke-width="1.7"/>'
       +'<circle cx="'+xOf(rows[rows.length-1].t).toFixed(1)+'" cy="'+yOf(cur).toFixed(1)+'" r="2.3" fill="#263238"/>'
       +labs+'</svg>'
-      +'<small style="color:#889;display:block;margin-top:1px">24개월 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m · 변화 '+dTxt+'</small></div>';
+      +'<small style="color:#889;display:block;margin-top:1px">'+period+' · 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m · 변화 '+dTxt+'</small></div>';
   };
   const c=_damSparkCache[d.cd];
   if(c && Date.now()-c.ts<3600000) return Promise.resolve(build(c.rows));
   function ymd(x){ return x.getFullYear()+('0'+(x.getMonth()+1)).slice(-2)+('0'+x.getDate()).slice(-2); }
   function parseDay(s){ s=String(s||''); if(s.length<8) return null; return new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8)); }
-  const now=new Date(), from=new Date(now.getTime()-730*86400000);
-  return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/1D/'+d.cd+'/'+ymd(from)+'/'+ymd(now)+'.json')
-    .then(function(r){return r.json();})
-    .then(function(j){ const rows=(j.content||[]).map(function(x){return {t:parseDay(x.ymdhm||x.ymd),v:parseFloat(x.swl)};}).filter(function(x){return x.t&&isFinite(x.v)&&x.v>0;});
+  function rowsFrom(j){ return (j.content||[]).map(function(x){return {t:parseDay(x.ymdhm||x.ymd),v:parseFloat(x.swl)};}).filter(function(x){return x.t&&isFinite(x.v)&&x.v>0;}); }
+  function get(a,b){ return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/1D/'+d.cd+'/'+ymd(a)+'/'+ymd(b)+'.json').then(function(r){return r.json();}).then(rowsFrom); }
+  const now=new Date(), mid=new Date(now.getFullYear()-1,now.getMonth(),now.getDate()), from=new Date(now.getFullYear()-2,now.getMonth(),now.getDate()), midPrev=new Date(mid.getTime()-86400000);
+  return Promise.all([get(from,midPrev),get(mid,now)])
+    .then(function(parts){ const byDay={}; parts[0].concat(parts[1]).forEach(function(r){ byDay[ymd(r.t)]=r; });
+      const rows=Object.keys(byDay).map(function(k){return byDay[k];}).sort(function(a,b){return a.t-b.t;});
       _damSparkCache[d.cd]={rows:rows,ts:Date.now()}; return build(rows); })
     .catch(function(){ return ''; });
 }
@@ -2125,7 +2132,11 @@ function _damPopupHtml(d, rec){
   if(isFinite(parseFloat(rec.inf))||isFinite(parseFloat(rec.tototf))){
     h+='<br><small>유입 '+(isFinite(parseFloat(rec.inf))?parseFloat(rec.inf).toFixed(1):'-')+' ㎥/s · 방류 '+(isFinite(parseFloat(rec.tototf))?parseFloat(rec.tototf).toFixed(1):'-')+' ㎥/s</small>';
   }
-  const refs=[]; if(isFinite(fld)) refs.push('제한수위까지 '+(fld-swl).toFixed(2)+'m'); if(isFinite(pfh)) refs.push('계획홍수위까지 '+(pfh-swl).toFixed(2)+'m');
+  const refs=[];
+  const fldTip='<span class="info-tip" tabindex="0" data-tip="홍수기 댐 운영에서 홍수 조절 용량을 확보하기 위해 목표로 삼는 상한 수위입니다. 현재 저수위가 이 값에 가까울수록 여유가 줄어듭니다.">?</span>';
+  const pfhTip='<span class="info-tip" tabindex="0" data-tip="댐 설계상 홍수 때 물이 도달할 수 있다고 보는 기준 수위입니다. 일반 운항 판단에는 제한수위와 현재 방류량을 더 우선해서 봅니다.">?</span>';
+  if(isFinite(fld)) refs.push('제한수위'+fldTip+'까지 '+(fld-swl).toFixed(2)+'m');
+  if(isFinite(pfh)) refs.push('계획홍수위'+pfhTip+'까지 '+(pfh-swl).toFixed(2)+'m');
   if(refs.length) h+='<br><small style="color:#aab">'+refs.join(' · ')+'</small>';
   h+='<div id="damSpark_'+d.cd+'"></div><div id="damYr_'+d.cd+'"></div>';
   return h;
