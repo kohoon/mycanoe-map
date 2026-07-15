@@ -215,7 +215,7 @@ __GTAG__
   .wayback-opacity{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11.5px}
   .wayback-opacity input{min-width:0;flex:1}
   .wayback-note{display:block;margin-top:5px;color:#718292;font-size:10.5px;line-height:1.35}
-  .dam-wayback{margin-top:8px;border:1px solid #90a4ae;border-radius:6px;background:#fff;color:#254b65;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer}
+  .dam-wayback{display:inline-block;margin:8px 4px 0 0;border:1px solid #90a4ae;border-radius:6px;background:#fff;color:#254b65;padding:6px 9px;font-size:12px;font-weight:700;line-height:1.2;text-decoration:none;cursor:pointer}
   .sw-course{background:linear-gradient(90deg,#7c4dff 0 33%,#d500f9 33% 66%,#00897b 66% 100%)!important}
   .rv-sw{display:inline-block;width:14px;margin-right:6px;text-align:center;font-size:12px;flex:none}
   .leaflet-div-icon.rv-div{background:transparent;border:0;width:auto!important;height:auto!important}
@@ -2220,7 +2220,8 @@ function _damSpark24M(d){
 function _damPopupHtml(d, rec){
   let h='<b>🏞️ '+pmEsc(d.lake)+'</b> <small style="color:#889">('+pmEsc(d.nm)+')</small><br>';
   const wb='<br><button type="button" class="dam-wayback" onclick="_openWayback(\''+String(d.cd).replace(/'/g,'')+'\')">과거 위성사진 보기</button>';
-  if(!rec||!isFinite(parseFloat(rec.swl))) return h+'<span style="color:#999">저수위 조회 실패</span>'+wb;
+  const soyang=String(d.cd)==='1012110'?'<a class="dam-wayback" href="soyang-imagery/" target="_blank" rel="noopener">저·고수위 호안 비교</a>':'';
+  if(!rec||!isFinite(parseFloat(rec.swl))) return h+'<span style="color:#999">저수위 조회 실패</span>'+wb+soyang;
   const swl=parseFloat(rec.swl), pfh=parseFloat(d.pfh), fld=parseFloat(d.fld);
   h+='<span style="font-size:19px;font-weight:800">'+swl.toFixed(2)+' EL.m</span>';
   h+='<br><small style="color:#889">'+_wlTime(rec.t)+' 관측'+(rec.src&&rec.src!=='10M'?' · '+rec.src:'')+'</small>';
@@ -2233,7 +2234,7 @@ function _damPopupHtml(d, rec){
   if(isFinite(fld)) refs.push('제한수위'+fldTip+'까지 '+(fld-swl).toFixed(2)+'m');
   if(isFinite(pfh)) refs.push('계획홍수위'+pfhTip+'까지 '+(pfh-swl).toFixed(2)+'m');
   if(refs.length) h+='<br><small style="color:#aab">'+refs.join(' · ')+'</small>';
-  h+='<div id="damSpark_'+d.cd+'"></div><div id="damDay_'+d.cd+'"></div><div id="damYr_'+d.cd+'"></div>'+wb;
+  h+='<div id="damSpark_'+d.cd+'"></div><div id="damDay_'+d.cd+'"></div><div id="damYr_'+d.cd+'"></div>'+wb+soyang;
   return h;
 }
 const damLevelLayer=L.layerGroup(DAMS.map(function(d){

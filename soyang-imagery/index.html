@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>소양호 저수위·고수위 호안 비교</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17232d;background:#eef2f3;letter-spacing:0}
+    body{display:grid;grid-template-rows:auto 1fr;overflow:hidden}
+    header{position:relative;z-index:1000;background:#fff;border-bottom:1px solid #cbd4d8;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .top{display:flex;align-items:center;gap:12px;min-width:0}
+    .back{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid #b9c5ca;border-radius:6px;color:#263b45;text-decoration:none;font-size:20px;flex:none}
+    h1{font-size:17px;line-height:1.25;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .summary{margin-left:auto;display:flex;gap:12px;font-size:12px;color:#5c6f78;white-space:nowrap}
+    .summary b{color:#1b313b}
+    .notice{margin:7px 0 0 46px;color:#687b84;font-size:11.5px;line-height:1.35}
+    main{display:grid;grid-template-columns:1fr 1fr;gap:1px;min-height:0;background:#9caeb5}
+    .panel{position:relative;min-width:0;background:#dfe7e9;overflow:hidden}
+    .map{position:absolute;inset:0}
+    .panel-title{position:absolute;z-index:700;top:10px;left:50%;transform:translateX(-50%);min-width:190px;padding:7px 12px;border-radius:6px;background:rgba(255,255,255,.94);box-shadow:0 2px 8px rgba(0,0,0,.2);text-align:center;pointer-events:none}
+    .panel-title b{display:block;font-size:14px}
+    .panel-title span{display:block;margin-top:2px;font-size:10.5px;color:#65747a}
+    .low .panel-title{border-top:4px solid #1976d2}
+    .high .panel-title{border-top:4px solid #2e7d32}
+    .hover-info{position:absolute;z-index:710;left:10px;bottom:24px;width:min(310px,calc(100% - 20px));min-height:58px;padding:8px 10px;border:1px solid rgba(84,104,111,.45);border-radius:6px;background:rgba(255,255,255,.95);box-shadow:0 2px 9px rgba(0,0,0,.18);font-size:11.5px;line-height:1.45;pointer-events:none}
+    .hover-info strong{display:block;font-size:12.5px;color:#20343d}
+    .hover-info .muted{color:#718188}
+    .season-tile{position:relative;background:#cfd9dc;overflow:hidden}
+    .season-tile img{position:absolute;display:block;max-width:none;image-rendering:auto}
+    .season-source{position:absolute;overflow:hidden;border:1px solid rgba(255,255,255,.16);cursor:crosshair}
+    .season-source:hover{border:2px solid #ffeb3b;z-index:5;box-shadow:inset 0 0 0 1px #111}
+    .season-source.missing{background:repeating-linear-gradient(135deg,rgba(81,101,109,.28) 0 5px,rgba(235,240,241,.6) 5px 10px)}
+    .season-source em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:3px;text-align:center;color:#40545c;font-style:normal;font-size:10px;line-height:1.15}
+    .leaflet-container{background:#dbe3e5}
+    .leaflet-control-attribution{font-size:9px!important}
+    @media(max-width:760px){
+      body{overflow:auto;display:block}
+      header{position:sticky;top:0}
+      .summary{display:none}
+      .notice{margin-left:0}
+      main{display:block;height:auto}
+      .panel{height:72vh;border-bottom:1px solid #96a8af}
+      .hover-info{bottom:20px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top">
+      <a class="back" href="../" title="카누 지도 돌아가기" aria-label="카누 지도 돌아가기">‹</a>
+      <h1>소양호 저수위·고수위 호안 비교</h1>
+      <div class="summary"><span>호안 타일 <b id="totalCount">-</b></span><span>저수위 <b id="lowCount">-</b></span><span>고수위 <b id="highCount">-</b></span></div>
+    </div>
+    <p class="notice">실제 촬영월 기준으로 분류했습니다. ESRI 배포일은 촬영일과 다르며, 계절 조건에 맞는 영상이 없는 타일은 빗금으로 표시됩니다.</p>
+  </header>
+  <main>
+    <section class="panel low">
+      <div class="panel-title"><b>저수위기 호안</b><span>실제 촬영월 5~7월</span></div>
+      <div id="mapLow" class="map"></div>
+      <div id="infoLow" class="hover-info"><strong>타일에 마우스를 올려보세요</strong><span class="muted">실제 촬영일과 ESRI 배포일을 표시합니다.</span></div>
+    </section>
+    <section class="panel high">
+      <div class="panel-title"><b>고수위기 호안</b><span>실제 촬영월 9~11월</span></div>
+      <div id="mapHigh" class="map"></div>
+      <div id="infoHigh" class="hover-info"><strong>타일에 마우스를 올려보세요</strong><span class="muted">실제 촬영일과 ESRI 배포일을 표시합니다.</span></div>
+    </section>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  (async function(){
+    const data=await fetch('tiles.json').then(function(r){if(!r.ok) throw new Error(r.status);return r.json();});
+    const z0=data.zoom, records={};
+    data.tiles.forEach(function(r){records[r.x+'/'+r.y]=r;});
+    document.getElementById('totalCount').textContent=data.tiles.length;
+    document.getElementById('lowCount').textContent=data.tiles.filter(function(r){return r.low;}).length;
+    document.getElementById('highCount').textContent=data.tiles.filter(function(r){return r.high;}).length;
+
+    function tileBounds(x,y,z){
+      const n=Math.pow(2,z), west=x/n*360-180, east=(x+1)/n*360-180;
+      const north=180/Math.PI*Math.atan(Math.sinh(Math.PI*(1-2*y/n)));
+      const south=180/Math.PI*Math.atan(Math.sinh(Math.PI*(1-2*(y+1)/n)));
+      return L.latLngBounds([south,west],[north,east]);
+    }
+    function sourceUrl(meta,x,y){
+      return 'https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/'+meta.tileId+'/'+z0+'/'+y+'/'+x;
+    }
+    function describe(season,rec,meta){
+      const label=season==='low'?'저수위기':'고수위기';
+      if(!meta) return '<strong>'+label+' 계절 영상 없음</strong><span class="muted">타일 '+z0+'/'+rec.x+'/'+rec.y+' · 선택 배포본의 실제 촬영월이 기준과 다릅니다.</span>';
+      return '<strong>'+label+' · '+meta.capture+' 촬영</strong>'
+        +'<span>ESRI '+meta.publish+' 배포 · '+meta.provider+(meta.resolution?' · 원본 '+meta.resolution+'m':'')+'</span><br>'
+        +'<span class="muted">타일 '+z0+'/'+rec.x+'/'+rec.y+'</span>';
+    }
+    const highlights=[];
+    function highlight(rec){
+      highlights.forEach(function(x){x.setBounds(tileBounds(rec.x,rec.y,z0));x.setStyle({opacity:1,fillOpacity:0});});
+    }
+    function addSource(container,season,rec,left,top,size,crop){
+      const meta=rec[season], box=document.createElement('div');
+      box.className='season-source'+(meta?'':' missing');
+      box.style.left=left+'px';box.style.top=top+'px';box.style.width=size+'px';box.style.height=size+'px';
+      if(meta){
+        const img=document.createElement('img');img.alt='';img.src=sourceUrl(meta,rec.x,rec.y);
+        if(crop){img.style.width=crop.full+'px';img.style.height=crop.full+'px';img.style.left=crop.left+'px';img.style.top=crop.top+'px';}
+        else{img.style.width=size+'px';img.style.height=size+'px';img.style.left='0';img.style.top='0';}
+        box.appendChild(img);
+      }else if(size>=55){const t=document.createElement('em');t.textContent='계절 자료 없음';box.appendChild(t);}
+      box.title=meta?(meta.capture+' 촬영 · '+meta.publish+' 배포'):'계절 조건에 맞는 촬영자료 없음';
+      box.addEventListener('mouseenter',function(){document.getElementById(season==='low'?'infoLow':'infoHigh').innerHTML=describe(season,rec,meta);highlight(rec);});
+      container.appendChild(box);
+    }
+    const Seasonal=L.GridLayer.extend({
+      initialize:function(season,opts){this.season=season;L.GridLayer.prototype.initialize.call(this,opts);},
+      createTile:function(coords){
+        const tile=L.DomUtil.create('div','season-tile'), z=coords.z, season=this.season;
+        if(z<=z0){
+          const f=Math.pow(2,z0-z), size=256/f, bx=coords.x*f, by=coords.y*f;
+          for(let dy=0;dy<f;dy++) for(let dx=0;dx<f;dx++){
+            const rec=records[(bx+dx)+'/'+(by+dy)]; if(rec) addSource(tile,season,rec,dx*size,dy*size,size,null);
+          }
+        }else{
+          const f=Math.pow(2,z-z0), px=Math.floor(coords.x/f), py=Math.floor(coords.y/f), rec=records[px+'/'+py];
+          if(rec) addSource(tile,season,rec,0,0,256,{full:256*f,left:-(coords.x%f)*256,top:-(coords.y%f)*256});
+        }
+        return tile;
+      }
+    });
+    function makeMap(id,season){
+      const map=L.map(id,{zoomControl:true,minZoom:10,maxZoom:17,preferCanvas:true});
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,opacity:.22,attribution:'© OpenStreetMap contributors'}).addTo(map);
+      new Seasonal(season,{tileSize:256,updateWhenIdle:false,keepBuffer:3,attribution:'Imagery © Esri Wayback'}).addTo(map);
+      L.geoJSON(data.lake,{style:{color:'#ffe600',weight:1.5,opacity:.9,fill:false,interactive:false}}).addTo(map);
+      return map;
+    }
+    const low=makeMap('mapLow','low'), high=makeMap('mapHigh','high');
+    const lakeLayer=L.geoJSON(data.lake), bounds=lakeLayer.getBounds();
+    low.fitBounds(bounds,{padding:[35,35]});high.fitBounds(bounds,{padding:[35,35]});
+    highlights.push(L.rectangle(bounds,{color:'#ffeb3b',weight:2,fill:false,interactive:false}).addTo(low));
+    highlights.push(L.rectangle(bounds,{color:'#ffeb3b',weight:2,fill:false,interactive:false}).addTo(high));
+    let syncing=false;
+    function sync(a,b){a.on('move',function(){if(syncing)return;syncing=true;b.setView(a.getCenter(),a.getZoom(),{animate:false});syncing=false;});}
+    sync(low,high);sync(high,low);
+  })().catch(function(err){document.body.innerHTML='<p style="padding:24px">비교 데이터를 불러오지 못했습니다: '+String(err)+'</p>';});
+  </script>
+</body>
+</html>
