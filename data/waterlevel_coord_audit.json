@@ -1,0 +1,5884 @@
+{
+  "generatedAt": "2026-07-16T07:41:09Z",
+  "stationCount": 387,
+  "bridgeCount": 327,
+  "rows": [
+    {
+      "cd": "1001629",
+      "nm": "정선군(남평대교)",
+      "query": "남평대교",
+      "official": {
+        "lat": 37.438889,
+        "lng": 128.653056
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1001630",
+      "nm": "정선군(나전교)",
+      "query": "나전교",
+      "official": {
+        "lat": 37.438611,
+        "lng": 128.649722
+      },
+      "best": {
+        "title": "나전교",
+        "address": "강원특별자치도 정선군 북평면 졸드루길 49 강원특별자치도 정선군 북평면 나전리 429",
+        "lat": 37.43854696482466,
+        "lng": 128.64931783603973,
+        "distanceM": 36,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1001645",
+      "nm": "정선군(와평교)",
+      "query": "와평교",
+      "official": {
+        "lat": 37.366111,
+        "lng": 128.684167
+      },
+      "best": {
+        "title": "와평교",
+        "address": "강원특별자치도 정선군 정선읍 칠현로 1684-16 강원특별자치도 정선군 정선읍 신월리 1096",
+        "lat": 37.36616111123331,
+        "lng": 128.6844056002198,
+        "distanceM": 22,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1001649",
+      "nm": "정선군(애산교)",
+      "query": "애산교",
+      "official": {
+        "lat": 37.373333,
+        "lng": 128.670833
+      },
+      "best": {
+        "title": "애산교",
+        "address": "강원특별자치도 정선군 정선읍 애산리 592-1",
+        "lat": 37.37331087108939,
+        "lng": 128.6709657995315,
+        "distanceM": 12,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1001655",
+      "nm": "정선군(정선제1교)",
+      "query": "정선제1교",
+      "official": {
+        "lat": 37.378333,
+        "lng": 128.657222
+      },
+      "best": {
+        "title": "정선제1교",
+        "address": "강원특별자치도 정선군 정선읍 북실리 716-1",
+        "lat": 37.378348151335025,
+        "lng": 128.65746600056585,
+        "distanceM": 22,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1001658",
+      "nm": "정선군(광하교)",
+      "query": "광하교",
+      "official": {
+        "lat": 37.368204,
+        "lng": 128.619352
+      },
+      "best": {
+        "title": "광하교",
+        "address": "강원특별자치도 정선군 정선읍 용탄리 547-2",
+        "lat": 37.36820354114515,
+        "lng": 128.61935170014206,
+        "distanceM": 0,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1001660",
+      "nm": "정선군(낙동교)",
+      "query": "낙동교",
+      "official": {
+        "lat": 37.318889,
+        "lng": 128.693611
+      },
+      "best": {
+        "title": "낙동교",
+        "address": "강원특별자치도 정선군 남면 선평길 2 강원특별자치도 정선군 남면 낙동리 687",
+        "lat": 37.318864301209935,
+        "lng": 128.69365970038538,
+        "distanceM": 5,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1001661",
+      "nm": "정선군(광탄교)",
+      "query": "광탄교",
+      "official": {
+        "lat": 37.317778,
+        "lng": 128.665556
+      },
+      "best": {
+        "title": "광탄교",
+        "address": "강원특별자치도 정선군 남면 광덕리 1182",
+        "lat": 37.31795833120229,
+        "lng": 128.66548890038936,
+        "distanceM": 21,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1001665",
+      "nm": "평창군(마하교)",
+      "query": "마하교",
+      "official": {
+        "lat": 37.293056,
+        "lng": 128.544722
+      },
+      "best": {
+        "title": "마하교",
+        "address": "강원특별자치도 평창군 미탄면 마하리 366-1",
+        "lat": 37.29313161085968,
+        "lng": 128.54484550006072,
+        "distanceM": 14,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1001670",
+      "nm": "영월군(거운교)",
+      "query": "거운교",
+      "official": {
+        "lat": 37.234722,
+        "lng": 128.512222
+      },
+      "best": {
+        "title": "거운교",
+        "address": "강원특별자치도 영월군 영월읍 삼옥리 80-1",
+        "lat": 37.23427537134552,
+        "lng": 128.5121837001144,
+        "distanceM": 50,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1001683",
+      "nm": "영월군(삼옥교)",
+      "query": "삼옥교",
+      "official": {
+        "lat": 37.207222,
+        "lng": 128.510278
+      },
+      "best": {
+        "title": "삼옥교",
+        "address": "강원특별자치도 영월군 영월읍 삼옥리 80-1",
+        "lat": 37.206830850836546,
+        "lng": 128.5104625998811,
+        "distanceM": 46,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1001690",
+      "nm": "영월군(영월대교)",
+      "query": "영월대교",
+      "official": {
+        "lat": 37.181944,
+        "lng": 128.475278
+      },
+      "best": {
+        "title": "영월대교",
+        "address": "강원특별자치도 영월군 영월읍 영월로 2275 강원특별자치도 영월군 영월읍 덕포리 857",
+        "lat": 37.182319991209575,
+        "lng": 128.4751000005634,
+        "distanceM": 45,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1001695",
+      "nm": "영월군(신촌교)",
+      "query": "신촌교",
+      "official": {
+        "lat": 37.182222,
+        "lng": 128.539444
+      },
+      "best": {
+        "title": "신촌교",
+        "address": "강원특별자치도 영월군 영월읍 연하리 1071",
+        "lat": 37.18223055791007,
+        "lng": 128.5394528026424,
+        "distanceM": 1,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1002636",
+      "nm": "평창군(하방림교)",
+      "query": "하방림교",
+      "official": {
+        "lat": 37.430833,
+        "lng": 128.373611
+      },
+      "best": {
+        "title": "하방림교",
+        "address": "강원특별자치도 평창군 방림면 서동로 1140-10 강원특별자치도 평창군 방림면 방림리 1863",
+        "lat": 37.43083514103257,
+        "lng": 128.37386100019603,
+        "distanceM": 22,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1002650",
+      "nm": "평창군(평창교)",
+      "query": "평창교",
+      "official": {
+        "lat": 37.367778,
+        "lng": 128.406111
+      },
+      "best": {
+        "title": "평창교",
+        "address": "강원특별자치도 평창군 평창읍 상리 409",
+        "lat": 37.36801700119319,
+        "lng": 128.40611500026677,
+        "distanceM": 27,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "1002655",
+      "nm": "영월군(판운교)",
+      "query": "판운교",
+      "official": {
+        "lat": 37.296667,
+        "lng": 128.343889
+      },
+      "best": {
+        "title": "판운교",
+        "address": "강원특별자치도 영월군 주천면 판운리 1539-31",
+        "lat": 37.29693493105127,
+        "lng": 128.34398729991494,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1002685",
+      "nm": "영월군(주천교)",
+      "query": "주천교",
+      "official": {
+        "lat": 37.2675,
+        "lng": 128.265833
+      },
+      "best": {
+        "title": "주천교",
+        "address": "강원특별자치도 영월군 주천면 신일리 1636",
+        "lat": 37.26818333781739,
+        "lng": 128.26577500504393,
+        "distanceM": 76,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1002687",
+      "nm": "영월군(신천교)",
+      "query": "신천교",
+      "official": {
+        "lat": 37.229722,
+        "lng": 128.331667
+      },
+      "best": {
+        "title": "신천교",
+        "address": "강원특별자치도 영월군 한반도면 신천리 1247",
+        "lat": 37.22981380111522,
+        "lng": 128.3315747002095,
+        "distanceM": 13,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "1002691",
+      "nm": "영월군(화병교)",
+      "query": "화병교",
+      "official": {
+        "lat": 37.215278,
+        "lng": 128.374722
+      },
+      "best": {
+        "title": "화병교",
+        "address": "강원특별자치도 영월군 한반도면 후탄리 1236",
+        "lat": 37.215388890104165,
+        "lng": 128.37467780028973,
+        "distanceM": 13,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1002693",
+      "nm": "영월군(농공단지교)",
+      "query": "농공단지교",
+      "official": {
+        "lat": 37.224444,
+        "lng": 128.4225
+      },
+      "best": {
+        "title": "농공단지교",
+        "address": "강원특별자치도 영월군 북면 문곡리 293-1",
+        "lat": 37.22472499727449,
+        "lng": 128.42235279547415,
+        "distanceM": 34,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1002694",
+      "nm": "영월군(연당교)",
+      "query": "연당교",
+      "official": {
+        "lat": 37.196667,
+        "lng": 128.4025
+      },
+      "best": {
+        "title": "연당교",
+        "address": "강원특별자치도 영월군 남면 연당리 1358-1",
+        "lat": 37.196833332148174,
+        "lng": 128.40275000529974,
+        "distanceM": 29,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1002698",
+      "nm": "영월군(팔괴교)",
+      "query": "팔괴교",
+      "official": {
+        "lat": 37.171944,
+        "lng": 128.455278
+      },
+      "best": {
+        "title": "팔괴교",
+        "address": "강원특별자치도 영월군 영월읍 하송리 542",
+        "lat": 37.17133851046756,
+        "lng": 128.45540700024912,
+        "distanceM": 68,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1003603",
+      "nm": "영월군(내리2교)",
+      "query": "내리2교",
+      "official": {
+        "lat": 37.106944,
+        "lng": 128.675278
+      },
+      "best": {
+        "title": "내리2교",
+        "address": "강원특별자치도 영월군 김삿갓면 내리계곡로 1044-32 강원특별자치도 영월군 김삿갓면 내리 646",
+        "lat": 37.106986320546035,
+        "lng": 128.6752873998909,
+        "distanceM": 5,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1003620",
+      "nm": "영월군(옥동교)",
+      "query": "옥동교",
+      "official": {
+        "lat": 37.122222,
+        "lng": 128.564167
+      },
+      "best": {
+        "title": "옥동교",
+        "address": "강원특별자치도 영월군 김삿갓면 옥동리 628",
+        "lat": 37.121828001285415,
+        "lng": 128.56326700029578,
+        "distanceM": 91,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1003625",
+      "nm": "영월군(각동교)",
+      "query": "각동교",
+      "official": {
+        "lat": 37.120556,
+        "lng": 128.540278
+      },
+      "best": {
+        "title": "각동교",
+        "address": "강원특별자치도 영월군 김삿갓면 각동리 680",
+        "lat": 37.12103332903833,
+        "lng": 128.5404667049524,
+        "distanceM": 56,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1003626",
+      "nm": "단양군(들골교)",
+      "query": "들골교",
+      "official": {
+        "lat": 37.032778,
+        "lng": 128.296389
+      },
+      "best": {
+        "title": "들골교",
+        "address": "충청북도 단양군 매포읍 평동리 1377천",
+        "lat": 37.032896033358895,
+        "lng": 128.29648445404803,
+        "distanceM": 16,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1003632",
+      "nm": "단양군(북벽교)",
+      "query": "북벽교",
+      "official": {
+        "lat": 37.085556,
+        "lng": 128.485278
+      },
+      "best": {
+        "title": "북벽교",
+        "address": "충청북도 단양군 영춘면 상리 702천",
+        "lat": 37.085317127255166,
+        "lng": 128.4853216565261,
+        "distanceM": 27,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1003636",
+      "nm": "단양군(가대교)",
+      "query": "가대교",
+      "official": {
+        "lat": 37.040278,
+        "lng": 128.405556
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1003642",
+      "nm": "단양군(덕천교)",
+      "query": "덕천교",
+      "official": {
+        "lat": 37.005556,
+        "lng": 128.389167
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1003643",
+      "nm": "단양군(음지교)",
+      "query": "음지교",
+      "official": {
+        "lat": 36.914444,
+        "lng": 128.380278
+      },
+      "best": {
+        "title": "음지교",
+        "address": "충청북도 단양군 대강면 용부원리 713 천",
+        "lat": 36.9144230105825,
+        "lng": 128.38033783698137,
+        "distanceM": 6,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1003644",
+      "nm": "상진교",
+      "query": "상진교",
+      "official": {
+        "lat": 36.977778,
+        "lng": 128.3475
+      },
+      "best": {
+        "title": "상진교",
+        "address": "충청북도 제천시 신월동 1163-7도",
+        "lat": 37.16119590061668,
+        "lng": 128.19491109973245,
+        "distanceM": 24479,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "1003645",
+      "nm": "단양군(단양1교)",
+      "query": "단양1교",
+      "official": {
+        "lat": 36.931111,
+        "lng": 128.335556
+      },
+      "best": {
+        "title": "단양1교",
+        "address": "충청북도 단양군 단성면 북하리 321유",
+        "lat": 36.931295256879515,
+        "lng": 128.3358196694843,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1003646",
+      "nm": "우화교",
+      "query": "우화교",
+      "official": {
+        "lat": 36.930556,
+        "lng": 128.321111
+      },
+      "best": {
+        "title": "우화교",
+        "address": "충청북도 단양군 단성면 중방리 314유",
+        "lat": 36.93354935746541,
+        "lng": 128.31900781202415,
+        "distanceM": 382,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1003652",
+      "nm": "제천시(덕동교)",
+      "query": "덕동교",
+      "official": {
+        "lat": 37.188333,
+        "lng": 127.9925
+      },
+      "best": {
+        "title": "덕동교",
+        "address": "충청북도 제천시 백운면 덕동리 424천",
+        "lat": 37.18841299589457,
+        "lng": 127.9926099483798,
+        "distanceM": 13,
+        "regionMatch": true
+      },
+      "candidateCount": 5,
+      "action": "keep"
+    },
+    {
+      "cd": "1003658",
+      "nm": "제천시(부수동교)",
+      "query": "부수동교",
+      "official": {
+        "lat": 37.148611,
+        "lng": 128.008889
+      },
+      "best": {
+        "title": "부수동교",
+        "address": "충청북도 제천시 백운면 방학리 1084-51 천",
+        "lat": 37.148719914092446,
+        "lng": 128.00895866064516,
+        "distanceM": 14,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1003661",
+      "nm": "제천시(구곡교)",
+      "query": "구곡교",
+      "official": {
+        "lat": 37.112222,
+        "lng": 128.106111
+      },
+      "best": {
+        "title": "구곡교",
+        "address": "충청북도 제천시 봉양읍 연박리 1484천",
+        "lat": 37.111934561621815,
+        "lng": 128.10638432570005,
+        "distanceM": 40,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1003662",
+      "nm": "명서교",
+      "query": "명서교",
+      "official": {
+        "lat": 37.067778,
+        "lng": 128.0325
+      },
+      "best": {
+        "title": "명서교",
+        "address": "충청북도 충주시 산척면 명서리 산 30-1천",
+        "lat": 37.070419072971745,
+        "lng": 128.03047452519442,
+        "distanceM": 344,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1003667",
+      "nm": "제천시(용암교)",
+      "query": "용암교",
+      "official": {
+        "lat": 36.928056,
+        "lng": 128.14
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1004630",
+      "nm": "고성교",
+      "query": "고성교",
+      "official": {
+        "lat": 36.666111,
+        "lng": 127.763333
+      },
+      "best": {
+        "title": "고성교",
+        "address": "충청북도 괴산군 청천면 고성리 575 천",
+        "lat": 36.665874057433385,
+        "lng": 127.76321028593482,
+        "distanceM": 29,
+        "regionMatch": true
+      },
+      "candidateCount": 6,
+      "action": "keep"
+    },
+    {
+      "cd": "1004631",
+      "nm": "괴산군(월문교)",
+      "query": "월문교",
+      "official": {
+        "lat": 36.694167,
+        "lng": 127.745278
+      },
+      "best": {
+        "title": "월문교",
+        "address": "충청북도 괴산군 청천면 월문리 281천",
+        "lat": 36.69401891614445,
+        "lng": 127.74532277080077,
+        "distanceM": 17,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1004635",
+      "nm": "후영교",
+      "query": "후영교",
+      "official": {
+        "lat": 36.701389,
+        "lng": 127.814444
+      },
+      "best": {
+        "title": "후영교",
+        "address": "충청북도 괴산군 청천면 후영리 499천",
+        "lat": 36.704749306483556,
+        "lng": 127.81214582576969,
+        "distanceM": 426,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1004645",
+      "nm": "괴산군(수전교)",
+      "query": "수전교",
+      "official": {
+        "lat": 36.767222,
+        "lng": 127.8425
+      },
+      "best": {
+        "title": "수전교",
+        "address": "충청북도 괴산군 칠성면 외사리 458천",
+        "lat": 36.767191344971884,
+        "lng": 127.84260402168522,
+        "distanceM": 10,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1004646",
+      "nm": "괴산군(비도교)",
+      "query": "비도교",
+      "official": {
+        "lat": 36.79,
+        "lng": 127.878056
+      },
+      "best": {
+        "title": "비도교",
+        "address": "충청북도 괴산군 칠성면 비도리 662-1천",
+        "lat": 36.79021540675416,
+        "lng": 127.87836428504222,
+        "distanceM": 36,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1004661",
+      "nm": "괴산군(제2괴산교)",
+      "query": "제2괴산교",
+      "official": {
+        "lat": 36.809167,
+        "lng": 127.798611
+      },
+      "best": {
+        "title": "제2괴산교",
+        "address": "충청북도 괴산군 괴산읍 수진1길 7 충청북도 괴산군 괴산읍 동부리 751-1",
+        "lat": 36.80926290473242,
+        "lng": 127.79863754165501,
+        "distanceM": 11,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1004670",
+      "nm": "괴산군(추산교)",
+      "query": "추산교",
+      "official": {
+        "lat": 36.893611,
+        "lng": 127.814167
+      },
+      "best": {
+        "title": "추산교",
+        "address": "충청북도 괴산군 불정면 추산리 690-38천",
+        "lat": 36.89363214806982,
+        "lng": 127.81418579428622,
+        "distanceM": 3,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1004680",
+      "nm": "충주시(문강교)",
+      "query": "문강교",
+      "official": {
+        "lat": 36.887778,
+        "lng": 127.946111
+      },
+      "best": {
+        "title": "문강교",
+        "address": "충청북도 충주시 살미면 문강리 568-1천",
+        "lat": 36.887978138667336,
+        "lng": 127.94630109253713,
+        "distanceM": 28,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1004685",
+      "nm": "팔봉교",
+      "query": "팔봉교",
+      "official": {
+        "lat": 36.899167,
+        "lng": 127.921389
+      },
+      "best": {
+        "title": "팔봉교",
+        "address": "충청북도 충주시 대소원면 문주리 1-1",
+        "lat": 36.89949450217846,
+        "lng": 127.92131883749795,
+        "distanceM": 37,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "1004693",
+      "nm": "괴산군(목도교)",
+      "query": "목도교",
+      "official": {
+        "lat": 36.87,
+        "lng": 127.855278
+      },
+      "best": {
+        "title": "목도교",
+        "address": "충청북도 괴산군 감물면 이담리 1180-31천",
+        "lat": 36.86981511491892,
+        "lng": 127.85587436047814,
+        "distanceM": 57,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1004694",
+      "nm": "충주시(주덕교)",
+      "query": "주덕교",
+      "official": {
+        "lat": 36.983333,
+        "lng": 127.793889
+      },
+      "best": {
+        "title": "주덕교",
+        "address": "충청북도 충주시 주덕읍 화곡리 816-18천",
+        "lat": 36.9835113624512,
+        "lng": 127.79407338373625,
+        "distanceM": 26,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1004695",
+      "nm": "충주시(국원대교)",
+      "query": "국원대교",
+      "official": {
+        "lat": 36.966111,
+        "lng": 127.871667
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1004696",
+      "nm": "충주시(봉계교)",
+      "query": "봉계교",
+      "official": {
+        "lat": 36.976944,
+        "lng": 127.920278
+      },
+      "best": {
+        "title": "봉계교",
+        "address": "충청북도 충주시 봉방동 775-181 유",
+        "lat": 36.97712925410202,
+        "lng": 127.92035132544093,
+        "distanceM": 22,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1005605",
+      "nm": "충주시(탄금교)",
+      "query": "탄금교",
+      "official": {
+        "lat": 36.988611,
+        "lng": 127.89
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1005640",
+      "nm": "충주시(목계교)",
+      "query": "목계교",
+      "official": {
+        "lat": 37.076111,
+        "lng": 127.881111
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1005650",
+      "nm": "충주시(능암교)",
+      "query": "능암교",
+      "official": {
+        "lat": 37.091111,
+        "lng": 127.801389
+      },
+      "best": {
+        "title": "능암교",
+        "address": "충청북도 충주시 앙성면 능암리 767",
+        "lat": 37.09116580423276,
+        "lng": 127.80117746355954,
+        "distanceM": 20,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "1005660",
+      "nm": "충주시(세포교)",
+      "query": "세포교",
+      "official": {
+        "lat": 37.148333,
+        "lng": 127.819167
+      },
+      "best": {
+        "title": "세포교",
+        "address": "",
+        "lat": 37.14833732058085,
+        "lng": 127.81908149990983,
+        "distanceM": 8,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1005695",
+      "nm": "원주시(법천교)",
+      "query": "법천교",
+      "official": {
+        "lat": 37.204444,
+        "lng": 127.754167
+      },
+      "best": {
+        "title": "법천교",
+        "address": "강원특별자치도 원주시 부론면 법천리 1607-22",
+        "lat": 37.204361750637815,
+        "lng": 127.75409890038331,
+        "distanceM": 11,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1005697",
+      "nm": "원주시(남한강대교)",
+      "query": "남한강대교",
+      "official": {
+        "lat": 37.206111,
+        "lng": 127.747778
+      },
+      "best": {
+        "title": "남한강대교",
+        "address": "충청북도 충주시 앙성면 단암리 679천",
+        "lat": 37.20468532866497,
+        "lng": 127.74530883934348,
+        "distanceM": 270,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1006672",
+      "nm": "원주시(장현교)",
+      "query": "장현교",
+      "official": {
+        "lat": 37.420278,
+        "lng": 127.898056
+      },
+      "best": {
+        "title": "장현교",
+        "address": "강원특별자치도 원주시 호저면 산현리 576",
+        "lat": 37.42059275057292,
+        "lng": 127.89746690028583,
+        "distanceM": 63,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1006677",
+      "nm": "원주시(판대2교)",
+      "query": "판대2교",
+      "official": {
+        "lat": 37.384167,
+        "lng": 127.788889
+      },
+      "best": {
+        "title": "판대2교",
+        "address": "강원특별자치도 원주시 지정면 판대리 643-38",
+        "lat": 37.38423178071423,
+        "lng": 127.78897309956037,
+        "distanceM": 10,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1006680",
+      "nm": "원주시(지정대교)",
+      "query": "지정대교",
+      "official": {
+        "lat": 37.361667,
+        "lng": 127.831667
+      },
+      "best": {
+        "title": "지정대교",
+        "address": "강원특별자치도 원주시 지정면 간현리 1116",
+        "lat": 37.3623483105962,
+        "lng": 127.83266339997435,
+        "distanceM": 116,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "review"
+    },
+    {
+      "cd": "1006685",
+      "nm": "원주시(봉미교)",
+      "query": "봉미교",
+      "official": {
+        "lat": 37.335,
+        "lng": 127.894722
+      },
+      "best": {
+        "title": "봉미교",
+        "address": "강원특별자치도 원주시 흥업면 사제리 1685",
+        "lat": 37.334801631014834,
+        "lng": 127.89401090050227,
+        "distanceM": 67,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1006690",
+      "nm": "원주시(문막교)",
+      "query": "문막교",
+      "official": {
+        "lat": 37.305,
+        "lng": 127.810278
+      },
+      "best": {
+        "title": "문막교",
+        "address": "강원특별자치도 원주시 문막읍 취병리 896-11",
+        "lat": 37.30503272134852,
+        "lng": 127.80993259996352,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1007613",
+      "nm": "음성군(상우교)",
+      "query": "상우교",
+      "official": {
+        "lat": 37.122222,
+        "lng": 127.659444
+      },
+      "best": {
+        "title": "상우교",
+        "address": "충청북도 음성군 감곡면 상우리 538임",
+        "lat": 37.122401571664625,
+        "lng": 127.65947081157195,
+        "distanceM": 20,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1007615",
+      "nm": "여주시(원부교)",
+      "query": "원부교",
+      "official": {
+        "lat": 37.162222,
+        "lng": 127.634444
+      },
+      "best": {
+        "title": "원부교",
+        "address": "경기도 여주시 점동면 원부리 494-32 천",
+        "lat": 37.162348793198056,
+        "lng": 127.63413322104891,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1007617",
+      "nm": "여주시(삼합교)",
+      "query": "삼합교",
+      "official": {
+        "lat": 37.202222,
+        "lng": 127.719167
+      },
+      "best": {
+        "title": "삼합교",
+        "address": "경기도 여주시 점동면 장안리 685-52 천",
+        "lat": 37.202206786180426,
+        "lng": 127.718638611438,
+        "distanceM": 47,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1007625",
+      "nm": "여주시(남한강교)",
+      "query": "남한강교",
+      "official": {
+        "lat": 37.254444,
+        "lng": 127.681111
+      },
+      "best": {
+        "title": "남한강교",
+        "address": "경기도 여주시 강천면 적금리 601 천",
+        "lat": 37.25473004799969,
+        "lng": 127.68381438247602,
+        "distanceM": 241,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1007626",
+      "nm": "여주시(용은교)",
+      "query": "용은교",
+      "official": {
+        "lat": 37.275833,
+        "lng": 127.551111
+      },
+      "best": {
+        "title": "용은교",
+        "address": "",
+        "lat": 37.27596623427928,
+        "lng": 127.55117606596367,
+        "distanceM": 16,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1007633",
+      "nm": "강천보(상류)",
+      "query": "강천보",
+      "official": {
+        "lat": 37.273056,
+        "lng": 127.683333
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1007634",
+      "nm": "강천보(하류)",
+      "query": "강천보",
+      "official": {
+        "lat": 37.283889,
+        "lng": 127.684722
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1007635",
+      "nm": "여주시(여주대교)",
+      "query": "여주대교",
+      "official": {
+        "lat": 37.296389,
+        "lng": 127.647778
+      },
+      "best": {
+        "title": "여주대교",
+        "address": "경기도 여주시 강문로 8-578 경기도 여주시 천송동  575-10",
+        "lat": 37.29704467815685,
+        "lng": 127.64799083671268,
+        "distanceM": 75,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1007637",
+      "nm": "여주시(당우교)",
+      "query": "당우교",
+      "official": {
+        "lat": 37.327222,
+        "lng": 127.682778
+      },
+      "best": {
+        "title": "당우교",
+        "address": "경기도 여주시 북내면 당우리 317-43",
+        "lat": 37.32731098532313,
+        "lng": 127.68265324463617,
+        "distanceM": 15,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1007639",
+      "nm": "여주보(상류)",
+      "query": "여주보",
+      "official": {
+        "lat": 37.326111,
+        "lng": 127.615556
+      },
+      "best": {
+        "title": "여주보",
+        "address": "경기도 여주시 세종대왕면 왕대리 350-1",
+        "lat": 37.32628329918184,
+        "lng": 127.60420000547069,
+        "distanceM": 1004,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1007640",
+      "nm": "여주시(율극교)",
+      "query": "율극교",
+      "official": {
+        "lat": 37.333889,
+        "lng": 127.573333
+      },
+      "best": {
+        "title": "율극교",
+        "address": "경기도 여주시 흥천면 율극리 355-2도",
+        "lat": 37.32404961666635,
+        "lng": 127.56670172462535,
+        "distanceM": 1241,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1007641",
+      "nm": "여주보(하류)",
+      "query": "여주보",
+      "official": {
+        "lat": 37.328611,
+        "lng": 127.603333
+      },
+      "best": {
+        "title": "여주보",
+        "address": "경기도 여주시 세종대왕면 왕대리 350-1",
+        "lat": 37.32628329918184,
+        "lng": 127.60420000547069,
+        "distanceM": 270,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1007650",
+      "nm": "여주시(흥천대교)",
+      "query": "흥천대교",
+      "official": {
+        "lat": 37.333056,
+        "lng": 127.535278
+      },
+      "best": {
+        "title": "흥천대교",
+        "address": "경기도 여주시 흥천면 다대리 546-6 천",
+        "lat": 37.332450913381486,
+        "lng": 127.5359307899282,
+        "distanceM": 89,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1007655",
+      "nm": "여주시(양촌교)",
+      "query": "양촌교",
+      "official": {
+        "lat": 37.3825,
+        "lng": 127.562778
+      },
+      "best": {
+        "title": "양촌교",
+        "address": "경기도 여주시 대신면 보통리 636-1천",
+        "lat": 37.382496981893816,
+        "lng": 127.56286553410597,
+        "distanceM": 8,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1007662",
+      "nm": "이포보(상류)",
+      "query": "이포보",
+      "official": {
+        "lat": 37.401111,
+        "lng": 127.537778
+      },
+      "best": {
+        "title": "이포보",
+        "address": "경기도 여주시 대신면 천서리 755천",
+        "lat": 37.40484693021502,
+        "lng": 127.54065735010798,
+        "distanceM": 487,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1007664",
+      "nm": "이포보(하류)",
+      "query": "이포보",
+      "official": {
+        "lat": 37.408333,
+        "lng": 127.541389
+      },
+      "best": {
+        "title": "이포보",
+        "address": "경기도 여주시 대신면 천서리 755천",
+        "lat": 37.40484693021502,
+        "lng": 127.54065735010798,
+        "distanceM": 393,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1007680",
+      "nm": "양평군(흑천교)",
+      "query": "흑천교",
+      "official": {
+        "lat": 37.466111,
+        "lng": 127.5275
+      },
+      "best": {
+        "title": "흑천교",
+        "address": "경기도 양평군 양평읍 충신로 65 경기도 양평군 양평읍 회현리 620-3",
+        "lat": 37.466530875453934,
+        "lng": 127.52721662663743,
+        "distanceM": 53,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1007685",
+      "nm": "양평군(양평교)",
+      "query": "양평교",
+      "official": {
+        "lat": 37.486389,
+        "lng": 127.49
+      },
+      "best": {
+        "title": "양평교",
+        "address": "경기도 양평군 강상면 교평리 352-5천",
+        "lat": 37.48508798702196,
+        "lng": 127.48830755579404,
+        "distanceM": 208,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1007690",
+      "nm": "양평군(봉상교)",
+      "query": "봉상교",
+      "official": {
+        "lat": 37.511667,
+        "lng": 127.651389
+      },
+      "best": {
+        "title": "봉상교",
+        "address": "경기도 양평군 단월면 봉상리 698천",
+        "lat": 37.51190316551185,
+        "lng": 127.65127035303072,
+        "distanceM": 28,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1007695",
+      "nm": "양평군(다문교)",
+      "query": "다문교",
+      "official": {
+        "lat": 37.480278,
+        "lng": 127.588333
+      },
+      "best": {
+        "title": "다문교",
+        "address": "경기도 양평군 용문면 다문리 953",
+        "lat": 37.48045211337453,
+        "lng": 127.58817036421286,
+        "distanceM": 24,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1009652",
+      "nm": "화천군(평화나래교)",
+      "query": "평화나래교",
+      "official": {
+        "lat": 38.208056,
+        "lng": 127.849444
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1010630",
+      "nm": "약수교",
+      "query": "약수교",
+      "official": {
+        "lat": 38.1675,
+        "lng": 128.043056
+      },
+      "best": {
+        "title": "약수교",
+        "address": "강원특별자치도 양구군 동면 후곡리 699",
+        "lat": 38.16779126061917,
+        "lng": 128.0430460999864,
+        "distanceM": 32,
+        "regionMatch": true
+      },
+      "candidateCount": 20,
+      "action": "keep"
+    },
+    {
+      "cd": "1010631",
+      "nm": "양구군(양지교)",
+      "query": "양지교",
+      "official": {
+        "lat": 38.135,
+        "lng": 128.045278
+      },
+      "best": {
+        "title": "양지교",
+        "address": "강원특별자치도 양구군 국토정중앙면 가오작리 1025",
+        "lat": 38.135065920694274,
+        "lng": 128.04546500034596,
+        "distanceM": 18,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1010633",
+      "nm": "양구군(송청제2교)",
+      "query": "송청제2교",
+      "official": {
+        "lat": 38.088611,
+        "lng": 127.996944
+      },
+      "best": {
+        "title": "송청제2교",
+        "address": "강원특별자치도 양구군 양구읍 송청리 188",
+        "lat": 38.088498350762826,
+        "lng": 127.99704769967452,
+        "distanceM": 15,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1010635",
+      "nm": "하리교",
+      "query": "하리교",
+      "official": {
+        "lat": 38.107778,
+        "lng": 127.984167
+      },
+      "best": {
+        "title": "하리교",
+        "address": "강원특별자치도 양구군 양구읍 하리 112-2",
+        "lat": 38.11072527066702,
+        "lng": 127.98245729972457,
+        "distanceM": 360,
+        "regionMatch": true
+      },
+      "candidateCount": 14,
+      "action": "review"
+    },
+    {
+      "cd": "1010640",
+      "nm": "양구군(각시교)",
+      "query": "각시교",
+      "official": {
+        "lat": 38.190278,
+        "lng": 127.925556
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1010642",
+      "nm": "남전교",
+      "query": "남전교",
+      "official": {
+        "lat": 38.183056,
+        "lng": 127.901389
+      },
+      "best": {
+        "title": "남전교",
+        "address": "강원특별자치도 인제군 남면 자작나무숲길 133 강원특별자치도 인제군 남면 남전리 347-1",
+        "lat": 38.016655800829966,
+        "lng": 128.12960710026462,
+        "distanceM": 27224,
+        "regionMatch": true
+      },
+      "candidateCount": 13,
+      "action": "review"
+    },
+    {
+      "cd": "1010660",
+      "nm": "화천군(화천댐)",
+      "query": "화천댐",
+      "official": {
+        "lat": 38.1175,
+        "lng": 127.777222
+      },
+      "best": {
+        "title": "화천댐",
+        "address": "강원특별자치도 화천군 간동면 어룡동길 42 강원특별자치도 화천군 간동면 구만리 1330-4",
+        "lat": 38.097212496909314,
+        "lng": 127.7619991023222,
+        "distanceM": 2620,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1010673",
+      "nm": "화천군(신대교)",
+      "query": "신대교",
+      "official": {
+        "lat": 38.133611,
+        "lng": 127.676389
+      },
+      "best": {
+        "title": "신대교",
+        "address": "강원특별자치도 화천군 상서면 신대리 840",
+        "lat": 38.13344083123442,
+        "lng": 127.6761094997576,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1010674",
+      "nm": "화천군(신읍교)",
+      "query": "신읍교",
+      "official": {
+        "lat": 38.119444,
+        "lng": 127.697222
+      },
+      "best": {
+        "title": "신읍교",
+        "address": "강원특별자치도 화천군 화천읍 신읍리 1406",
+        "lat": 38.11940878078649,
+        "lng": 127.69768619987587,
+        "distanceM": 41,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1010677",
+      "nm": "용신교",
+      "query": "용신교",
+      "official": {
+        "lat": 38.108889,
+        "lng": 127.704444
+      },
+      "best": {
+        "title": "용신교",
+        "address": "강원특별자치도 화천군 화천읍 상리 328",
+        "lat": 38.11248419066773,
+        "lng": 127.70177109972776,
+        "distanceM": 463,
+        "regionMatch": true
+      },
+      "candidateCount": 9,
+      "action": "review"
+    },
+    {
+      "cd": "1010680",
+      "nm": "화천군(화천대교)",
+      "query": "화천대교",
+      "official": {
+        "lat": 38.098333,
+        "lng": 127.708056
+      },
+      "best": {
+        "title": "화천대교",
+        "address": "강원특별자치도 화천군 하남면 위라리 525",
+        "lat": 38.10070471062325,
+        "lng": 127.70848999972937,
+        "distanceM": 266,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1010684",
+      "nm": "오탄교",
+      "query": "오탄교",
+      "official": {
+        "lat": 38.108889,
+        "lng": 127.636944
+      },
+      "best": {
+        "title": "오탄교",
+        "address": "강원특별자치도 화천군 하남면 서오지리 735",
+        "lat": 38.05079864621074,
+        "lng": 127.63502810362937,
+        "distanceM": 6462,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1010686",
+      "nm": "화천군(일광교)",
+      "query": "일광교",
+      "official": {
+        "lat": 38.060833,
+        "lng": 127.526389
+      },
+      "best": {
+        "title": "일광교",
+        "address": "강원특별자치도 화천군 사내면 사창리 213-28",
+        "lat": 38.06066714263253,
+        "lng": 127.52638820506925,
+        "distanceM": 18,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1010690",
+      "nm": "춘천시(춘천댐)",
+      "query": "춘천댐",
+      "official": {
+        "lat": 37.968611,
+        "lng": 127.668333
+      },
+      "best": {
+        "title": "춘천댐",
+        "address": "강원특별자치도 춘천시 신북읍 용산리 843",
+        "lat": 37.968060000662476,
+        "lng": 127.67118999947398,
+        "distanceM": 258,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "review"
+    },
+    {
+      "cd": "1011695",
+      "nm": "인제군(리빙스턴교)",
+      "query": "리빙스턴교",
+      "official": {
+        "lat": 38.088333,
+        "lng": 128.183333
+      },
+      "best": {
+        "title": "리빙스턴교",
+        "address": "강원특별자치도 인제군 인제읍 합강리 156-5",
+        "lat": 38.08846000119954,
+        "lng": 128.18120899995506,
+        "distanceM": 186,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1012650",
+      "nm": "인제군(원대교)",
+      "query": "원대교",
+      "official": {
+        "lat": 38.008056,
+        "lng": 128.240833
+      },
+      "best": {
+        "title": "원대교",
+        "address": "강원특별자치도 인제군 인제읍 고사리 204-3",
+        "lat": 38.00781791077197,
+        "lng": 128.24064859943283,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1012657",
+      "nm": "인제군(살구미교)",
+      "query": "살구미교",
+      "official": {
+        "lat": 38.055278,
+        "lng": 128.168333
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1012670",
+      "nm": "인제군(양구교)",
+      "query": "양구교",
+      "official": {
+        "lat": 37.993889,
+        "lng": 128.056667
+      },
+      "best": {
+        "title": "양구교",
+        "address": "강원특별자치도 인제군 남면 상수내리 58-1",
+        "lat": 37.99435800083792,
+        "lng": 128.05652220025218,
+        "distanceM": 54,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1012688",
+      "nm": "춘천시(소양6교)",
+      "query": "소양6교",
+      "official": {
+        "lat": 37.925833,
+        "lng": 127.778889
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1013610",
+      "nm": "춘천시(효자교)",
+      "query": "효자교",
+      "official": {
+        "lat": 37.8675,
+        "lng": 127.7275
+      },
+      "best": {
+        "title": "효자교",
+        "address": "강원특별자치도 춘천시 퇴계동 710-1",
+        "lat": 37.86692977127563,
+        "lng": 127.72769460033719,
+        "distanceM": 66,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1013620",
+      "nm": "목동교",
+      "query": "목동교",
+      "official": {
+        "lat": 37.883056,
+        "lng": 127.548333
+      },
+      "best": {
+        "title": "목동교",
+        "address": "경기도 가평군 북면 목동리 1077",
+        "lat": 37.88304552005267,
+        "lng": 127.54810109634762,
+        "distanceM": 20,
+        "regionMatch": true
+      },
+      "candidateCount": 9,
+      "action": "keep"
+    },
+    {
+      "cd": "1013637",
+      "nm": "춘천시(소양2교)",
+      "query": "소양2교",
+      "official": {
+        "lat": 37.893056,
+        "lng": 127.7225
+      },
+      "best": {
+        "title": "소양2교",
+        "address": "강원특별자치도 춘천시 우두동 766-3",
+        "lat": 37.8962458808444,
+        "lng": 127.72760730055579,
+        "distanceM": 572,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "review"
+    },
+    {
+      "cd": "1013643",
+      "nm": "춘천시(팔미3교)",
+      "query": "팔미3교",
+      "official": {
+        "lat": 37.82,
+        "lng": 127.701389
+      },
+      "best": {
+        "title": "팔미3교",
+        "address": "강원특별자치도 춘천시 신동면 팔미리 861-1",
+        "lat": 37.820136201078654,
+        "lng": 127.70142599981584,
+        "distanceM": 15,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1013645",
+      "nm": "춘천시(강촌교)",
+      "query": "강촌교",
+      "official": {
+        "lat": 37.8175,
+        "lng": 127.633611
+      },
+      "best": {
+        "title": "강촌교",
+        "address": "강원특별자치도 춘천시 남산면 강촌리 188",
+        "lat": 37.8171339411821,
+        "lng": 127.63341259991469,
+        "distanceM": 44,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1013650",
+      "nm": "가평군(제령교)",
+      "query": "제령교",
+      "official": {
+        "lat": 37.895278,
+        "lng": 127.530278
+      },
+      "best": {
+        "title": "제령교",
+        "address": "경기도 가평군 북면 제령리 670천",
+        "lat": 37.89508707192588,
+        "lng": 127.53001325599041,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1013651",
+      "nm": "가평군(화악교)",
+      "query": "화악교",
+      "official": {
+        "lat": 37.921111,
+        "lng": 127.566389
+      },
+      "best": {
+        "title": "화악교",
+        "address": "경기도 가평군 북면 화악리 437임",
+        "lat": 37.92101730723085,
+        "lng": 127.56637959458251,
+        "distanceM": 10,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "1013655",
+      "nm": "가평군(가평교)",
+      "query": "가평교",
+      "official": {
+        "lat": 37.831389,
+        "lng": 127.518056
+      },
+      "best": {
+        "title": "가평교",
+        "address": "경기도 가평군 가평읍 읍내리 1023 천",
+        "lat": 37.831433890201026,
+        "lng": 127.51745885703959,
+        "distanceM": 53,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1014650",
+      "nm": "홍천군(홍천교)",
+      "query": "홍천교",
+      "official": {
+        "lat": 37.687222,
+        "lng": 127.878889
+      },
+      "best": {
+        "title": "홍천교",
+        "address": "강원특별자치도 홍천군 홍천읍 희망리 421",
+        "lat": 37.68749147127438,
+        "lng": 127.87907149952277,
+        "distanceM": 34,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1014652",
+      "nm": "홍천군(화계교)",
+      "query": "화계교",
+      "official": {
+        "lat": 37.704722,
+        "lng": 127.855556
+      },
+      "best": {
+        "title": "화계교",
+        "address": "강원특별자치도 홍천군 북방면 화동리 395-1",
+        "lat": 37.70453680074041,
+        "lng": 127.85563910014427,
+        "distanceM": 22,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1014664",
+      "nm": "홍천군(용수교)",
+      "query": "용수교",
+      "official": {
+        "lat": 37.659722,
+        "lng": 127.765833
+      },
+      "best": {
+        "title": "용수교",
+        "address": "강원특별자치도 홍천군 남면 응아지길 11 강원특별자치도 홍천군 남면 용수리 415",
+        "lat": 37.65972128130168,
+        "lng": 127.76591750029712,
+        "distanceM": 7,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "1014665",
+      "nm": "홍천군(남노일대교)",
+      "query": "남노일대교",
+      "official": {
+        "lat": 37.675278,
+        "lng": 127.770556
+      },
+      "best": {
+        "title": "남노일대교",
+        "address": "강원특별자치도 홍천군 남면 남노일리 371",
+        "lat": 37.67492647067112,
+        "lng": 127.77165290047218,
+        "distanceM": 104,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1014680",
+      "nm": "홍천군(반곡교)",
+      "query": "반곡교",
+      "official": {
+        "lat": 37.693611,
+        "lng": 127.670556
+      },
+      "best": {
+        "title": "반곡교",
+        "address": "강원특별자치도 홍천군 서면 반곡리 97-6",
+        "lat": 37.693285001452494,
+        "lng": 127.67049100087475,
+        "distanceM": 37,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "1014690",
+      "nm": "춘천시(충의대교)",
+      "query": "충의대교",
+      "official": {
+        "lat": 37.725833,
+        "lng": 127.588889
+      },
+      "best": {
+        "title": "충의대교",
+        "address": "강원특별자치도 춘천시 남면 발산리 816-8",
+        "lat": 37.72665248100716,
+        "lng": 127.58930039981126,
+        "distanceM": 98,
+        "regionMatch": true
+      },
+      "candidateCount": 5,
+      "action": "review"
+    },
+    {
+      "cd": "1014695",
+      "nm": "한덕교",
+      "query": "한덕교",
+      "official": {
+        "lat": 37.672222,
+        "lng": 127.613333
+      },
+      "best": {
+        "title": "한덕교",
+        "address": "강원특별자치도 춘천시 남면 한덕리 130",
+        "lat": 37.6757111906383,
+        "lng": 127.61136470032386,
+        "distanceM": 425,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1014696",
+      "nm": "홍천군(모곡교)",
+      "query": "모곡교",
+      "official": {
+        "lat": 37.671944,
+        "lng": 127.605
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1015630",
+      "nm": "산장제1교",
+      "query": "산장제1교",
+      "official": {
+        "lat": 37.755,
+        "lng": 127.410278
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1015636",
+      "nm": "가평군(선촌2교)",
+      "query": "선촌2교",
+      "official": {
+        "lat": 37.681667,
+        "lng": 127.485833
+      },
+      "best": {
+        "title": "선촌2교",
+        "address": "경기도 가평군 설악면 선촌리 589천",
+        "lat": 37.681579477700645,
+        "lng": 127.48589940283387,
+        "distanceM": 11,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1015640",
+      "nm": "가평군(청평댐)",
+      "query": "청평댐",
+      "official": {
+        "lat": 37.723333,
+        "lng": 127.423056
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1015644",
+      "nm": "가평군(청평교)",
+      "query": "청평교",
+      "official": {
+        "lat": 37.734167,
+        "lng": 127.414444
+      },
+      "best": {
+        "title": "청평교",
+        "address": "경기도 가평군 청평면 청평리 738천",
+        "lat": 37.733794045919346,
+        "lng": 127.41460815464723,
+        "distanceM": 44,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1015645",
+      "nm": "가평군(신청평대교)",
+      "query": "신청평대교",
+      "official": {
+        "lat": 37.718056,
+        "lng": 127.410278
+      },
+      "best": {
+        "title": "신청평대교",
+        "address": "경기도 가평군 청평면 대성리 32-9천",
+        "lat": 37.72163256529641,
+        "lng": 127.4066573433437,
+        "distanceM": 509,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "1015655",
+      "nm": "가평군(오류동교)",
+      "query": "오류동교",
+      "official": {
+        "lat": 37.693056,
+        "lng": 127.365556
+      },
+      "best": {
+        "title": "오류동교",
+        "address": "경기도 남양주시 수동면 송천리 6-4천",
+        "lat": 37.69336077077136,
+        "lng": 127.3653005754803,
+        "distanceM": 41,
+        "regionMatch": false
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1016606",
+      "nm": "광주시(동림3교)",
+      "query": "동림3교",
+      "official": {
+        "lat": 37.341944,
+        "lng": 127.198611
+      },
+      "best": {
+        "title": "동림3교",
+        "address": "경기도 광주시 문형동 815천",
+        "lat": 37.34198521512669,
+        "lng": 127.19871927170972,
+        "distanceM": 11,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1016607",
+      "nm": "용인시(월촌교)",
+      "query": "월촌교",
+      "official": {
+        "lat": 37.3325,
+        "lng": 127.239444
+      },
+      "best": {
+        "title": "월촌교",
+        "address": "경기도 용인시 처인구 모현읍 일산리 229-1천",
+        "lat": 37.338244047295454,
+        "lng": 127.2374362635572,
+        "distanceM": 663,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1016645",
+      "nm": "광주시(오포대교)",
+      "query": "오포대교",
+      "official": {
+        "lat": 37.370556,
+        "lng": 127.239722
+      },
+      "best": {
+        "title": "오포대교",
+        "address": "경기도 광주시 매산동 831천",
+        "lat": 37.37043541651924,
+        "lng": 127.23977292998214,
+        "distanceM": 14,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1016650",
+      "nm": "광주시(경안교)",
+      "query": "경안교",
+      "official": {
+        "lat": 37.406667,
+        "lng": 127.263056
+      },
+      "best": {
+        "title": "경안교",
+        "address": "경기도 광주시 역동 220천",
+        "lat": 37.405927774679505,
+        "lng": 127.26333868268745,
+        "distanceM": 86,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "1016651",
+      "nm": "광주시(파발교)",
+      "query": "파발교",
+      "official": {
+        "lat": 37.414167,
+        "lng": 127.256944
+      },
+      "best": {
+        "title": "파발교",
+        "address": "경기도 광주시 송정동 593-5도",
+        "lat": 37.41403400050883,
+        "lng": 127.25700236528093,
+        "distanceM": 16,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1016655",
+      "nm": "경안교",
+      "query": "경안교",
+      "official": {
+        "lat": 37.3925,
+        "lng": 127.251667
+      },
+      "best": {
+        "title": "경안교",
+        "address": "경기도 광주시 양벌동 1048-35천",
+        "lat": 37.392661085351534,
+        "lng": 127.25142697780508,
+        "distanceM": 28,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1016660",
+      "nm": "광주시(섬뜰교)",
+      "query": "섬뜰교",
+      "official": {
+        "lat": 37.399167,
+        "lng": 127.292778
+      },
+      "best": {
+        "title": "섬뜰교",
+        "address": "경기도 광주시 초월읍 도평리 233천",
+        "lat": 37.399078153527185,
+        "lng": 127.29271050997413,
+        "distanceM": 12,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1018638",
+      "nm": "남양주시(왕숙교)",
+      "query": "왕숙교",
+      "official": {
+        "lat": 37.603611,
+        "lng": 127.148056
+      },
+      "best": {
+        "title": "왕숙교",
+        "address": "경기도 남양주시 다산동  4155-7",
+        "lat": 37.6040496235871,
+        "lng": 127.14896020064889,
+        "distanceM": 93,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1018640",
+      "nm": "서울시(광진교)",
+      "query": "광진교",
+      "official": {
+        "lat": 37.545556,
+        "lng": 127.110278
+      },
+      "best": {
+        "title": "광진교",
+        "address": "서울특별시 강동구 천호동 484-9천",
+        "lat": 37.54430173202477,
+        "lng": 127.11472312020128,
+        "distanceM": 416,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1018650",
+      "nm": "성남시(궁내교)",
+      "query": "궁내교",
+      "official": {
+        "lat": 37.37,
+        "lng": 127.108333
+      },
+      "best": {
+        "title": "궁내교",
+        "address": "경기도 성남시 분당구 정자동 100-3천",
+        "lat": 37.37302503143942,
+        "lng": 127.10895618681506,
+        "distanceM": 341,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1018653",
+      "nm": "성남시(둔전교)",
+      "query": "둔전교",
+      "official": {
+        "lat": 37.428056,
+        "lng": 127.117222
+      },
+      "best": {
+        "title": "둔전교",
+        "address": "경기도 성남시 수정구 둔전동 216",
+        "lat": 37.42815000528063,
+        "lng": 127.11759999969465,
+        "distanceM": 35,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1018655",
+      "nm": "서울시(대곡교)",
+      "query": "대곡교",
+      "official": {
+        "lat": 37.468889,
+        "lng": 127.1225
+      },
+      "best": {
+        "title": "대곡교",
+        "address": "서울특별시 강남구 세곡동 486-2천",
+        "lat": 37.468679598157046,
+        "lng": 127.1223974782904,
+        "distanceM": 25,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1018658",
+      "nm": "서울시(대치교)",
+      "query": "대치교",
+      "official": {
+        "lat": 37.498333,
+        "lng": 127.074444
+      },
+      "best": {
+        "title": "대치교",
+        "address": "서울특별시 강남구 대치동 10천",
+        "lat": 37.497647352567924,
+        "lng": 127.07374962977799,
+        "distanceM": 98,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1018662",
+      "nm": "서울시(청담대교)",
+      "query": "청담대교",
+      "official": {
+        "lat": 37.523056,
+        "lng": 127.062778
+      },
+      "best": {
+        "title": "청담대교",
+        "address": "서울특별시 광진구 강변북로 2202 서울특별시 광진구 자양동  97-5",
+        "lat": 37.53105989261616,
+        "lng": 127.06547616081164,
+        "distanceM": 921,
+        "regionMatch": false
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "1018670",
+      "nm": "서울시(월계2교)",
+      "query": "월계2교",
+      "official": {
+        "lat": 37.624167,
+        "lng": 127.05
+      },
+      "best": {
+        "title": "월계2교",
+        "address": "서울특별시 노원구 월계동 860-7도",
+        "lat": 37.62441952134258,
+        "lng": 127.0500147319504,
+        "distanceM": 28,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1018675",
+      "nm": "서울시(중랑교)",
+      "query": "중랑교",
+      "official": {
+        "lat": 37.5925,
+        "lng": 127.070556
+      },
+      "best": {
+        "title": "중랑교",
+        "address": "서울특별시 동대문구 휘경동 346천",
+        "lat": 37.59248767119546,
+        "lng": 127.07034192341594,
+        "distanceM": 19,
+        "regionMatch": false
+      },
+      "candidateCount": 9,
+      "action": "keep"
+    },
+    {
+      "cd": "1018680",
+      "nm": "서울시(잠수교)",
+      "query": "잠수교",
+      "official": {
+        "lat": 37.517222,
+        "lng": 126.995278
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1018681",
+      "nm": "서울시(반포2교)",
+      "query": "반포2교",
+      "official": {
+        "lat": 37.499167,
+        "lng": 126.990278
+      },
+      "best": {
+        "title": "반포2교",
+        "address": "서울특별시 서초구 반포동 1324제",
+        "lat": 37.49925616514821,
+        "lng": 126.99010114002654,
+        "distanceM": 18,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1018683",
+      "nm": "서울시(한강대교)",
+      "query": "한강대교",
+      "official": {
+        "lat": 37.514444,
+        "lng": 126.956667
+      },
+      "best": {
+        "title": "한강대교",
+        "address": "서울특별시 용산구 이촌동 327천",
+        "lat": 37.51534723321977,
+        "lng": 126.95747276412169,
+        "distanceM": 123,
+        "regionMatch": false
+      },
+      "candidateCount": 4,
+      "action": "review"
+    },
+    {
+      "cd": "1018686",
+      "nm": "서울시(홍남교)",
+      "query": "홍남교",
+      "official": {
+        "lat": 37.575278,
+        "lng": 126.926389
+      },
+      "best": {
+        "title": "홍남교",
+        "address": "서울특별시 서대문구 홍은동 422-8도",
+        "lat": 37.576629713455205,
+        "lng": 126.92757186350538,
+        "distanceM": 183,
+        "regionMatch": false
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "1018692",
+      "nm": "서울시(신림5교)",
+      "query": "신림5교",
+      "official": {
+        "lat": 37.467222,
+        "lng": 126.9475
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1018693",
+      "nm": "광명시(시흥대교)",
+      "query": "시흥대교",
+      "official": {
+        "lat": 37.452222,
+        "lng": 126.893333
+      },
+      "best": {
+        "title": "시흥대교",
+        "address": "서울특별시 금천구 시흥동 765",
+        "lat": 37.452592738554316,
+        "lng": 126.89523978905241,
+        "distanceM": 173,
+        "regionMatch": false
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "1018695",
+      "nm": "서울시(너부대교)",
+      "query": "너부대교",
+      "official": {
+        "lat": 37.478889,
+        "lng": 126.845556
+      },
+      "best": {
+        "title": "너부대교",
+        "address": "경기도 광명시 광명동 776-20천",
+        "lat": 37.47882187026676,
+        "lng": 126.84588430390541,
+        "distanceM": 30,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1018697",
+      "nm": "서울시(오금교)",
+      "query": "오금교",
+      "official": {
+        "lat": 37.508333,
+        "lng": 126.874167
+      },
+      "best": {
+        "title": "오금교",
+        "address": "서울특별시 양천구 신정동 871-20 천",
+        "lat": 37.50846095785868,
+        "lng": 126.87363396243764,
+        "distanceM": 49,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1018698",
+      "nm": "서울시(신대방1교)",
+      "query": "신대방1교",
+      "official": {
+        "lat": 37.488056,
+        "lng": 126.914444
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1019606",
+      "nm": "고양시(은덕교)",
+      "query": "은덕교",
+      "official": {
+        "lat": 37.645833,
+        "lng": 126.921389
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1019612",
+      "nm": "인천시(굴포1교)",
+      "query": "굴포1교",
+      "official": {
+        "lat": 37.508889,
+        "lng": 126.722778
+      },
+      "best": {
+        "title": "굴포1교",
+        "address": "인천광역시 부평구 갈산동  404-12",
+        "lat": 37.50888110395644,
+        "lng": 126.7228630659788,
+        "distanceM": 8,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1019620",
+      "nm": "부천시(도두리2교)",
+      "query": "도두리2교",
+      "official": {
+        "lat": 37.532222,
+        "lng": 126.760556
+      },
+      "best": {
+        "title": "도두리2교",
+        "address": "인천광역시 계양구 서운동 122-4 천",
+        "lat": 37.53188956044076,
+        "lng": 126.76005198646219,
+        "distanceM": 58,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1019630",
+      "nm": "서울시(행주대교)",
+      "query": "행주대교",
+      "official": {
+        "lat": 37.603056,
+        "lng": 126.814722
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1019647",
+      "nm": "박촌1교",
+      "query": "박촌1교",
+      "official": {
+        "lat": 37.541667,
+        "lng": 126.761389
+      },
+      "best": {
+        "title": "박촌1교",
+        "address": "인천광역시 계양구 박촌동 298천",
+        "lat": 37.54122080765998,
+        "lng": 126.76175078715842,
+        "distanceM": 59,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1019648",
+      "nm": "계양대교",
+      "query": "계양대교",
+      "official": {
+        "lat": 37.573333,
+        "lng": 126.746389
+      },
+      "best": {
+        "title": "계양대교",
+        "address": "인천광역시 계양구 귤현동  451-514",
+        "lat": 37.57306275744755,
+        "lng": 126.73852486829156,
+        "distanceM": 694,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1019653",
+      "nm": "벌말교",
+      "query": "벌말교",
+      "official": {
+        "lat": 37.583333,
+        "lng": 126.772222
+      },
+      "best": {
+        "title": "벌말교",
+        "address": "인천광역시 계양구 평동 24-3답",
+        "lat": 37.58359807822995,
+        "lng": 126.77153777276264,
+        "distanceM": 67,
+        "regionMatch": true
+      },
+      "candidateCount": 10,
+      "action": "keep"
+    },
+    {
+      "cd": "1019657",
+      "nm": "인천시(상야교)",
+      "query": "상야교",
+      "official": {
+        "lat": 37.579167,
+        "lng": 126.775833
+      },
+      "best": {
+        "title": "상야교",
+        "address": "인천광역시 계양구 상야동 341 천",
+        "lat": 37.579330290913376,
+        "lng": 126.77599749402167,
+        "distanceM": 23,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1019661",
+      "nm": "김포시(사우교)",
+      "query": "사우교",
+      "official": {
+        "lat": 37.625,
+        "lng": 126.727222
+      },
+      "best": {
+        "title": "사우교",
+        "address": "경기도 김포시 사우동  30-3",
+        "lat": 37.625047712139896,
+        "lng": 126.72716949686364,
+        "distanceM": 7,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1019667",
+      "nm": "고양시(원당교)",
+      "query": "원당교",
+      "official": {
+        "lat": 37.685,
+        "lng": 126.865833
+      },
+      "best": {
+        "title": "원당교",
+        "address": "경기도 고양시 덕양구 원당동 1046-1천",
+        "lat": 37.68496123354009,
+        "lng": 126.86580250410701,
+        "distanceM": 5,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1021680",
+      "nm": "연천군(임진교)",
+      "query": "임진교",
+      "official": {
+        "lat": 38.056389,
+        "lng": 127.0175
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1022642",
+      "nm": "포천시(대회산교)",
+      "query": "대회산교",
+      "official": {
+        "lat": 38.089208,
+        "lng": 127.221601
+      },
+      "best": {
+        "title": "대회산교",
+        "address": "경기도 포천시 영북면 대회산리 산 42-1천",
+        "lat": 38.089208048081396,
+        "lng": 127.22160089765343,
+        "distanceM": 0,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1022643",
+      "nm": "포천시(영로대교)",
+      "query": "영로대교",
+      "official": {
+        "lat": 38.068764,
+        "lng": 127.20483
+      },
+      "best": {
+        "title": "영로대교",
+        "address": "경기도 포천시 관인면 중리 631-16임",
+        "lat": 38.06876393044514,
+        "lng": 127.20482951291918,
+        "distanceM": 0,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1022650",
+      "nm": "포천시(영평교)",
+      "query": "영평교",
+      "official": {
+        "lat": 38.010833,
+        "lng": 127.214444
+      },
+      "best": {
+        "title": "영평교",
+        "address": "경기도 포천시 영중면 영송리 297-1천",
+        "lat": 38.01086622206018,
+        "lng": 127.21444847059706,
+        "distanceM": 4,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1022655",
+      "nm": "포천시(신백의교)",
+      "query": "신백의교",
+      "official": {
+        "lat": 38.018056,
+        "lng": 127.142778
+      },
+      "best": {
+        "title": "신백의교",
+        "address": "경기도 포천시 창수면 고소성리 58-1천",
+        "lat": 38.01764798426389,
+        "lng": 127.14328493811301,
+        "distanceM": 63,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1022662",
+      "nm": "연천군(차탄교)",
+      "query": "차탄교",
+      "official": {
+        "lat": 38.0875,
+        "lng": 127.071944
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1022664",
+      "nm": "궁신교",
+      "query": "궁신교",
+      "official": {
+        "lat": 38.036667,
+        "lng": 127.104444
+      },
+      "best": {
+        "title": "궁신교",
+        "address": "경기도 연천군 전곡읍 신답리 307천",
+        "lat": 38.036619742454214,
+        "lng": 127.10452749945097,
+        "distanceM": 9,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1022666",
+      "nm": "연천군(고탄교)",
+      "query": "고탄교",
+      "official": {
+        "lat": 38.031389,
+        "lng": 127.076111
+      },
+      "best": {
+        "title": "고탄교",
+        "address": "경기도 연천군 전곡읍 전곡리 682-5",
+        "lat": 38.03124245041464,
+        "lng": 127.07608378678545,
+        "distanceM": 16,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1022670",
+      "nm": "연천군(신천교)",
+      "query": "신천교",
+      "official": {
+        "lat": 37.993056,
+        "lng": 127.076944
+      },
+      "best": {
+        "title": "신천교",
+        "address": "경기도 연천군 청산면 대전리 632-1천",
+        "lat": 37.99287042997283,
+        "lng": 127.07672365175782,
+        "distanceM": 28,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1022680",
+      "nm": "연천군(사랑교)",
+      "query": "사랑교",
+      "official": {
+        "lat": 38.009167,
+        "lng": 127.056389
+      },
+      "best": {
+        "title": "사랑교",
+        "address": "경기도 연천군 전곡읍 전곡리 681-16천",
+        "lat": 38.0093534498176,
+        "lng": 127.05647645199716,
+        "distanceM": 22,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1023640",
+      "nm": "연천군(삼화교)",
+      "query": "삼화교",
+      "official": {
+        "lat": 38.025278,
+        "lng": 126.983333
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1023660",
+      "nm": "파주시(비룡대교)",
+      "query": "비룡대교",
+      "official": {
+        "lat": 37.985278,
+        "lng": 126.919167
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "1101605",
+      "nm": "화성시(화산교)",
+      "query": "화산교",
+      "official": {
+        "lat": 37.217778,
+        "lng": 127.020278
+      },
+      "best": {
+        "title": "화산교",
+        "address": "경기도 화성시 송산동 208-4천",
+        "lat": 37.21769582087626,
+        "lng": 127.02036254596955,
+        "distanceM": 12,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1101621",
+      "nm": "용인시(덕성1교)",
+      "query": "덕성1교",
+      "official": {
+        "lat": 37.1725,
+        "lng": 127.199722
+      },
+      "best": {
+        "title": "덕성1교",
+        "address": "경기도 용인시 처인구 이동읍 덕성리 1039-4천",
+        "lat": 37.17260203106204,
+        "lng": 127.19986684743738,
+        "distanceM": 17,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "1101635",
+      "nm": "평택시(군문교)",
+      "query": "군문교",
+      "official": {
+        "lat": 36.983611,
+        "lng": 127.08
+      },
+      "best": {
+        "title": "군문교",
+        "address": "경기도 평택시 평택동 230-2답",
+        "lat": 36.98358278896626,
+        "lng": 127.08010489979712,
+        "distanceM": 10,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1101645",
+      "nm": "오산시(탑동대교)",
+      "query": "탑동대교",
+      "official": {
+        "lat": 37.133889,
+        "lng": 127.058056
+      },
+      "best": {
+        "title": "탑동대교",
+        "address": "경기도 오산시 누읍동 1천",
+        "lat": 37.13415571487498,
+        "lng": 127.05817962780428,
+        "distanceM": 32,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1101650",
+      "nm": "화성시(수직교)",
+      "query": "수직교",
+      "official": {
+        "lat": 37.123611,
+        "lng": 126.999722
+      },
+      "best": {
+        "title": "수직교",
+        "address": "경기도 평택시 서탄면 내천리 669-3도",
+        "lat": 37.12412230180376,
+        "lng": 127.001426437559,
+        "distanceM": 161,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1101656",
+      "nm": "용인시(전궁교)",
+      "query": "전궁교",
+      "official": {
+        "lat": 37.110833,
+        "lng": 127.1525
+      },
+      "best": {
+        "title": "전궁교",
+        "address": "경기도 용인시 처인구 남사읍 전궁리 565천",
+        "lat": 37.11104791205188,
+        "lng": 127.15238418644736,
+        "distanceM": 26,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1101663",
+      "nm": "평택시(진위1교)",
+      "query": "진위1교",
+      "official": {
+        "lat": 37.095,
+        "lng": 127.052222
+      },
+      "best": {
+        "title": "진위1교",
+        "address": "경기도 평택시 진위면 하북리 608-4천",
+        "lat": 37.09485615966085,
+        "lng": 127.05228533232301,
+        "distanceM": 17,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1101670",
+      "nm": "평택시(동연교)",
+      "query": "동연교",
+      "official": {
+        "lat": 37.0525,
+        "lng": 126.9975
+      },
+      "best": {
+        "title": "동연교",
+        "address": "경기도 평택시 고덕면 동청리 597-11 천",
+        "lat": 37.05267197658126,
+        "lng": 126.99577803606668,
+        "distanceM": 154,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1101680",
+      "nm": "평택시(팽성대교)",
+      "query": "팽성대교",
+      "official": {
+        "lat": 36.978056,
+        "lng": 127.033611
+      },
+      "best": {
+        "title": "팽성대교",
+        "address": "경기도 평택시 팽성읍 원정리 247천",
+        "lat": 36.97860281585085,
+        "lng": 127.03323485630429,
+        "distanceM": 69,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "1202650",
+      "nm": "안산시(안산10교)",
+      "query": "안산10교",
+      "official": {
+        "lat": 37.314722,
+        "lng": 126.8425
+      },
+      "best": {
+        "title": "안산10교",
+        "address": "경기도 안산시 상록구 이동 759천",
+        "lat": 37.314561537264765,
+        "lng": 126.84251159858991,
+        "distanceM": 18,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1301625",
+      "nm": "속초시(도문교)",
+      "query": "도문교",
+      "official": {
+        "lat": 38.164722,
+        "lng": 128.545278
+      },
+      "best": {
+        "title": "도문교",
+        "address": "강원특별자치도 속초시 설악동 57-2",
+        "lat": 38.16491944776631,
+        "lng": 128.54536109576438,
+        "distanceM": 23,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "1301630",
+      "nm": "양양군(용천2교)",
+      "query": "용천2교",
+      "official": {
+        "lat": 38.055556,
+        "lng": 128.608056
+      },
+      "best": {
+        "title": "용천2교",
+        "address": "강원특별자치도 양양군 서면 용천리 744",
+        "lat": 38.05449425319077,
+        "lng": 128.60735626634244,
+        "distanceM": 133,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1301632",
+      "nm": "양양군(북평교)",
+      "query": "북평교",
+      "official": {
+        "lat": 38.071111,
+        "lng": 128.607778
+      },
+      "best": {
+        "title": "북평교",
+        "address": "강원특별자치도 양양군 양양읍 임천리 440",
+        "lat": 38.070132051116886,
+        "lng": 128.60723139988903,
+        "distanceM": 119,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1301658",
+      "nm": "양양군(양양대교)",
+      "query": "양양대교",
+      "official": {
+        "lat": 38.075278,
+        "lng": 128.631667
+      },
+      "best": {
+        "title": "양양대교",
+        "address": "강원특별자치도 양양군 양양읍 일출로 540 강원특별자치도 양양군 양양읍 연창리 283",
+        "lat": 38.07648533850994,
+        "lng": 128.63036029980825,
+        "distanceM": 176,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "1301665",
+      "nm": "속초시(응골교)",
+      "query": "응골교",
+      "official": {
+        "lat": 38.188611,
+        "lng": 128.558056
+      },
+      "best": {
+        "title": "응골교",
+        "address": "강원특별자치도 속초시 노학동 1265-64",
+        "lat": 38.18855555459351,
+        "lng": 128.55794440172437,
+        "distanceM": 12,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1302666",
+      "nm": "강릉시(우정교)",
+      "query": "우정교",
+      "official": {
+        "lat": 37.848056,
+        "lng": 128.724444
+      },
+      "best": {
+        "title": "우정교",
+        "address": "강원특별자치도 강릉시 연곡면 진고개로 1656 강원특별자치도 강릉시 연곡면 퇴곡리 720",
+        "lat": 37.848161471239145,
+        "lng": 128.7244565005569,
+        "distanceM": 12,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "1302670",
+      "nm": "강릉시(송림교)",
+      "query": "송림교",
+      "official": {
+        "lat": 37.846944,
+        "lng": 128.810556
+      },
+      "best": {
+        "title": "송림교",
+        "address": "강원특별자치도 강릉시 연곡면 송림리 555",
+        "lat": 37.846995951225445,
+        "lng": 128.81061509955057,
+        "distanceM": 8,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2001658",
+      "nm": "봉화군(양삼교)",
+      "query": "양삼교",
+      "official": {
+        "lat": 36.778611,
+        "lng": 128.885556
+      },
+      "best": {
+        "title": "양삼교",
+        "address": "경상북도 안동시 도산면 가송리 901천",
+        "lat": 36.7788612615433,
+        "lng": 128.88533170398867,
+        "distanceM": 34,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2001668",
+      "nm": "안동시(문미교)",
+      "query": "문미교",
+      "official": {
+        "lat": 36.675833,
+        "lng": 128.906944
+      },
+      "best": {
+        "title": "문미교",
+        "address": "경상북도 안동시 예안면 태곡리 1099-1 천",
+        "lat": 36.67569507909355,
+        "lng": 128.90732720749412,
+        "distanceM": 37,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2001685",
+      "nm": "안동시(안동댐)",
+      "query": "안동댐",
+      "official": {
+        "lat": 36.582778,
+        "lng": 128.775
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "2001690",
+      "nm": "안동시(안동조정지댐)",
+      "query": "안동조정지댐",
+      "official": {
+        "lat": 36.566389,
+        "lng": 128.749167
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "2002630",
+      "nm": "청송군(송강2교)",
+      "query": "송강2교",
+      "official": {
+        "lat": 36.483889,
+        "lng": 129.021667
+      },
+      "best": {
+        "title": "송강2교",
+        "address": "경상북도 청송군 파천면 신기리 728 유",
+        "lat": 36.48414134794187,
+        "lng": 129.02283362290729,
+        "distanceM": 108,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2002638",
+      "nm": "영양군(흥구교)",
+      "query": "흥구교",
+      "official": {
+        "lat": 36.551944,
+        "lng": 129.080833
+      },
+      "best": {
+        "title": "흥구교",
+        "address": "경상북도 영양군 입암면 방전리 680-1천",
+        "lat": 36.55207516248605,
+        "lng": 129.08095967757822,
+        "distanceM": 18,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "2002645",
+      "nm": "청송군(광덕교)",
+      "query": "광덕교",
+      "official": {
+        "lat": 36.536111,
+        "lng": 129.043333
+      },
+      "best": {
+        "title": "광덕교",
+        "address": "경상북도 청송군 진보면 각산리 367 유",
+        "lat": 36.53477825817325,
+        "lng": 129.04323793557987,
+        "distanceM": 148,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "2002655",
+      "nm": "청송군(덕천교)",
+      "query": "덕천교",
+      "official": {
+        "lat": 36.442778,
+        "lng": 129.030278
+      },
+      "best": {
+        "title": "덕천교",
+        "address": "경상북도 청송군 파천면 덕천리 728-1 천",
+        "lat": 36.44290056140006,
+        "lng": 129.03023317214948,
+        "distanceM": 14,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "2002677",
+      "nm": "안동시(임하댐)",
+      "query": "임하댐",
+      "official": {
+        "lat": 36.535,
+        "lng": 128.883611
+      },
+      "best": {
+        "title": "임하댐",
+        "address": "경상북도 안동시 임하면 임하리 1-9",
+        "lat": 36.533644001495745,
+        "lng": 128.8819920023146,
+        "distanceM": 209,
+        "regionMatch": true
+      },
+      "candidateCount": 6,
+      "action": "review"
+    },
+    {
+      "cd": "2002680",
+      "nm": "안동시(임하조정지댐)",
+      "query": "임하조정지댐",
+      "official": {
+        "lat": 36.536389,
+        "lng": 128.845278
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "2002685",
+      "nm": "안동시(묵계교)",
+      "query": "묵계교",
+      "official": {
+        "lat": 36.431667,
+        "lng": 128.910833
+      },
+      "best": {
+        "title": "묵계교",
+        "address": "경상북도 안동시 길안면 묵계리 1127-85",
+        "lat": 36.43157878076123,
+        "lng": 128.91165947146894,
+        "distanceM": 75,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "2002686",
+      "nm": "안동시(신덕교)",
+      "query": "신덕교",
+      "official": {
+        "lat": 36.519167,
+        "lng": 128.838611
+      },
+      "best": {
+        "title": "신덕교",
+        "address": "경상북도 안동시 임하면 금소리 1028-88 천",
+        "lat": 36.519164206644824,
+        "lng": 128.83857379818247,
+        "distanceM": 3,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "2002692",
+      "nm": "안동시(포진교)",
+      "query": "포진교",
+      "official": {
+        "lat": 36.534722,
+        "lng": 128.795278
+      },
+      "best": {
+        "title": "포진교",
+        "address": "경상북도 안동시 남선면 이천리 829-1천",
+        "lat": 36.53646269847367,
+        "lng": 128.79577462057523,
+        "distanceM": 199,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2013690",
+      "nm": "고령군(도진교)",
+      "query": "도진교",
+      "official": {
+        "lat": 35.678889,
+        "lng": 128.337222
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "2014690",
+      "nm": "합천군(율지교)",
+      "query": "율지교",
+      "official": {
+        "lat": 35.612222,
+        "lng": 128.358333
+      },
+      "best": {
+        "title": "율지교",
+        "address": "경상남도 창녕군 이방면 장천리 1169천",
+        "lat": 35.6108249653282,
+        "lng": 128.35880739150926,
+        "distanceM": 161,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2016635",
+      "nm": "합천군(합천조정지댐)",
+      "query": "합천조정지댐",
+      "official": {
+        "lat": 35.540278,
+        "lng": 128.084167
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "2016650",
+      "nm": "합천군(남정교)",
+      "query": "남정교",
+      "official": {
+        "lat": 35.5575,
+        "lng": 128.161111
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "2016660",
+      "nm": "합천군(기리교)",
+      "query": "기리교",
+      "official": {
+        "lat": 35.613611,
+        "lng": 128.219444
+      },
+      "best": {
+        "title": "기리교",
+        "address": "경상남도 합천군 율곡면 두사리 562천",
+        "lat": 35.61308012532644,
+        "lng": 128.22038630271797,
+        "distanceM": 104,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2016680",
+      "nm": "합천군(황강교)",
+      "query": "황강교",
+      "official": {
+        "lat": 35.571944,
+        "lng": 128.292778
+      },
+      "best": {
+        "title": "황강교",
+        "address": "경상남도 합천군 쌍책면 다라리 860-1천",
+        "lat": 35.572285493457315,
+        "lng": 128.29217439237775,
+        "distanceM": 67,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2017620",
+      "nm": "합천군(적포교)",
+      "query": "적포교",
+      "official": {
+        "lat": 35.5275,
+        "lng": 128.359167
+      },
+      "best": {
+        "title": "적포교",
+        "address": "경상남도 합천군 청덕면 동부로 2501 경상남도 합천군 청덕면 앙진리 1",
+        "lat": 35.514869902564655,
+        "lng": 128.37409940306074,
+        "distanceM": 1949,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "2017630",
+      "nm": "의령군(대곡교)",
+      "query": "대곡교",
+      "official": {
+        "lat": 35.485278,
+        "lng": 128.348333
+      },
+      "best": {
+        "title": "대곡교",
+        "address": "경상남도 의령군 부림면 감암리 172-2 전",
+        "lat": 35.48429017833491,
+        "lng": 128.347427084166,
+        "distanceM": 137,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2017640",
+      "nm": "창녕군(유어교)",
+      "query": "유어교",
+      "official": {
+        "lat": 35.519722,
+        "lng": 128.376667
+      },
+      "best": {
+        "title": "유어교",
+        "address": "경상남도 창녕군 유어면 가항리 1106천",
+        "lat": 35.51960729706299,
+        "lng": 128.37670890382412,
+        "distanceM": 13,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2020640",
+      "nm": "함안군(소랑교)",
+      "query": "소랑교",
+      "official": {
+        "lat": 35.381389,
+        "lng": 128.5225
+      },
+      "best": {
+        "title": "소랑교",
+        "address": "경상남도 함안군 칠서면 이룡리 25-1 전",
+        "lat": 35.3816439785019,
+        "lng": 128.52160694546566,
+        "distanceM": 86,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2020651",
+      "nm": "밀양시(인교)",
+      "query": "인교",
+      "official": {
+        "lat": 35.425278,
+        "lng": 128.651111
+      },
+      "best": {
+        "title": "인교",
+        "address": "경상남도 밀양시 초동면 오방리 682천",
+        "lat": 35.425468988147685,
+        "lng": 128.65113165578043,
+        "distanceM": 21,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "2020660",
+      "nm": "창원시(마산교)",
+      "query": "마산교",
+      "official": {
+        "lat": 35.345,
+        "lng": 128.617222
+      },
+      "best": {
+        "title": "마산교",
+        "address": "경상남도 창원시 의창구 북면 마산리 148-2 구",
+        "lat": 35.34460274123226,
+        "lng": 128.61730586230823,
+        "distanceM": 45,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "2020671",
+      "nm": "김해시(주천교)",
+      "query": "주천교",
+      "official": {
+        "lat": 35.313611,
+        "lng": 128.728333
+      },
+      "best": {
+        "title": "주천교",
+        "address": "경상남도 김해시 진영읍 진영리 319-67천",
+        "lat": 35.313647647891315,
+        "lng": 128.72778903093928,
+        "distanceM": 50,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "2020675",
+      "nm": "창원시(수산대교)",
+      "query": "수산대교",
+      "official": {
+        "lat": 35.365278,
+        "lng": 128.714167
+      },
+      "best": {
+        "title": "수산대교",
+        "address": "경상남도 창원시 의창구 대산면 모산리 701천",
+        "lat": 35.36651380875462,
+        "lng": 128.71456299036433,
+        "distanceM": 142,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2022670",
+      "nm": "양산시(호포대교)",
+      "query": "호포대교",
+      "official": {
+        "lat": 35.289444,
+        "lng": 129.011389
+      },
+      "best": {
+        "title": "호포대교",
+        "address": "경상남도 양산시 물금읍 증산리 1133-13천",
+        "lat": 35.28873909339107,
+        "lng": 129.01267652772447,
+        "distanceM": 141,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2022678",
+      "nm": "부산시(대동낙동강교)",
+      "query": "대동낙동강교",
+      "official": {
+        "lat": 35.225,
+        "lng": 128.976111
+      },
+      "best": {
+        "title": "대동낙동강교",
+        "address": "부산광역시 강서구 공항로 1516 부산광역시 강서구 대저1동  670-1",
+        "lat": 35.22610773348474,
+        "lng": 128.97681392861847,
+        "distanceM": 139,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2022680",
+      "nm": "부산시(구포대교)",
+      "query": "구포대교",
+      "official": {
+        "lat": 35.203611,
+        "lng": 128.993333
+      },
+      "best": {
+        "title": "구포대교",
+        "address": "부산광역시 강서구 대저1동 1-5 천",
+        "lat": 35.20714733101786,
+        "lng": 128.9891772823922,
+        "distanceM": 545,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2022681",
+      "nm": "김해시(연지교)",
+      "query": "연지교",
+      "official": {
+        "lat": 35.244722,
+        "lng": 128.871389
+      },
+      "best": {
+        "title": "연지교",
+        "address": "경상남도 김해시 내동 1037-1천",
+        "lat": 35.24439803586005,
+        "lng": 128.87190587287742,
+        "distanceM": 59,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2022682",
+      "nm": "부산시(삼덕교)",
+      "query": "삼덕교",
+      "official": {
+        "lat": 35.181944,
+        "lng": 128.981389
+      },
+      "best": {
+        "title": "삼덕교",
+        "address": "부산광역시 사상구 모라동 736구",
+        "lat": 35.182076870751985,
+        "lng": 128.98152528215792,
+        "distanceM": 19,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2022688",
+      "nm": "부산시(동서교)",
+      "query": "동서교",
+      "official": {
+        "lat": 35.1975,
+        "lng": 128.931111
+      },
+      "best": {
+        "title": "동서교",
+        "address": "부산광역시 강서구 강동동 1546-1천",
+        "lat": 35.197385305042125,
+        "lng": 128.93114119371364,
+        "distanceM": 13,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2022690",
+      "nm": "부산시(강동교)",
+      "query": "강동교",
+      "official": {
+        "lat": 35.191944,
+        "lng": 128.905556
+      },
+      "best": {
+        "title": "강동교",
+        "address": "부산광역시 강서구 죽림동 1095천",
+        "lat": 35.192150058358536,
+        "lng": 128.90561464385257,
+        "distanceM": 24,
+        "regionMatch": false
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "2022692",
+      "nm": "부산시(학장3호교)",
+      "query": "학장3호교",
+      "official": {
+        "lat": 35.142778,
+        "lng": 128.985556
+      },
+      "best": {
+        "title": "학장3호교",
+        "address": "부산광역시 사상구 학장동  586",
+        "lat": 35.140350855933306,
+        "lng": 128.97890379970565,
+        "distanceM": 662,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "2302640",
+      "nm": "부산시(동천교)",
+      "query": "동천교",
+      "official": {
+        "lat": 35.2175,
+        "lng": 129.118333
+      },
+      "best": {
+        "title": "동천교",
+        "address": "부산광역시 금정구 금사동 545-19 천",
+        "lat": 35.21726406979804,
+        "lng": 129.11846941485368,
+        "distanceM": 29,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2302647",
+      "nm": "부산시(뉴타운교)",
+      "query": "뉴타운교",
+      "official": {
+        "lat": 35.223611,
+        "lng": 129.088333
+      },
+      "best": {
+        "title": "뉴타운교",
+        "address": "부산광역시 금정구 장전동 655-9천",
+        "lat": 35.223644499511714,
+        "lng": 129.08829695874945,
+        "distanceM": 5,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2302650",
+      "nm": "부산시(원동교)",
+      "query": "원동교",
+      "official": {
+        "lat": 35.193889,
+        "lng": 129.114167
+      },
+      "best": {
+        "title": "원동교",
+        "address": "부산광역시 동래구 안락동 1063-1천",
+        "lat": 35.194164098732834,
+        "lng": 129.11421561726453,
+        "distanceM": 31,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "2302655",
+      "nm": "부산시(세병교)",
+      "query": "세병교",
+      "official": {
+        "lat": 35.196667,
+        "lng": 129.082778
+      },
+      "best": {
+        "title": "세병교",
+        "address": "부산광역시 동래구 명륜로 33 부산광역시 동래구 수안동 11-24",
+        "lat": 35.197566921378964,
+        "lng": 129.08353200171553,
+        "distanceM": 121,
+        "regionMatch": false
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "3001633",
+      "nm": "진안군(능길교)",
+      "query": "능길교",
+      "official": {
+        "lat": 35.860278,
+        "lng": 127.593889
+      },
+      "best": {
+        "title": "능길교",
+        "address": "전북특별자치도 진안군 동향면 능금리 2231-1",
+        "lat": 35.860510470575555,
+        "lng": 127.5940222346247,
+        "distanceM": 29,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3001690",
+      "nm": "진안군(용담댐)",
+      "query": "용담댐",
+      "official": {
+        "lat": 35.943333,
+        "lng": 127.527778
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3002630",
+      "nm": "진안군(신용담교)",
+      "query": "신용담교",
+      "official": {
+        "lat": 35.951667,
+        "lng": 127.525278
+      },
+      "best": {
+        "title": "신용담교",
+        "address": "전북특별자치도 진안군 용담면 송풍리 1875-152",
+        "lat": 35.95180050763143,
+        "lng": 127.52555432438656,
+        "distanceM": 29,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3002650",
+      "nm": "진안군(감동교)",
+      "query": "감동교",
+      "official": {
+        "lat": 35.970833,
+        "lng": 127.534722
+      },
+      "best": {
+        "title": "감동교",
+        "address": "전북특별자치도 진안군 용담면 송풍리 1851",
+        "lat": 35.97086116737793,
+        "lng": 127.53497757360694,
+        "distanceM": 23,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3002655",
+      "nm": "무주군(대티교)",
+      "query": "대티교",
+      "official": {
+        "lat": 35.993889,
+        "lng": 127.5775
+      },
+      "best": {
+        "title": "대티교",
+        "address": "전북특별자치도 무주군 부남면 대유리 1229-30",
+        "lat": 35.9941191766117,
+        "lng": 127.57752311271591,
+        "distanceM": 26,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3003660",
+      "nm": "무주군(여의교)",
+      "query": "여의교",
+      "official": {
+        "lat": 36.035833,
+        "lng": 127.711667
+      },
+      "best": {
+        "title": "여의교",
+        "address": "전북특별자치도 무주군 무주읍 장백리 836",
+        "lat": 36.0355187369273,
+        "lng": 127.7117792385326,
+        "distanceM": 36,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3003675",
+      "nm": "무주군(산성교)",
+      "query": "산성교",
+      "official": {
+        "lat": 35.987222,
+        "lng": 127.695833
+      },
+      "best": {
+        "title": "산성교",
+        "address": "전북특별자치도 무주군 적상면 북창리 953",
+        "lat": 35.98708503897942,
+        "lng": 127.6957247638614,
+        "distanceM": 18,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3003692",
+      "nm": "무주군(무명교)",
+      "query": "무명교",
+      "official": {
+        "lat": 35.985833,
+        "lng": 127.639167
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3003694",
+      "nm": "무주군(서면교)",
+      "query": "서면교",
+      "official": {
+        "lat": 36.003056,
+        "lng": 127.624444
+      },
+      "best": {
+        "title": "서면교",
+        "address": "전북특별자치도 무주군 무주읍 대차리 1584",
+        "lat": 36.00318125826446,
+        "lng": 127.62434646993975,
+        "distanceM": 16,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3004620",
+      "nm": "금산군(적벽교)",
+      "query": "적벽교",
+      "official": {
+        "lat": 36.048889,
+        "lng": 127.593611
+      },
+      "best": {
+        "title": "적벽교",
+        "address": "",
+        "lat": 36.04854714395057,
+        "lng": 127.59361796247154,
+        "distanceM": 38,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3004637",
+      "nm": "금산군(황풍교)",
+      "query": "황풍교",
+      "official": {
+        "lat": 36.081667,
+        "lng": 127.5075
+      },
+      "best": {
+        "title": "황풍교",
+        "address": "충청남도 금산군 남일면 황풍리 960-21",
+        "lat": 36.08177523634335,
+        "lng": 127.50772388512087,
+        "distanceM": 23,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3004640",
+      "nm": "금산군(제원대교)",
+      "query": "제원대교",
+      "official": {
+        "lat": 36.111111,
+        "lng": 127.567222
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3004645",
+      "nm": "금산군(음대교)",
+      "query": "음대교",
+      "official": {
+        "lat": 36.03,
+        "lng": 127.502222
+      },
+      "best": {
+        "title": "음대교",
+        "address": "충청남도 금산군 남일면 신천리 973-1천",
+        "lat": 36.02996242058174,
+        "lng": 127.50207102359653,
+        "distanceM": 14,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3004670",
+      "nm": "영동군(미촌교)",
+      "query": "미촌교",
+      "official": {
+        "lat": 36.121667,
+        "lng": 127.711389
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3004680",
+      "nm": "영동군(영동제2교)",
+      "query": "영동제2교",
+      "official": {
+        "lat": 36.178889,
+        "lng": 127.7725
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3004685",
+      "nm": "영동군(초강교)",
+      "query": "초강교",
+      "official": {
+        "lat": 36.211111,
+        "lng": 127.715833
+      },
+      "best": {
+        "title": "초강교",
+        "address": "충청북도 영동군 심천면 초강리 1039-118천",
+        "lat": 36.2112149737397,
+        "lng": 127.71595064815875,
+        "distanceM": 16,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "3004690",
+      "nm": "영동군(양강교)",
+      "query": "양강교",
+      "official": {
+        "lat": 36.211944,
+        "lng": 127.707778
+      },
+      "best": {
+        "title": "양강교",
+        "address": "충청북도 영동군 심천면 고당리 1064천",
+        "lat": 36.21202758117544,
+        "lng": 127.70762135396481,
+        "distanceM": 17,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3005690",
+      "nm": "영동군(심천교)",
+      "query": "심천교",
+      "official": {
+        "lat": 36.230556,
+        "lng": 127.721667
+      },
+      "best": {
+        "title": "심천교",
+        "address": "충청북도 영동군 심천면 초강리 1039-53천",
+        "lat": 36.23060668119006,
+        "lng": 127.72172378497825,
+        "distanceM": 8,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3006680",
+      "nm": "옥천군(이원대교)",
+      "query": "이원대교",
+      "official": {
+        "lat": 36.239444,
+        "lng": 127.667778
+      },
+      "best": {
+        "title": "이원대교",
+        "address": "충청북도 옥천군 이원면 백지리 937천",
+        "lat": 36.24029089556433,
+        "lng": 127.66958173568084,
+        "distanceM": 187,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "3007633",
+      "nm": "보은군(묘서교)",
+      "query": "묘서교",
+      "official": {
+        "lat": 36.446389,
+        "lng": 127.698056
+      },
+      "best": {
+        "title": "묘서교",
+        "address": "충청북도 보은군 수한면 묘서리 333천",
+        "lat": 36.446318003958396,
+        "lng": 127.69825251575281,
+        "distanceM": 19,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "3007644",
+      "nm": "보은군(천상교)",
+      "query": "천상교",
+      "official": {
+        "lat": 36.413056,
+        "lng": 127.749722
+      },
+      "best": {
+        "title": "천상교",
+        "address": "충청북도 보은군 삼승면 천남리 897천",
+        "lat": 36.413036548373114,
+        "lng": 127.74970261222032,
+        "distanceM": 3,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3007660",
+      "nm": "옥천군(산계교)",
+      "query": "산계교",
+      "official": {
+        "lat": 36.317222,
+        "lng": 127.758056
+      },
+      "best": {
+        "title": "산계교",
+        "address": "충청북도 옥천군 청성면 궁촌리 425-18",
+        "lat": 36.316729920768495,
+        "lng": 127.75817639678516,
+        "distanceM": 56,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "3008630",
+      "nm": "옥천군(옥각교)",
+      "query": "옥각교",
+      "official": {
+        "lat": 36.3175,
+        "lng": 127.555
+      },
+      "best": {
+        "title": "옥각교",
+        "address": "충청북도 옥천군 옥천읍 옥각리 458-6유",
+        "lat": 36.317655694369435,
+        "lng": 127.55479060680511,
+        "distanceM": 26,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "3008670",
+      "nm": "금산군(제원교)",
+      "query": "제원교",
+      "official": {
+        "lat": 36.111667,
+        "lng": 127.552778
+      },
+      "best": {
+        "title": "제원교",
+        "address": "충청남도 금산군 제원면 제원리 501-36",
+        "lat": 36.110889110473416,
+        "lng": 127.55130519153111,
+        "distanceM": 158,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "3008680",
+      "nm": "대전시(대청조정지댐)",
+      "query": "대청조정지댐",
+      "official": {
+        "lat": 36.449722,
+        "lng": 127.452222
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3008690",
+      "nm": "청주시(대청댐)",
+      "query": "대청댐",
+      "official": {
+        "lat": 36.478611,
+        "lng": 127.480556
+      },
+      "best": {
+        "title": "대청댐",
+        "address": "대전광역시 대덕구 미호동 53잡",
+        "lat": 36.475415722539985,
+        "lng": 127.48043563946375,
+        "distanceM": 355,
+        "regionMatch": false
+      },
+      "candidateCount": 5,
+      "action": "review"
+    },
+    {
+      "cd": "3008693",
+      "nm": "보은군(부수1교)",
+      "query": "부수1교",
+      "official": {
+        "lat": 36.489444,
+        "lng": 127.599444
+      },
+      "best": {
+        "title": "부수1교",
+        "address": "충청북도 보은군 회인면 부수리 554-2천",
+        "lat": 36.489674636971344,
+        "lng": 127.599292616617,
+        "distanceM": 29,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "3009608",
+      "nm": "논산시(부엉골교)",
+      "query": "부엉골교",
+      "official": {
+        "lat": 36.197222,
+        "lng": 127.280556
+      },
+      "best": {
+        "title": "부엉골교",
+        "address": "충청남도 논산시 벌곡면 사정리 503 천",
+        "lat": 36.19724248932578,
+        "lng": 127.2806596137434,
+        "distanceM": 10,
+        "regionMatch": true
+      },
+      "candidateCount": 5,
+      "action": "keep"
+    },
+    {
+      "cd": "3009615",
+      "nm": "금산군(매현교)",
+      "query": "매현교",
+      "official": {
+        "lat": 36.203611,
+        "lng": 127.370556
+      },
+      "best": {
+        "title": "매현교",
+        "address": "충청남도 금산군 진산면 막현리 380-52 천",
+        "lat": 36.20405121042135,
+        "lng": 127.37109350415403,
+        "distanceM": 69,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3009617",
+      "nm": "금산군(백암교)",
+      "query": "백암교",
+      "official": {
+        "lat": 36.192778,
+        "lng": 127.387778
+      },
+      "best": {
+        "title": "백암교",
+        "address": "충청남도 금산군 복수면 백암리 723천",
+        "lat": 36.192650409967776,
+        "lng": 127.38792259747255,
+        "distanceM": 19,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "3009620",
+      "nm": "금산군(문암교)",
+      "query": "문암교",
+      "official": {
+        "lat": 36.225,
+        "lng": 127.377778
+      },
+      "best": {
+        "title": "문암교",
+        "address": "충청남도 금산군 복수면 문암길 74 충청남도 금산군 복수면 신대리 671-1",
+        "lat": 36.225062797389704,
+        "lng": 127.37780046148758,
+        "distanceM": 7,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3009635",
+      "nm": "대전시(대별교)",
+      "query": "대별교",
+      "official": {
+        "lat": 36.290278,
+        "lng": 127.462778
+      },
+      "best": {
+        "title": "대별교",
+        "address": "대전광역시 동구 대별동 175-4천",
+        "lat": 36.28996543854776,
+        "lng": 127.46270394028986,
+        "distanceM": 35,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3009640",
+      "nm": "대전시(인창교)",
+      "query": "인창교",
+      "official": {
+        "lat": 36.323611,
+        "lng": 127.434444
+      },
+      "best": {
+        "title": "인창교",
+        "address": "대전광역시 동구 인동 351-2천",
+        "lat": 36.323435184413945,
+        "lng": 127.43442627222383,
+        "distanceM": 20,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3009645",
+      "nm": "대전시(철갑교)",
+      "query": "철갑교",
+      "official": {
+        "lat": 36.335,
+        "lng": 127.438056
+      },
+      "best": {
+        "title": "철갑교",
+        "address": "대전광역시 동구 소제동 298-2천",
+        "lat": 36.335061091385334,
+        "lng": 127.43821724933379,
+        "distanceM": 16,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3009650",
+      "nm": "대전시(용촌교)",
+      "query": "용촌교",
+      "official": {
+        "lat": 36.2475,
+        "lng": 127.316111
+      },
+      "best": {
+        "title": "용촌교",
+        "address": "대전광역시 서구 용촌동 493-1",
+        "lat": 36.24763500345563,
+        "lng": 127.31566000034964,
+        "distanceM": 43,
+        "regionMatch": false
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "3009655",
+      "nm": "계룡시(두계교)",
+      "query": "두계교",
+      "official": {
+        "lat": 36.266389,
+        "lng": 127.278889
+      },
+      "best": {
+        "title": "두계교",
+        "address": "충청남도 계룡시 두마면 두계리 154-1 천",
+        "lat": 36.26663136590683,
+        "lng": 127.2789395701147,
+        "distanceM": 27,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3009659",
+      "nm": "대전시(매노교)",
+      "query": "매노교",
+      "official": {
+        "lat": 36.253611,
+        "lng": 127.339722
+      },
+      "best": {
+        "title": "매노교",
+        "address": "대전광역시 서구 매노동 248-1도",
+        "lat": 36.25415209042791,
+        "lng": 127.3397363295767,
+        "distanceM": 60,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3011613",
+      "nm": "진천군(지곡교)",
+      "query": "지곡교",
+      "official": {
+        "lat": 36.884444,
+        "lng": 127.376389
+      },
+      "best": {
+        "title": "지곡교",
+        "address": "충청북도 진천군 백곡면 석현리 715 천",
+        "lat": 36.88444094808505,
+        "lng": 127.37626906478148,
+        "distanceM": 11,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3011615",
+      "nm": "진천군(신정교)",
+      "query": "신정교",
+      "official": {
+        "lat": 36.855,
+        "lng": 127.462222
+      },
+      "best": {
+        "title": "신정교",
+        "address": "충청북도 진천군 진천읍 성석리 133-4 전",
+        "lat": 36.8550699412327,
+        "lng": 127.46214188671355,
+        "distanceM": 11,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3011617",
+      "nm": "진천군(금곡교)",
+      "query": "금곡교",
+      "official": {
+        "lat": 36.846667,
+        "lng": 127.531667
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3011620",
+      "nm": "진천군(가산교)",
+      "query": "가산교",
+      "official": {
+        "lat": 36.876389,
+        "lng": 127.477222
+      },
+      "best": {
+        "title": "가산교",
+        "address": "충청북도 진천군 덕산읍 인산리 774",
+        "lat": 36.876253137734224,
+        "lng": 127.47672311446776,
+        "distanceM": 47,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "keep"
+    },
+    {
+      "cd": "3011624",
+      "nm": "진천군(오갑교)",
+      "query": "오갑교",
+      "official": {
+        "lat": 36.845556,
+        "lng": 127.503333
+      },
+      "best": {
+        "title": "오갑교",
+        "address": "충청북도 진천군 초평면 중석리 1038-56 천",
+        "lat": 36.84567019472493,
+        "lng": 127.50374931150044,
+        "distanceM": 39,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3011625",
+      "nm": "증평군(반탄교)",
+      "query": "반탄교",
+      "official": {
+        "lat": 36.783889,
+        "lng": 127.572222
+      },
+      "best": {
+        "title": "반탄교",
+        "address": "충청북도 증평군 증평읍 연탄리 904-4도",
+        "lat": 36.78442907105305,
+        "lng": 127.57211655538522,
+        "distanceM": 61,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3011628",
+      "nm": "진천군(화산교)",
+      "query": "화산교",
+      "official": {
+        "lat": 36.814444,
+        "lng": 127.493889
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3011630",
+      "nm": "청주시(여암교)",
+      "query": "여암교",
+      "official": {
+        "lat": 36.771944,
+        "lng": 127.509722
+      },
+      "best": {
+        "title": "여암교",
+        "address": "충청북도 청주시 청원구 오창읍 여천리 553-9 천",
+        "lat": 36.76894068666528,
+        "lng": 127.50753044453272,
+        "distanceM": 387,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "3011633",
+      "nm": "청주시(복현교)",
+      "query": "복현교",
+      "official": {
+        "lat": 36.748056,
+        "lng": 127.452778
+      },
+      "best": {
+        "title": "복현교",
+        "address": "충청북도 청주시 청원구 오창읍 복현리 455-12",
+        "lat": 36.74914920865171,
+        "lng": 127.45023255860274,
+        "distanceM": 257,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "3011635",
+      "nm": "청주시(팔결교)",
+      "query": "팔결교",
+      "official": {
+        "lat": 36.714167,
+        "lng": 127.475556
+      },
+      "best": {
+        "title": "팔결교",
+        "address": "충청북도 청주시 청원구 외하동 532천",
+        "lat": 36.71477356702051,
+        "lng": 127.47532324114448,
+        "distanceM": 71,
+        "regionMatch": true
+      },
+      "candidateCount": 4,
+      "action": "keep"
+    },
+    {
+      "cd": "3011642",
+      "nm": "천안시(봉암교)",
+      "query": "봉암교",
+      "official": {
+        "lat": 36.825556,
+        "lng": 127.314722
+      },
+      "best": {
+        "title": "봉암교",
+        "address": "충청남도 천안시 동남구 병천면 매성리 659-0 천",
+        "lat": 36.82544201965993,
+        "lng": 127.31462213702773,
+        "distanceM": 15,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3011652",
+      "nm": "청주시(서당교)",
+      "query": "서당교",
+      "official": {
+        "lat": 36.721667,
+        "lng": 127.556667
+      },
+      "best": {
+        "title": "서당교",
+        "address": "충청북도 청주시 청원구 내수읍 학평리 281-2 천",
+        "lat": 36.721580493807814,
+        "lng": 127.55643615964283,
+        "distanceM": 23,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3011653",
+      "nm": "청주시(성산2교)",
+      "query": "성산2교",
+      "official": {
+        "lat": 36.732222,
+        "lng": 127.405833
+      },
+      "best": {
+        "title": "성산2교",
+        "address": "충청북도 청주시 청원구 오창읍 용두길 72 충청북도 청주시 청원구 오창읍 용두리 170",
+        "lat": 36.73221610240065,
+        "lng": 127.40532730771973,
+        "distanceM": 45,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3012690",
+      "nm": "논산시(동성교)",
+      "query": "동성교",
+      "official": {
+        "lat": 36.21,
+        "lng": 127.006667
+      },
+      "best": {
+        "title": "동성교",
+        "address": "충청남도 부여군 석성면 석성리 30-4도",
+        "lat": 36.21029920096575,
+        "lng": 127.00677010165654,
+        "distanceM": 35,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3013603",
+      "nm": "완주군(엄목1교)",
+      "query": "엄목1교",
+      "official": {
+        "lat": 36.104167,
+        "lng": 127.260556
+      },
+      "best": {
+        "title": "엄목1교",
+        "address": "전북특별자치도 완주군 운주면 완창리 790",
+        "lat": 36.1041477605968,
+        "lng": 127.26059374102043,
+        "distanceM": 4,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3013605",
+      "nm": "논산시(인천교)",
+      "query": "인천교",
+      "official": {
+        "lat": 36.136944,
+        "lng": 127.235833
+      },
+      "best": {
+        "title": "인천교",
+        "address": "충청남도 논산시 양촌면 인천리 432",
+        "lat": 36.13701297088849,
+        "lng": 127.23608548599617,
+        "distanceM": 24,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3013630",
+      "nm": "논산시(주곡교)",
+      "query": "주곡교",
+      "official": {
+        "lat": 36.281111,
+        "lng": 127.145
+      },
+      "best": {
+        "title": "주곡교",
+        "address": "충청남도 논산시 상월면 산성리 219 천",
+        "lat": 36.28108849070853,
+        "lng": 127.14504252052237,
+        "distanceM": 5,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3013660",
+      "nm": "논산시(관동교)",
+      "query": "관동교",
+      "official": {
+        "lat": 36.218333,
+        "lng": 127.215556
+      },
+      "best": {
+        "title": "관동교",
+        "address": "충청남도 논산시 연산면 관동리 605 천",
+        "lat": 36.218321673845686,
+        "lng": 127.2159013691661,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3013668",
+      "nm": "논산시(아호교)",
+      "query": "아호교",
+      "official": {
+        "lat": 36.211389,
+        "lng": 127.112222
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3013670",
+      "nm": "논산시(논산대교)",
+      "query": "논산대교",
+      "official": {
+        "lat": 36.209722,
+        "lng": 127.080278
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3013685",
+      "nm": "논산시(제내교)",
+      "query": "제내교",
+      "official": {
+        "lat": 36.143889,
+        "lng": 127.0375
+      },
+      "best": {
+        "title": "제내교",
+        "address": "충청남도 논산시 채운면 삼거리 602-1 천",
+        "lat": 36.143875530815556,
+        "lng": 127.0378551527111,
+        "distanceM": 32,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3014610",
+      "nm": "논산시(황산대교)",
+      "query": "황산대교",
+      "official": {
+        "lat": 36.153889,
+        "lng": 127.007222
+      },
+      "best": {
+        "title": "황산대교",
+        "address": "충청남도 논산시 강경읍 황산리 198 천",
+        "lat": 36.155269346197734,
+        "lng": 127.00384326644584,
+        "distanceM": 340,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "3014632",
+      "nm": "익산시(흥왕교)",
+      "query": "흥왕교",
+      "official": {
+        "lat": 36.102778,
+        "lng": 126.983333
+      },
+      "best": {
+        "title": "흥왕교",
+        "address": "전북특별자치도 익산시 용동면 화실리 889-1",
+        "lat": 36.102588447433305,
+        "lng": 126.98342745226951,
+        "distanceM": 23,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3014639",
+      "nm": "익산시(난포교)",
+      "query": "난포교",
+      "official": {
+        "lat": 36.128611,
+        "lng": 126.925833
+      },
+      "best": {
+        "title": "난포교",
+        "address": "전북특별자치도 익산시 성당면 성당리 224-2",
+        "lat": 36.12890003679427,
+        "lng": 126.92678357099683,
+        "distanceM": 91,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "3014680",
+      "nm": "서천군(북원교)",
+      "query": "북원교",
+      "official": {
+        "lat": 36.074444,
+        "lng": 126.730833
+      },
+      "best": {
+        "title": "북원교",
+        "address": "충청남도 서천군 기산면 두북리 478-2 도",
+        "lat": 36.07471169448344,
+        "lng": 126.73066988771055,
+        "distanceM": 33,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "3203680",
+      "nm": "서천군(구암교)",
+      "query": "구암교",
+      "official": {
+        "lat": 36.085278,
+        "lng": 126.681667
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "3203690",
+      "nm": "군산시(신미장교)",
+      "query": "신미장교",
+      "official": {
+        "lat": 35.963889,
+        "lng": 126.722778
+      },
+      "best": {
+        "title": "신미장교",
+        "address": "전북특별자치도 군산시 수송동  761-7",
+        "lat": 35.96408098712478,
+        "lng": 126.72253398383212,
+        "distanceM": 31,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4006667",
+      "nm": "곡성군(충의교)",
+      "query": "충의교",
+      "official": {
+        "lat": 35.278056,
+        "lng": 127.297778
+      },
+      "best": {
+        "title": "충의교",
+        "address": "전라남도 곡성군 곡성읍 읍내리 832-29 천",
+        "lat": 35.27834335256501,
+        "lng": 127.29787114536485,
+        "distanceM": 33,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4006680",
+      "nm": "곡성군(예성교)",
+      "query": "예성교",
+      "official": {
+        "lat": 35.198611,
+        "lng": 127.374167
+      },
+      "best": {
+        "title": "예성교",
+        "address": "전라남도 구례군 구례읍 계산리 1583천",
+        "lat": 35.19468161093775,
+        "lng": 127.37664869063062,
+        "distanceM": 492,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "4008603",
+      "nm": "곡성군(압록3교)",
+      "query": "압록3교",
+      "official": {
+        "lat": 35.188889,
+        "lng": 127.371111
+      },
+      "best": {
+        "title": "압록3교",
+        "address": "전라남도 곡성군 죽곡면 하한리 1039천",
+        "lat": 35.189073556568715,
+        "lng": 127.37131885810341,
+        "distanceM": 28,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4008660",
+      "nm": "곡성군(목사동1교)",
+      "query": "목사동1교",
+      "official": {
+        "lat": 35.127778,
+        "lng": 127.298889
+      },
+      "best": {
+        "title": "목사동1교",
+        "address": "전라남도 곡성군 목사동면 평리 590-1천",
+        "lat": 35.127900180862596,
+        "lng": 127.29886511584833,
+        "distanceM": 14,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4008670",
+      "nm": "곡성군(태안교)",
+      "query": "태안교",
+      "official": {
+        "lat": 35.160278,
+        "lng": 127.346667
+      },
+      "best": {
+        "title": "태안교",
+        "address": "전라남도 곡성군 죽곡면 남양리 282-1천",
+        "lat": 35.16041133420808,
+        "lng": 127.346301075051,
+        "distanceM": 36,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "4009601",
+      "nm": "순천시(괴목3교)",
+      "query": "괴목3교",
+      "official": {
+        "lat": 35.103333,
+        "lng": 127.431111
+      },
+      "best": {
+        "title": "괴목3교",
+        "address": "전라남도 순천시 황전면 괴목리 462천",
+        "lat": 35.10276185505338,
+        "lng": 127.43081741936746,
+        "distanceM": 69,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4009608",
+      "nm": "순천시(용서교)",
+      "query": "용서교",
+      "official": {
+        "lat": 35.149444,
+        "lng": 127.463333
+      },
+      "best": {
+        "title": "용서교",
+        "address": "전라남도 순천시 황전면 금평리 821-46 천",
+        "lat": 35.148781226020894,
+        "lng": 127.46368006439451,
+        "distanceM": 80,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "4009610",
+      "nm": "구례군(구례교)",
+      "query": "구례교",
+      "official": {
+        "lat": 35.165556,
+        "lng": 127.454167
+      },
+      "best": {
+        "title": "구례교",
+        "address": "전라남도 구례군 구례읍 신월리 595-1천",
+        "lat": 35.16508724892908,
+        "lng": 127.45375338365592,
+        "distanceM": 64,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4009618",
+      "nm": "구례군(문척교)",
+      "query": "문척교",
+      "official": {
+        "lat": 35.196389,
+        "lng": 127.474444
+      },
+      "best": {
+        "title": "문척교",
+        "address": "전라남도 구례군 문척면 월전리 1372-1천",
+        "lat": 35.19740900130797,
+        "lng": 127.47316220850898,
+        "distanceM": 163,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "4009622",
+      "nm": "구례군(광용교)",
+      "query": "광용교",
+      "official": {
+        "lat": 35.258056,
+        "lng": 127.441389
+      },
+      "best": {
+        "title": "광용교",
+        "address": "전라남도 구례군 용방면 신지리 861-86천",
+        "lat": 35.25794811470985,
+        "lng": 127.44110364452646,
+        "distanceM": 29,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4009625",
+      "nm": "구례군(서시교)",
+      "query": "서시교",
+      "official": {
+        "lat": 35.211111,
+        "lng": 127.474722
+      },
+      "best": {
+        "title": "서시교",
+        "address": "전라남도 구례군 마산면 냉천리 1201-1천",
+        "lat": 35.21114193206531,
+        "lng": 127.47442808745804,
+        "distanceM": 27,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4009629",
+      "nm": "구례군(간문교)",
+      "query": "간문교",
+      "official": {
+        "lat": 35.180556,
+        "lng": 127.539722
+      },
+      "best": {
+        "title": "간문교",
+        "address": "전라남도 구례군 간전면 간문리 360-3천",
+        "lat": 35.180475835847155,
+        "lng": 127.53988076920986,
+        "distanceM": 17,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4009635",
+      "nm": "하동군(화랑교)",
+      "query": "화랑교",
+      "official": {
+        "lat": 35.249167,
+        "lng": 127.641389
+      },
+      "best": {
+        "title": "화랑교",
+        "address": "경상남도 하동군 화개면 용강리 1325천",
+        "lat": 35.24904296314777,
+        "lng": 127.64155203394542,
+        "distanceM": 20,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "keep"
+    },
+    {
+      "cd": "4009638",
+      "nm": "하동군(가탄교)",
+      "query": "가탄교",
+      "official": {
+        "lat": 35.200278,
+        "lng": 127.632778
+      },
+      "best": {
+        "title": "가탄교",
+        "address": "경상남도 하동군 화개면 삼신리 1005천",
+        "lat": 35.20032293317479,
+        "lng": 127.63227542574425,
+        "distanceM": 46,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4009640",
+      "nm": "광양시(남도대교)",
+      "query": "남도대교",
+      "official": {
+        "lat": 35.180833,
+        "lng": 127.626111
+      },
+      "best": {
+        "title": "남도대교",
+        "address": "경상남도 하동군 화개면 탑리 876천",
+        "lat": 35.18574210279931,
+        "lng": 127.623126281064,
+        "distanceM": 610,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "4009669",
+      "nm": "하동군(담곡교)",
+      "query": "담곡교",
+      "official": {
+        "lat": 35.121667,
+        "lng": 127.809167
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "4009670",
+      "nm": "하동군(대석교)",
+      "query": "대석교",
+      "official": {
+        "lat": 35.059167,
+        "lng": 127.783611
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "4009690",
+      "nm": "하동군(진암1교)",
+      "query": "진암1교",
+      "official": {
+        "lat": 35.041944,
+        "lng": 127.848611
+      },
+      "best": {
+        "title": "진암1교",
+        "address": "경상남도 하동군 양보면 운암리 758구",
+        "lat": 35.04236977492169,
+        "lng": 127.84837859980087,
+        "distanceM": 52,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4105210",
+      "nm": "수어댐",
+      "query": "수어댐",
+      "official": {
+        "lat": 35.029444,
+        "lng": 127.720556
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "4105610",
+      "nm": "광양시(신황교)",
+      "query": "신황교",
+      "official": {
+        "lat": 35.053333,
+        "lng": 127.688611
+      },
+      "best": {
+        "title": "신황교",
+        "address": "전라남도 광양시 진상면 황죽리 1593구",
+        "lat": 35.05350651987722,
+        "lng": 127.6885909666229,
+        "distanceM": 19,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4105633",
+      "nm": "광양시(개현교)",
+      "query": "개현교",
+      "official": {
+        "lat": 35.044444,
+        "lng": 127.616111
+      },
+      "best": {
+        "title": "개현교",
+        "address": "전라남도 광양시 옥룡면 죽천리 1304천",
+        "lat": 35.04444673327714,
+        "lng": 127.61610797290709,
+        "distanceM": 0,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "4105665",
+      "nm": "광양시(지원교)",
+      "query": "지원교",
+      "official": {
+        "lat": 35.0125,
+        "lng": 127.725556
+      },
+      "best": {
+        "title": "지원교",
+        "address": "전라남도 광양시 진상면 섬거리 1530-23도",
+        "lat": 35.01636213754234,
+        "lng": 127.72293037563584,
+        "distanceM": 492,
+        "regionMatch": true
+      },
+      "candidateCount": 2,
+      "action": "review"
+    },
+    {
+      "cd": "4105670",
+      "nm": "광양시(수어천교)",
+      "query": "수어천교",
+      "official": {
+        "lat": 34.985278,
+        "lng": 127.716667
+      },
+      "best": {
+        "title": "수어천교",
+        "address": "전라남도 광양시 진상면 금이리 6-4도",
+        "lat": 34.98869962999461,
+        "lng": 127.72338278917796,
+        "distanceM": 720,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "5004620",
+      "nm": "광주특별시(승용교)",
+      "query": "승용교",
+      "official": {
+        "lat": 35.071111,
+        "lng": 126.772222
+      },
+      "best": {
+        "title": "승용교",
+        "address": "광주광역시 남구 양촌동  625",
+        "lat": 35.069640805013314,
+        "lng": 126.77637642485584,
+        "distanceM": 412,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "5004625",
+      "nm": "나주시(금동교)",
+      "query": "금동교",
+      "official": {
+        "lat": 35.075278,
+        "lng": 126.728056
+      },
+      "best": {
+        "title": "금동교",
+        "address": "전라남도 나주시 노안면 금동리 812-9",
+        "lat": 35.07530802710261,
+        "lng": 126.72820520614871,
+        "distanceM": 14,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "5004630",
+      "nm": "승촌보(하류)",
+      "query": "승촌보",
+      "official": {
+        "lat": 35.063333,
+        "lng": 126.759722
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "5004645",
+      "nm": "나주시(동창교)",
+      "query": "동창교",
+      "official": {
+        "lat": 34.920556,
+        "lng": 126.747778
+      },
+      "best": {
+        "title": "동창교",
+        "address": "전라남도 나주시 세지면 오봉리 727-4 천",
+        "lat": 34.92060158377838,
+        "lng": 126.74800945781425,
+        "distanceM": 22,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "keep"
+    },
+    {
+      "cd": "5004650",
+      "nm": "나주시(나주대교)",
+      "query": "나주대교",
+      "official": {
+        "lat": 35.037222,
+        "lng": 126.732222
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    },
+    {
+      "cd": "5004670",
+      "nm": "나주시(영산교)",
+      "query": "영산교",
+      "official": {
+        "lat": 34.998889,
+        "lng": 126.704722
+      },
+      "best": {
+        "title": "영산교",
+        "address": "전라남도 나주시 삼영동 117-5 도",
+        "lat": 35.00154458391367,
+        "lng": 126.70917154428156,
+        "distanceM": 501,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "5004696",
+      "nm": "죽산보",
+      "query": "죽산보",
+      "official": {
+        "lat": 34.971944,
+        "lng": 126.635556
+      },
+      "best": {
+        "title": "죽산보",
+        "address": "전라남도 나주시 다시면 죽산리 142-20",
+        "lat": 34.97186000138495,
+        "lng": 126.62860000053865,
+        "distanceM": 634,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "5004698",
+      "nm": "죽산보(하류)",
+      "query": "죽산보",
+      "official": {
+        "lat": 34.969444,
+        "lng": 126.623333
+      },
+      "best": {
+        "title": "죽산보",
+        "address": "전라남도 나주시 다시면 영산강자전거길 7559 전라남도 나주시 다시면 죽산리 122-1",
+        "lat": 34.97046000263377,
+        "lng": 126.62639999993216,
+        "distanceM": 301,
+        "regionMatch": true
+      },
+      "candidateCount": 3,
+      "action": "review"
+    },
+    {
+      "cd": "5005680",
+      "nm": "함평군(원고막교)",
+      "query": "원고막교",
+      "official": {
+        "lat": 35.035278,
+        "lng": 126.591111
+      },
+      "best": {
+        "title": "원고막교",
+        "address": "전라남도 나주시 문평면 산호리 420-1 천",
+        "lat": 35.036335349360144,
+        "lng": 126.5916531852697,
+        "distanceM": 128,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "5006610",
+      "nm": "함평군(동강교)",
+      "query": "동강교",
+      "official": {
+        "lat": 34.984167,
+        "lng": 126.545556
+      },
+      "best": {
+        "title": "동강교",
+        "address": "전라남도 나주시 동강면 운산리 899 천",
+        "lat": 34.982298194947326,
+        "lng": 126.54700907469939,
+        "distanceM": 246,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "5006630",
+      "nm": "함평군(학야교)",
+      "query": "학야교",
+      "official": {
+        "lat": 35.018611,
+        "lng": 126.528333
+      },
+      "best": {
+        "title": "학야교",
+        "address": "전라남도 함평군 엄다면 학야리 37답",
+        "lat": 35.019341711767446,
+        "lng": 126.5285221247802,
+        "distanceM": 83,
+        "regionMatch": true
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "5006670",
+      "nm": "무안군(몽탄대교)",
+      "query": "몽탄대교",
+      "official": {
+        "lat": 34.904167,
+        "lng": 126.521667
+      },
+      "best": {
+        "title": "몽탄대교",
+        "address": "",
+        "lat": 34.89879457728522,
+        "lng": 126.53025577128842,
+        "distanceM": 985,
+        "regionMatch": false
+      },
+      "candidateCount": 1,
+      "action": "review"
+    },
+    {
+      "cd": "5006673",
+      "nm": "나주시(무명교)",
+      "query": "무명교",
+      "official": {
+        "lat": 34.919444,
+        "lng": 126.586667
+      },
+      "best": null,
+      "candidateCount": 0,
+      "action": "keep"
+    }
+  ]
+}

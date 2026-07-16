@@ -26,6 +26,10 @@ COORD_OVERRIDES = {
     # 한덕교: 공식 좌표는 교량 남쪽 하천변 → VWorld 한덕교 중심
     "1014695": (37.675711, 127.611365),
 }
+_coord_file = DATA / "waterlevel_coord_overrides.json"
+if _coord_file.exists():
+    for _cd, _point in json.loads(_coord_file.read_text(encoding="utf-8")).items():
+        COORD_OVERRIDES[_cd] = (float(_point["lat"]), float(_point["lng"]))
 
 # HRFCO info에는 남아 있지만 최신 10M/1H 관측값이 비는 중복·레거시 코드.
 # 지도 표시는 유지하되 수위 조회는 바로 옆 실측 코드로 대체한다.

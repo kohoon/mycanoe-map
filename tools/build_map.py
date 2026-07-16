@@ -94,6 +94,10 @@ _wl_coord_overrides = {
     "1014696": (37.675137, 127.607544),  # 홍천군(모곡교) → 모곡2교
     "1014695": (37.675711, 127.611365),  # 한덕교
 }
+_wl_coord_file = DATA / "waterlevel_coord_overrides.json"
+if _wl_coord_file.exists():
+    for _cd, _point in json.loads(_wl_coord_file.read_text(encoding="utf-8")).items():
+        _wl_coord_overrides[_cd] = (float(_point["lat"]), float(_point["lng"]))
 for _st in wlstn:
     if _st.get("cd") in _wl_coord_overrides:
         _st["lat"], _st["lng"] = _wl_coord_overrides[_st["cd"]]
