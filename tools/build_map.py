@@ -89,6 +89,14 @@ print(f"보(어도 기반) {len(weirs)}곳 (빌드 시 자동 선별)")
 # ---- 수위관측소(HRFCO, build_hrfco.py 선별) ----
 _wsf = DATA / "hrfco_stations.json"
 wlstn = json.loads(_wsf.read_text(encoding="utf-8")) if _wsf.exists() else []
+# 공식 관측소 좌표가 교량 중심과 크게 어긋나는 지점은 build_hrfco 갱신 전에도 동일하게 보정한다.
+_wl_coord_overrides = {
+    "1014696": (37.675137, 127.607544),  # 홍천군(모곡교) → 모곡2교
+    "1014695": (37.675711, 127.611365),  # 한덕교
+}
+for _st in wlstn:
+    if _st.get("cd") in _wl_coord_overrides:
+        _st["lat"], _st["lng"] = _wl_coord_overrides[_st["cd"]]
 print(f"수위관측소 {len(wlstn)}곳")
 
 # ---- 수위관측 CCTV(홍수정보시스템, build_cctv.py) ----
