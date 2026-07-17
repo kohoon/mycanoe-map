@@ -524,7 +524,7 @@
     const modalTitle=document.getElementById("modalTitle");
     const modalClose=document.getElementById("modalClose");
     function openVideo(id,title){
-      modalFrame.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="${esc(title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+      modalFrame.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&cc_load_policy=1&cc_lang_pref=ko&hl=ko" title="${esc(title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
       modalTitle.textContent=title;
       modal.classList.add("open");
       document.body.style.overflow="hidden";
