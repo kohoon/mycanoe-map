@@ -27,6 +27,9 @@
     .intro{margin-bottom:28px;padding:15px 17px;border-left:4px solid var(--green);background:#fff;color:#425852;font-size:13px;line-height:1.7}
     .group{margin-bottom:34px}
     .group h2{margin:0 0 8px;padding-bottom:9px;border-bottom:2px solid #aac9c1;font-size:19px;letter-spacing:0}
+    .anatomy{margin:14px 0 18px;border:1px solid #bfd1cc;background:#fff;overflow:auto}
+    .anatomy svg{display:block;width:100%;min-width:620px;height:auto}
+    .anatomy figcaption{padding:9px 12px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.6}
     dl{margin:0}
     .term{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:20px;padding:12px 4px;border-bottom:1px solid var(--line)}
     dt{margin:0;font-size:13px;font-weight:900;line-height:1.5}
@@ -81,32 +84,159 @@
         ["그립","Grip","패들 위쪽에서 그립 잡은 손으로 쥐는 손잡이."],["샤프트","Shaft","그립과 블레이드를 연결하는 긴 자루."],
         ["스로트","Throat","샤프트가 넓어지며 블레이드로 이어지는 목 부분."],["블레이드","Blade","물에 넣어 힘을 전달하는 넓은 부분."],
         ["팁","Tip","블레이드의 가장 아래쪽 끝."],["파워 페이스","Power face","추진 스트로크에서 물을 받아 힘을 만드는 블레이드 앞면."],
-        ["비파워 페이스","Back face / Non-power face","파워 페이스 반대쪽 면. 로우 브레이스 등에서는 이 면으로 수면을 누릅니다."]
+        ["비파워 페이스","Back face / Non-power face","파워 페이스 반대쪽 면. 로우 브레이스 등에서는 이 면으로 수면을 누릅니다."],
+        ["숄더","Shoulder","스로트에서 블레이드의 최대 폭 방향으로 넓어지는 양쪽 윗부분."],
+        ["블레이드 엣지","Blade edge","블레이드 양옆의 가장자리. 슬라이스와 스컬링에서는 진행 방향 쪽 엣지 각도가 중요합니다."],
+        ["리딩 엣지","Leading edge","블레이드가 물속에서 이동할 때 앞서 나가는 쪽 가장자리."],
+        ["트레일링 엣지","Trailing edge","블레이드가 물속에서 이동할 때 뒤따르는 쪽 가장자리."],
+        ["팜 그립","Palm grip","손바닥 전체로 감싸기 쉬운 둥글고 넓은 형태의 그립."],
+        ["T 그립","T-grip","손가락으로 걸고 방향을 명확히 제어하기 쉬운 T자 형태의 그립."],
+        ["비버테일 블레이드","Beavertail blade","어깨에서 점차 넓어졌다가 둥근 팁으로 좁아지는 길고 전통적인 블레이드 형상."],
+        ["슈거 아일랜드 블레이드","Sugar Island blade","비버테일보다 짧고 넓으며 비교적 평행한 엣지를 가진 블레이드 형상."]
       ]},
       {id:"phases",name:"스트로크 단계",terms:[
         ["셋업","Setup","스트로크를 시작하기 전에 몸통, 손과 패들을 사용할 위치로 준비하는 단계."],["캐치","Catch","블레이드를 물에 넣어 저항을 확보하는 단계."],
         ["추진 구간","Power phase","고정된 블레이드에 힘을 전달해 카누를 움직이는 단계."],["엑시트","Exit","추진을 마친 블레이드를 물에서 빼는 단계."],
         ["리커버리","Recovery","다음 캐치를 위해 패들과 몸을 시작 위치로 되돌리는 단계."],["슬라이스","Slice","블레이드 날을 진행 방향으로 세워 물의 저항을 최소화하며 이동시키는 동작."],
-        ["피치","Pitch","물속 블레이드 면이 물을 받는 각도. 작은 각도 변화로 드로우·프라이·스컬링의 힘 방향이 달라집니다."]
+        ["피치","Pitch","물속 블레이드 면이 물을 받는 각도. 작은 각도 변화로 드로우·프라이·스컬링의 힘 방향이 달라집니다."],
+        ["페더링","Feathering","회수할 때 블레이드 면을 수평에 가깝게 돌려 공기나 바람의 저항을 줄이는 동작."],
+        ["케이던스","Cadence","스트로크를 반복하는 속도와 리듬."],
+        ["스트로크 연결","Linked strokes","한 기술의 엑시트와 리커버리를 다음 기술의 셋업·캐치로 끊김 없이 이어 가는 방식."]
       ]},
-      {id:"canoe",name:"카누와 자세",terms:[
+      {id:"body",name:"손과 자세",terms:[
+        ["그립 잡은 손","Grip hand / Control hand","패들 그립을 잡고 블레이드 면과 샤프트 각도를 제어하는 위쪽 손."],
+        ["샤프트 잡은 손","Shaft hand","샤프트를 잡고 블레이드에 힘을 전달하는 아래쪽 손."],
+        ["패들러 박스","Paddler's box","몸통과 양팔이 만드는 안전한 작업 범위. 손이 몸 뒤로 빠지고 팔꿈치가 과도하게 벌어지면 어깨 부상 위험이 커집니다."],
+        ["몸통 회전","Torso rotation","팔만 움직이지 않고 골반 위에서 가슴과 어깨를 회전해 패들의 이동 거리와 힘을 만드는 동작."],
+        ["닐링","Kneeling","무릎을 카누 바닥에 대고 무릎·허벅지·발로 선체를 제어하는 자세."],
+        ["퍼치 자세","Perched seating","좌석 앞쪽에 걸터앉아 무릎을 낮추고 골반과 몸통을 자유롭게 사용하는 자세."],
+        ["스태킹","Stacking the hands","샤프트를 수직에 가깝게 만들기 위해 그립 잡은 손을 샤프트 잡은 손 위쪽에 정렬하는 것."],
+        ["리치","Reach","몸통 회전과 자세를 이용해 블레이드를 캐치 위치로 보내는 동작. 팔만 길게 뻗는 것과 구분합니다."]
+      ]},
+      {id:"strokes",name:"주요 스트로크",terms:[
+        ["전진 스트로크","Forward stroke","블레이드를 선수 가까이에 넣고 선체 옆에서 힘을 전달해 카누를 앞으로 움직이는 기본 스트로크."],
+        ["백 스트로크","Back stroke","블레이드로 물을 앞쪽으로 밀어 감속하거나 카누를 뒤로 움직이는 스트로크."],
+        ["J 스트로크","J stroke","전진 스트로크 끝에 짧은 방향 보정을 더해 패들 반대쪽으로 돌아가려는 선수를 제어하는 기술."],
+        ["캐나디언 스트로크","Canadian stroke / Knifed J","전진 추진 뒤 블레이드를 물속에서 얇게 앞으로 회수하며 직진 보정을 이어 가는 기술."],
+        ["인디언 스트로크","Indian stroke / Hunting stroke","블레이드를 물속에서 뒤집어 회수와 다음 추진을 조용하게 연결하는 직진 기술."],
+        ["C 스트로크","C stroke","선수 드로우, 전진 추진과 선미 보정을 C자 경로로 연결하는 솔로 카누 기술."],
+        ["드로우","Draw","블레이드를 카누 옆에 놓고 선체를 패들 쪽으로 당기는 횡이동 스트로크."],
+        ["프라이","Pry","거널을 지렛점으로 사용해 카누를 패들 반대쪽으로 밀어내는 횡이동 스트로크."],
+        ["스컬링","Sculling","블레이드의 앞날 각도를 바꾸며 앞뒤로 움직여 연속적인 힘을 만드는 기술."],
+        ["스윕","Sweep","블레이드로 선수나 선미 주변의 넓은 원을 그려 회전력을 만드는 스트로크."],
+        ["러더","Rudder","진행 중 선미 부근에 블레이드를 고정해 카누의 방향을 유지하거나 미세하게 바꾸는 기술."],
+        ["선미 프라이","Stern pry","선미 옆에서 거널을 지렛점으로 사용해 선수를 패들 쪽으로 돌리거나 직진을 보정하는 기술."],
+        ["보우 드로우","Bow draw","선수 옆의 물을 당겨 선수를 패들 쪽으로 움직이는 방향 전환 스트로크."],
+        ["크로스 보우 드로우","Cross-bow draw","패들을 손에서 바꾸지 않고 반대쪽 선수 앞에 블레이드를 넣어 선수를 그쪽으로 당기는 기술."],
+        ["로우 브레이스","Low brace","비파워 페이스를 수면에 낮게 대어 순간적인 지지를 만들고 하체로 선체를 복원하는 기술."],
+        ["하이 브레이스","High brace","파워 페이스로 적극적인 지지를 만드는 기술. 팔꿈치가 어깨선 위나 몸 뒤로 가지 않게 해야 합니다."]
+      ]},
+      {id:"canoe",name:"카누 구조와 자세",terms:[
         ["보우·선수","Bow","카누의 앞쪽 끝."],["스턴·선미","Stern","카누의 뒤쪽 끝."],["거널","Gunwale","카누 선체 위쪽 가장자리를 따라 이어지는 테두리."],
         ["기울이기","Heel / Tilt","카누를 한쪽으로 기울여 물에 잠기는 선체 형상을 바꾸는 동작."],["에징","Edging","기울기를 제어해 선체의 회전성과 진행 방향을 조절하는 기술."],
-        ["트림","Trim","선수와 선미에 실리는 무게의 균형과 그에 따른 선체의 앞뒤 기울기."],["피벗 포인트","Pivot point","카누가 회전할 때 중심이 되는 지점. 속도와 트림, 스트로크에 따라 위치가 달라집니다."]
+        ["트림","Trim","선수와 선미에 실리는 무게의 균형과 그에 따른 선체의 앞뒤 기울기."],["피벗 포인트","Pivot point","카누가 회전할 때 중심이 되는 지점. 속도와 트림, 스트로크에 따라 위치가 달라집니다."],
+        ["선체","Hull","물에 직접 닿아 부력과 이동 특성을 만드는 카누의 몸체."],
+        ["로커","Rocker","옆에서 봤을 때 킬 라인이 선수와 선미로 갈수록 위로 들린 정도. 일반적으로 크면 회전이 쉽고 직진 유지력은 줄어듭니다."],
+        ["차인","Chine","카누 바닥에서 측면으로 이어지는 선체 단면의 모서리 또는 곡면 구간."],
+        ["텀블홈","Tumblehome","선체 측면이 최대 폭 지점 위에서 거널 쪽으로 다시 좁아지는 형상."],
+        ["빔·전폭","Beam","카누의 가장 넓은 지점에서 측정한 전체 폭."],
+        ["프리보드","Freeboard","현재 수면에서 거널 또는 선체 상단까지 남아 있는 높이."],
+        ["흘수","Draft","현재 수면에서 선체의 가장 깊이 잠긴 지점까지의 깊이."],
+        ["수선","Waterline","선체와 수면이 맞닿아 형성되는 선."],
+        ["킬 라인","Keel line","선체 바닥 중앙을 선수에서 선미까지 잇는 기준선."],
+        ["요크","Yoke","카누를 어깨에 메고 운반할 때 사용하는 중앙 가로대."],
+        ["시트","Seat","패들러가 앉는 좌석."],
+        ["스워트","Thwart","선체 양쪽 거널을 연결해 폭과 형태를 유지하는 가로대."],
+        ["데크 플레이트","Deck plate","선수와 선미 끝에서 양쪽 거널 사이를 덮고 선체 끝부분을 보강하는 판."],
+        ["캐리 핸들","Carry handle","선수와 선미 가까이에 설치해 두 사람이 카누를 들어 운반할 때 잡는 손잡이."],
+        ["스템","Stem","선체의 좌우 판면이 선수 또는 선미 끝에서 만나 이루는 세로 방향 모서리."],
+        ["아웃웨일","Outwale","선체 바깥쪽에 붙은 거널 부재."],
+        ["인웨일","Inwale","선체 안쪽에 붙은 거널 부재."],
+        ["바텀","Bottom","선체에서 물 위 안정성과 흘수에 큰 영향을 주는 바닥 부분."],
+        ["빌지","Bilge","선체 바닥이 측면으로 이어지는 아래쪽 곡면 구간."],
+        ["센터라인","Centerline","선수와 선미를 잇는 선체의 좌우 중앙 기준선."],
+        ["보우 시트","Bow seat","탠덤 카누에서 선수 패들러가 사용하는 앞쪽 좌석."],
+        ["스턴 시트","Stern seat","탠덤 카누에서 선미 패들러가 사용하는 뒤쪽 좌석."]
+      ]},
+      {id:"maneuvers",name:"기동",terms:[
+        ["피벗 턴","Pivot turn","전진 또는 후진 이동을 최소화하며 카누를 회전 중심 주변으로 돌리는 기동."],
+        ["카빙 턴","Carving turn","선체 기울기와 진행 속도를 유지해 카누가 일정한 호를 그리며 돌게 하는 기동."],
+        ["사이드슬립","Sideslip","진행 방향을 크게 바꾸지 않고 카누 전체를 옆으로 이동시키는 기동."],
+        ["행잉 드로우","Hanging draw","전진 중 블레이드를 드로우 각도로 고정해 속도를 유지하며 패들 쪽으로 사이드슬립하는 기술."],
+        ["프라이 사이드슬립","Pry sideslip","전진 중 블레이드를 프라이 각도로 고정해 패들 반대쪽으로 사이드슬립하는 기술."],
+        ["에디 턴","Eddy turn","본류에서 에디로 진입하며 에디의 흐름을 이용해 카누를 회전시키는 기동."],
+        ["필 아웃","Peel out","에디에서 본류로 나가며 흐름 경계를 통과한 뒤 하류 방향으로 회전하는 기동."],
+        ["페리","Ferry","선수를 흐름에 비스듬히 두고 상류 성분을 유지해 하류 손실을 줄이며 강을 횡단하는 기동."],
+        ["온사이드 턴","Onside turn","선수가 현재 패들 쪽으로 향하도록 회전하는 기동."],
+        ["오프사이드 턴","Offside turn","선수가 패들 반대쪽으로 향하도록 회전하는 기동."]
       ]},
       {id:"current",name:"흐르는 물",terms:[
         ["본류","Main current","강에서 상대적으로 빠르고 지속적으로 흐르는 주된 물길."],["에디","Eddy","바위나 강굽이 뒤에서 본류와 반대 방향으로 돌거나 흐름이 약해진 구역."],
         ["에디 라인","Eddy line","본류와 에디가 맞닿아 속도와 방향이 급격히 달라지는 경계."],["페리 글라이드","Ferry glide","선수를 상류 쪽으로 비스듬히 유지하고 흐름을 이용해 강을 가로지르는 기동."],
-        ["더펙·보우 러더","Duffek / Bow rudder","전진 중 선수 옆의 블레이드에 수압을 받아 속도를 회전으로 바꾸는 방향 전환 기술."]
+        ["더펙·보우 러더","Duffek / Bow rudder","전진 중 선수 옆의 블레이드에 수압을 받아 속도를 회전으로 바꾸는 방향 전환 기술."],
+        ["상류","Upstream","물이 흘러오는 쪽."],["하류","Downstream","물이 흘러가는 쪽."],
+        ["리버 레프트","River left","하류를 바라볼 때 강의 왼쪽 강변."],["리버 라이트","River right","하류를 바라볼 때 강의 오른쪽 강변."],
+        ["V자 물길·텅","Tongue","급류 진입부에서 비교적 매끄럽게 하류로 이어지는 V자 형태의 주 흐름."],
+        ["스탠딩 웨이브","Standing wave","특정 위치에 머무르는 것처럼 보이며 물만 계속 통과하는 파도."],
+        ["홀·유압","Hole / Hydraulic","낙차 아래에서 표층수가 상류 쪽으로 되돌아가며 순환하는 강한 흐름."],
+        ["보일","Boil","수중 흐름이 수면으로 솟아오르며 불규칙하게 부풀거나 회전하는 구역."],
+        ["스트레이너","Strainer","물은 통과하지만 사람이나 카누는 걸러 붙잡을 수 있는 나뭇가지·철망 등의 장애물."],
+        ["언더컷","Undercut","흐름이 바위나 강변 아래로 파고들어 사람이나 카누가 끼일 수 있는 지형."],
+        ["수위","Water level / Stage","관측 기준면에서 측정한 수면의 높이. 실제 수심과 같은 값은 아닙니다."],
+        ["유량","Discharge / Flow rate","일정 시간 동안 하천 단면을 통과하는 물의 부피로, 보통 ㎥/s로 표시합니다."]
+      ]},
+      {id:"equipment",name:"장비와 안전",terms:[
+        ["개인부력장비·구명조끼","PFD","물에 빠졌을 때 부력을 제공하도록 착용하는 개인 안전장비."],
+        ["페인터","Painter","카누의 선수 또는 선미에 연결해 계류·견인·통제에 사용하는 줄."],
+        ["스로 백","Throw bag","물에 빠진 사람에게 던져 구조할 수 있도록 로프를 넣은 주머니."],
+        ["부력재","Flotation","전복되어 물이 찬 카누가 완전히 가라앉지 않도록 선수·선미 등에 설치하는 부력 장치."],
+        ["포티지","Portage","급류나 장애물을 피하거나 수계 사이를 이동하기 위해 카누와 장비를 육상으로 운반하는 것."],
+        ["스위머","Swimmer","전복 등으로 카누 밖의 물에 들어간 패들러."],
+        ["습식 탈출","Wet exit","전복된 카누나 카약에서 물속으로 안전하게 빠져나오는 동작."],
+        ["셀프 레스큐","Self rescue","전복 후 패들러가 자신의 힘과 장비로 카누에 다시 타거나 안전지대로 이동하는 구조 절차."],
+        ["보트 스카우팅","Boat scouting","카누 위에서 하류의 흐름과 장애물을 관찰해 진행 경로를 판단하는 것."],
+        ["육상 정찰","Shore scouting","상륙한 뒤 강변에서 급류와 장애물, 탈출 지점을 확인하는 것."]
       ]}
     ];
     const esc=s=>s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     const norm=s=>s.toLowerCase().replace(/\s+/g,"");
+    function anatomyHTML(id){
+      if(id==="paddle")return `<figure class="anatomy"><svg viewBox="0 0 760 280" role="img" aria-label="카누 패들 부분별 명칭">
+        <defs><style>.p{fill:#d99d51;stroke:#754823;stroke-width:2}.l{fill:none;stroke:#61736f;stroke-width:1.2}.d{fill:#116a58}.t{fill:#18302c;font:700 12px sans-serif}.e{fill:#185e8c;font:10px sans-serif}</style></defs>
+        <path class="p" d="M25 118Q10 118 10 136t15 18h29q14 0 17-18-3-18-17-18z"/><rect class="p" x="65" y="132" width="340" height="8" rx="4"/>
+        <path class="p" d="M398 128q30-2 47-24 25-32 73-35 96-7 222 67-126 74-222 67-48-3-73-35-17-22-47-24z"/>
+        <path class="l" d="M38 117V46h25"/><circle class="d" cx="38" cy="117" r="3"/><text class="t" x="69" y="44">그립</text><text class="e" x="69" y="58">Grip</text>
+        <path class="l" d="M235 131V46h30"/><circle class="d" cx="235" cy="131" r="3"/><text class="t" x="271" y="44">샤프트</text><text class="e" x="271" y="58">Shaft</text>
+        <path class="l" d="M420 120V46h28"/><circle class="d" cx="420" cy="120" r="3"/><text class="t" x="454" y="44">스로트</text><text class="e" x="454" y="58">Throat</text>
+        <path class="l" d="M464 91V46h42"/><circle class="d" cx="464" cy="91" r="3"/><text class="t" x="512" y="44">숄더</text><text class="e" x="512" y="58">Shoulder</text>
+        <path class="l" d="M575 192v45h-35"/><circle class="d" cx="575" cy="192" r="3"/><text class="t" x="486" y="240">블레이드</text><text class="e" x="505" y="254">Blade</text>
+        <path class="l" d="M739 136v101h-30"/><circle class="d" cx="739" cy="136" r="3"/><text class="t" x="681" y="240">팁</text><text class="e" x="685" y="254">Tip</text>
+      </svg><figcaption>가로로 밀어 패들의 각 부분을 확인할 수 있습니다. 블레이드 반대쪽 면은 비파워 페이스입니다.</figcaption></figure>`;
+      if(id==="canoe")return `<figure class="anatomy"><svg viewBox="0 0 760 330" role="img" aria-label="오픈 카누 부분별 명칭">
+        <defs><style>.c{fill:#d7a05b;stroke:#6d4828;stroke-width:2}.i{fill:#f6e4c7;stroke:#8f6238;stroke-width:1.4}.l{fill:none;stroke:#61736f;stroke-width:1.2}.d{fill:#116a58}.t{fill:#18302c;font:700 12px sans-serif}.e{fill:#185e8c;font:10px sans-serif}</style></defs>
+        <path class="c" d="M28 164Q93 76 380 76t352 88q-65 88-352 88T28 164z"/>
+        <path class="i" d="M55 164q76-63 325-63t325 63q-76 63-325 63T55 164z"/>
+        <path class="c" d="M28 164Q93 76 380 76t352 88" fill="none" stroke-width="7"/>
+        <path class="c" d="M28 164q65 88 352 88t352-88" fill="none" stroke-width="7"/>
+        <rect class="c" x="148" y="110" width="12" height="108" rx="2"/><rect class="c" x="600" y="110" width="12" height="108" rx="2"/>
+        <rect class="c" x="265" y="92" width="14" height="144" rx="2"/><rect class="c" x="481" y="92" width="14" height="144" rx="2"/>
+        <path class="c" d="M358 83h44l12 162h-68z"/>
+        <path class="l" d="M31 160V35h34"/><circle class="d" cx="31" cy="160" r="3"/><text class="t" x="71" y="33">보우·선수</text><text class="e" x="71" y="47">Bow</text>
+        <path class="l" d="M729 160V35h-48"/><circle class="d" cx="729" cy="160" r="3"/><text class="t" x="623" y="33">스턴·선미</text><text class="e" x="647" y="47">Stern</text>
+        <path class="l" d="M154 108V35h32"/><circle class="d" cx="154" cy="108" r="3"/><text class="t" x="192" y="33">캐리 핸들</text><text class="e" x="192" y="47">Carry handle</text>
+        <path class="l" d="M272 92V35h28"/><circle class="d" cx="272" cy="92" r="3"/><text class="t" x="306" y="33">보우 시트</text><text class="e" x="306" y="47">Bow seat</text>
+        <path class="l" d="M380 82V35"/><circle class="d" cx="380" cy="82" r="3"/><text class="t" x="358" y="20">요크</text><text class="e" x="364" y="33">Yoke</text>
+        <path class="l" d="M488 235v58h-35"/><circle class="d" cx="488" cy="235" r="3"/><text class="t" x="397" y="296">스턴 시트</text><text class="e" x="418" y="310">Stern seat</text>
+        <path class="l" d="M605 217v76h-30"/><circle class="d" cx="605" cy="217" r="3"/><text class="t" x="531" y="296">스워트</text><text class="e" x="543" y="310">Thwart</text>
+        <path class="l" d="M380 251v42"/><circle class="d" cx="380" cy="251" r="3"/><text class="t" x="350" y="307">거널</text><text class="e" x="353" y="321">Gunwale</text>
+      </svg><figcaption>위에서 본 탠덤 오픈 카누의 주요 부분입니다. 선수·선미 좌석 방향은 카누 설계에 따라 형태가 다를 수 있습니다.</figcaption></figure>`;
+      return "";
+    }
     document.getElementById("nav").innerHTML=groups.map(g=>`<a href="#${g.id}">${g.name}</a>`).join("");
     function render(){
       const q=norm(document.getElementById("search").value);
       const matched=groups.map(g=>({...g,terms:g.terms.filter(t=>!q||norm(t.join(" ")).includes(q))})).filter(g=>g.terms.length);
-      document.getElementById("content").innerHTML=matched.map(g=>`<section id="${g.id}" class="group"><h2>${esc(g.name)}</h2><dl>${g.terms.map(t=>`<div class="term"><dt>${esc(t[0])}<span>${esc(t[1])}</span></dt><dd>${esc(t[2])}</dd></div>`).join("")}</dl></section>`).join("");
+      document.getElementById("content").innerHTML=matched.map(g=>`<section id="${g.id}" class="group"><h2>${esc(g.name)}</h2>${anatomyHTML(g.id)}<dl>${g.terms.map(t=>`<div class="term"><dt>${esc(t[0])}<span>${esc(t[1])}</span></dt><dd>${esc(t[2])}</dd></div>`).join("")}</dl></section>`).join("");
       document.getElementById("empty").style.display=matched.length?"none":"block";
     }
     document.getElementById("search").addEventListener("input",render);
