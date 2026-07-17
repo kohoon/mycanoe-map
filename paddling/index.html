@@ -349,7 +349,7 @@
       {id:"rescue",name:"전복·재승선",desc:"전복 직후 판단부터 카누 배수와 안전한 재승선까지",video:["fullTRescue","paddleTVRescue","dryBagReentry","soloReentry"],skills:[
         ["전복 직후 대응","After a capsize","구명조끼의 부력을 유지한 채 인원과 부상을 확인하고, 가능하면 카누와 패들을 놓치지 않습니다. 가까운 안전한 물가로 이동할 수 있으면 재승선보다 탈출을 우선합니다.","움직이는 물에서는 카누보다 사람의 안전과 하류 장애물 회피가 먼저입니다. 차가운 물에서는 호흡을 통제하고 구조 요청 수단을 즉시 확보합니다.","warn"],
         ["카누 오버 카누 구조","Canoe-over-canoe / T rescue","다른 카누가 전복된 카누를 직각으로 받아 거널 위로 끌어올려 물을 비운 뒤 바로 세우고, 두 카누를 나란히 안정시켜 전복자를 재승선시키는 동료 구조입니다.","구조자는 전복자와 계속 소통하며 카누를 들어 올릴 때 손가락·허리 부상을 피하고, 재승선할 때 두 카누의 거널을 단단히 잡아 아웃리거처럼 지지합니다.","warn"],
-        ["솔로 심수 자가 구조","Solo deep-water self-rescue","해안으로 안전하게 이동할 수 없고 도움받을 카누가 없을 때, 카누를 바로 세우고 물을 최대한 뺀 뒤 부력 있는 드라이백이나 재승선 보조 장비로 선체를 안정시켜 다시 탑승합니다.","선체 형상·적재물·파도에 따라 성공 여부가 크게 달라집니다. 장비를 묶어 두고 따뜻하고 통제된 물에서 동료의 감독 아래 실제 카누로 반복 연습해야 합니다.","warn"]
+        ["솔로 셀프레스큐","Solo self-rescue","물가로 안전하게 이동할 수 없고 도움받을 카누가 없을 때, 카누를 바로 세우고 물을 최대한 뺀 뒤 부력 있는 드라이백이나 재승선 보조 장비로 선체를 안정시켜 다시 탑승합니다.","선체 형상·적재물·파도에 따라 성공 여부가 크게 달라집니다. 장비를 묶어 두고 따뜻하고 통제된 물에서 동료의 감독 아래 실제 카누로 반복 연습해야 합니다.","warn"]
       ]},
       {id:"whitewater",name:"급류 응용",desc:"선체 기울기와 스트로크를 실제 흐름에서 연결",video:["duffek","crossdraw","linked"],skills:[
         ["에디 턴","Eddy turn","본류에서 잔잔한 에디로 들어갈 때 진입 속도와 각도를 유지해 흐름 경계를 통과한 뒤 카누를 회전시킵니다.","진입 전에 속도·각도·카누를 기울일 방향·시선을 정하고, 경계를 지난 뒤 더펙이나 보우 드로우로 회전을 마무리합니다.","warn"],
@@ -379,7 +379,7 @@
       "로우 브레이스":["rapidLowBrace","beckyLowBrace","brace","rightingPry"],"하이 브레이스":["brace"],"고정 브레이스":[],
       "행잉 드로우를 이용한 지지":["hanging"],"스컬링 로우 브레이스":[],"라이팅 프라이":["rightingPry"],
       "전복 직후 대응":["soloReentry"],"카누 오버 카누 구조":["fullTRescue","paddleTVRescue"],
-      "솔로 심수 자가 구조":["dryBagReentry","soloReentry"],
+      "솔로 셀프레스큐":["dryBagReentry","soloReentry"],
       "에디 턴":["eddy"],"페리 글라이드":["ferry"],"크로스 전진 스트로크":["crossForward"],
       "스트로크 연결":["linked"]
     };
@@ -406,7 +406,7 @@
       "프라이 사이드슬립":["프라이"],"크로스 보우 드로우":["패들 반대쪽·크로스 동작","드로우"],
       "하이 브레이스":["로우 브레이스"],"고정 브레이스":["로우 브레이스"],"행잉 드로우를 이용한 지지":["고정 브레이스"],
       "스컬링 로우 브레이스":["로우 브레이스"],"라이팅 프라이":["프라이","로우 브레이스"],
-      "카누 오버 카누 구조":["전복 직후 대응"],"솔로 심수 자가 구조":["전복 직후 대응"],
+      "카누 오버 카누 구조":["전복 직후 대응"],"솔로 셀프레스큐":["전복 직후 대응"],
       "에디 턴":["기울기로 선체 제어","더펙"],"페리 글라이드":["기울기로 선체 제어","전진 스트로크"],"크로스 전진 스트로크":["패들 반대쪽·크로스 동작"],
       "스트로크 연결":["J 스트로크","풀 스윕","드로우"]
     };
@@ -429,6 +429,7 @@
       "cross-draw-cross-bow-draw":"cross-bow-draw","hanging-brace":"support-with-a-hanging-draw",
       "sculling-brace":"sculling-low-brace","pry-brace":"righting-pry","ferry":"ferry-glide"
     };
+    oldSlugAliases["solo-deep-water-self-rescue"]="solo-self-rescue";
     ["catch","power-phase","recovery"].forEach(oldSlug=>oldSlugAliases[oldSlug]="catch-power-recovery");
     Object.entries(oldSlugAliases).forEach(([oldSlug,newSlug])=>{if(bySlug[newSlug])bySlug[oldSlug]=bySlug[newSlug];});
     const currentSlug=value=>oldSlugAliases[value]||value;
