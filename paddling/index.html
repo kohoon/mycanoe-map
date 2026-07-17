@@ -50,10 +50,6 @@
     .side-title{font-size:12px;font-weight:900;color:#71817d;margin-bottom:8px}
     .side a{display:block;text-decoration:none;border-left:2px solid var(--line);padding:8px 10px;color:#50635e;font-size:13px;font-weight:700}
     .side a:hover{border-color:var(--green);color:var(--green);background:var(--green-soft)}
-    .progress-box{margin-bottom:16px;padding:13px;background:#fff;border:1px solid var(--line);border-radius:6px}
-    .progress-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:900}
-    .progress-track{height:6px;margin-top:9px;background:#e3ebe8;border-radius:3px;overflow:hidden}
-    .progress-fill{height:100%;background:var(--green);width:0}
     .side-filter{display:grid;gap:5px;margin-top:16px}
     .filter-btn{border:1px solid var(--line);background:#fff;color:#52645f;text-align:left;border-radius:5px;padding:8px 9px;font-size:12px;font-weight:800;cursor:pointer}
     .filter-btn.active{color:#fff;background:var(--green);border-color:var(--green)}
@@ -82,7 +78,6 @@
     .detail-btn:hover{background:var(--green-soft)}
     .icon-btn{width:34px;height:34px;border:1px solid var(--line);border-radius:5px;background:#fff;color:#60716d;cursor:pointer;font-size:16px}
     .icon-btn.on{background:var(--amber-soft);border-color:#dfbf7d;color:#8b5500}
-    .done-btn.on{background:var(--green);border-color:var(--green);color:#fff}
     .cue{display:block;margin-top:8px;padding-top:8px;border-top:1px solid #e6ecea;color:var(--green);font-size:12px;font-weight:800;line-height:1.5}
     .warn{color:var(--red)}
     .skill-videos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
@@ -139,7 +134,6 @@
       .side nav{display:flex;gap:6px;width:max-content}
       .side a{border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:#fff;white-space:nowrap;font-size:12px}
       .side a:hover{border-color:var(--green)}
-      .progress-box{display:none}
       .side-filter{display:flex;gap:6px;width:max-content;margin-top:8px}
       .top-inner{padding:12px 14px 8px}
       .tools{margin-top:10px}
@@ -195,10 +189,6 @@
 
   <div class="layout">
     <aside class="side">
-      <div class="progress-box">
-        <div class="progress-head"><span>학습 진도</span><span id="progressText">0/52</span></div>
-        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
-      </div>
       <div class="side-title">카테고리</div>
       <nav id="sideNav"></nav>
       <div id="sideFilter" class="side-filter"></div>
@@ -464,7 +454,6 @@
       return WORKER_URL+"/?back="+encodeURIComponent(back);
     }
     function startLogin(){location.href=loginUrl();}
-    const completed=new Set();
     const favorites=new Set();
     let recent=[];
     let stateLoaded=false;
@@ -480,13 +469,12 @@
     }
     async function loadUserState(){
       const u=getUser();
-      completed.clear();favorites.clear();recent=[];stateLoaded=false;
+      favorites.clear();recent=[];stateLoaded=false;
       if(!u||!u.uid){renderAccount();render();return;}
       try{
         const r=await fetch(`${WORKER_URL}/paddling-state?uid=${encodeURIComponent(u.uid)}&tok=${encodeURIComponent(u.tok||"")}`);
         if(r.status===401){setUser(null);renderAccount();render();return;}
         const d=await r.json();
-        (d.completed||[]).forEach(x=>completed.add(currentSlug(x)));
         (d.favorites||[]).forEach(x=>favorites.add(currentSlug(x)));
         recent=Array.isArray(d.recent)?d.recent.map(currentSlug):[];
         stateLoaded=true;
@@ -500,7 +488,7 @@
       saveTimer=setTimeout(async()=>{
         try{
           const r=await fetch(WORKER_URL+"/paddling-state",{method:"POST",headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({id:u.uid,tok:u.tok||"",favorites:[...favorites],completed:[...completed],recent})});
+            body:JSON.stringify({id:u.uid,tok:u.tok||"",favorites:[...favorites],recent})});
           if(r.status===401){setUser(null);renderAccount();render();}
         }catch(e){}
       },250);
@@ -519,14 +507,12 @@
         const count=allSkills.filter(s=>s.category===c.id).length;
         return `<a href="#${c.id}">${c.name} <small>${count}</small></a>`;
       }).join("");
-      const filters=[["all","전체 기술"],["beginner","입문·기초"],["video","영상 있는 기술"],["saved","즐겨찾기"],["recent","최근 본 기술"],["todo","미완료"]];
+      const filters=[["all","전체 기술"],["beginner","입문·기초"],["video","영상 있는 기술"],["saved","즐겨찾기"],["recent","최근 본 기술"]];
       document.getElementById("sideFilter").innerHTML=filters.map(f=>`<button class="filter-btn ${activeFilter===f[0]?"active":""}" data-filter="${f[0]}" type="button">${f[1]}</button>`).join("");
       document.querySelectorAll(".filter-btn").forEach(b=>b.onclick=()=>{
-        if((b.dataset.filter==="saved"||b.dataset.filter==="recent"||b.dataset.filter==="todo")&&!getUser()){startLogin();return;}
+        if((b.dataset.filter==="saved"||b.dataset.filter==="recent")&&!getUser()){startLogin();return;}
         activeFilter=b.dataset.filter;render();
       });
-      document.getElementById("progressText").textContent=getUser()?`${completed.size}/${allSkills.length}`:"로그인 필요";
-      document.getElementById("progressFill").style.width=`${completed.size/allSkills.length*100}%`;
     }
 
     function passesFilter(s){
@@ -534,7 +520,6 @@
       if(activeFilter==="video")return s.videos.length>0;
       if(activeFilter==="saved")return favorites.has(s.slug);
       if(activeFilter==="recent")return recent.includes(s.slug);
-      if(activeFilter==="todo")return !completed.has(s.slug);
       return true;
     }
 
@@ -545,16 +530,13 @@
         </div>
         <p>${esc(s.summary)}</p>
         <div class="skill-meta"><span class="badge">${s.level}</span><span class="badge env">${s.environment}</span>${s.videos.length?`<span class="badge">영상 ${s.videos.length}</span>`:""}${s.danger?`<span class="badge danger">주의</span>`:""}</div>
-        <div class="skill-actions"><button class="detail-btn" data-detail="${s.slug}" type="button">자세히 보기</button>
-          <button class="icon-btn done-btn ${completed.has(s.slug)?"on":""}" data-done="${s.slug}" type="button" title="학습 완료" aria-label="${esc(s.name)} 학습 완료">✓</button>
-        </div>
+        <div class="skill-actions"><button class="detail-btn" data-detail="${s.slug}" type="button">자세히 보기</button></div>
       </article>`;
     }
 
     function bindListActions(){
       document.querySelectorAll("[data-detail]").forEach(b=>b.onclick=()=>openSkill(bySlug[b.dataset.detail],true));
       document.querySelectorAll(".fav-btn").forEach(b=>b.onclick=()=>{if(toggleSet(favorites,b.dataset.slug))render();});
-      document.querySelectorAll(".done-btn").forEach(b=>b.onclick=()=>{if(toggleSet(completed,b.dataset.done))render();});
     }
     function toggleSet(set,value){
       if(!getUser()){startLogin();return false;}
@@ -722,10 +704,8 @@
     }
     function updateSkillToolbar(s){
       skillToolbar.innerHTML=`
-        <button class="command primary" id="detailDone" type="button">${completed.has(s.slug)?"✓ 학습 완료":"학습 완료 표시"}</button>
         <button class="command" id="detailFav" type="button">${favorites.has(s.slug)?"★ 즐겨찾기됨":"☆ 즐겨찾기"}</button>
         <button class="command" id="detailShare" type="button">공유</button>`;
-      document.getElementById("detailDone").onclick=()=>{if(toggleSet(completed,s.slug)){updateSkillToolbar(s);renderNav();}};
       document.getElementById("detailFav").onclick=()=>{if(toggleSet(favorites,s.slug))updateSkillToolbar(s);};
       document.getElementById("detailShare").onclick=async()=>{
         const url=new URL(location.href);url.searchParams.set("skill",s.slug);url.hash="";

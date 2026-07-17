@@ -672,7 +672,7 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
-    // 0-3i) 패들링 스쿨 학습 상태 — 사용자당 KV 1건
+    // 0-3i) 패들링 스쿨 사용자 상태 — 사용자당 KV 1건
     if (url.pathname.endsWith("/paddling-state")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
@@ -684,14 +684,14 @@ export default {
         const uid = String(url.searchParams.get("uid") || "").slice(0, 40);
         if (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok")))) return J({ ok: false, error: "relogin" }, 401);
         let state = {}; try { state = JSON.parse((await KV.get("paddling_" + uid)) || "{}"); } catch (e) {}
-        return J({ ok: true, favorites: state.favorites || [], completed: state.completed || [], recent: state.recent || [] });
+        return J({ ok: true, favorites: state.favorites || [], recent: state.recent || [] });
       }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         const uid = String(b.id || "").slice(0, 40);
         if (!uid || !(await _tokOk(env, uid, b.tok))) return J({ ok: false, error: "relogin" }, 401);
         const clean = (a, max) => [...new Set((Array.isArray(a) ? a : []).map((x) => String(x).slice(0, 60)).filter(Boolean))].slice(0, max);
-        const state = { favorites: clean(b.favorites, 100), completed: clean(b.completed, 100), recent: clean(b.recent, 20), updated: Date.now() };
+        const state = { favorites: clean(b.favorites, 100), recent: clean(b.recent, 20), updated: Date.now() };
         await KV.put("paddling_" + uid, JSON.stringify(state));
         return J({ ok: true });
       }
