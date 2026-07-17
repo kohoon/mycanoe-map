@@ -36,6 +36,16 @@ def buffer_path(latlngs, width_m):
         right.append([round(lo - nx * half / mlng, 6), round(la - ny * half / mlat, 6)])
     return [left + right[::-1] + [left[0]]]
 
+def short_zone(start, toward, length_m, width_m):
+    """기준점에서 물길 진행 방향으로 짧은 지정 구간을 만든다."""
+    d = haversine(start, toward) or 1.0
+    ratio = length_m / d
+    end = [
+        start[0] + (toward[0] - start[0]) * ratio,
+        start[1] + (toward[1] - start[1]) * ratio,
+    ]
+    return buffer_path([start, end], width_m)
+
 def _graph(anchor, river, pad, weighted=True):
     """weighted=False면 실거리 그래프(본류 가중치 할인 없음) — 거리 기준 구역용.
     named(본류 노드 집합)는 항상 강 이름 기준으로 산출(스냅용)."""
@@ -184,12 +194,18 @@ def main():
     print("승촌보…"); add("영산강 승촌보 구역", weir_zone([35.05599,126.74945],"영산강",1000,1000,250), ALL_,"영구","나주시"); S()
     print("죽산보…"); add("영산강 죽산보 구역", weir_zone([34.97328,126.62469],"영산강",1000,1000,250), ALL_,"연중","나주시"); S()
     print("관방보…"); add("영산강 관방보 구역(담양)", weir_zone([35.32413,126.99093],"영산강",500,350,80), ALL_,"영구","담양군"); S()
-    print("곡성 섬진강…")
+    print("곡성 압록유원지·태평리…")
     add(
-        "섬진강 곡성 구역(압록유원지~죽곡면 태평리)",
-        seg_zone([35.19745,127.37492], [35.14996,127.32115], "섬진강", 100),
+        "곡성 압록유원지 하류 150m 구역",
+        short_zone([35.19745,127.37492], [35.19750,127.37609], 150, 60),
         ALL_, "매년 6.1~8.31", "곡성군",
-        "압록유원지 하류 150m~죽곡면 태평리 하류 50m 기준 대략 표시(세부 경계는 관할 고시 참조)"
+        "압록유원지 기준 하류 150m만 대략 표시(세부 경계는 관할 고시 참조)"
+    )
+    add(
+        "곡성 죽곡면 태평리 하류 50m 구역",
+        short_zone([35.14996,127.32115], [35.14940,127.32050], 50, 60),
+        ALL_, "매년 6.1~8.31", "곡성군",
+        "죽곡면 태평리 기준 하류 50m만 대략 표시(세부 경계는 관할 고시 참조)"
     )
     S()
     print("하동 화개…")
