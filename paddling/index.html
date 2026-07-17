@@ -535,7 +535,6 @@
         <section class="detail-section"><h3>언제 쓰는가</h3><p>${esc(s.summary)}</p></section>
         <section class="detail-section"><h3>동작 핵심</h3><p>${esc(s.cue)}</p></section>
         <section class="detail-section"><h3>연습 순서</h3><ol class="detail-steps">${practiceSteps(s).map(x=>`<li>${esc(x)}</li>`).join("")}</ol></section>
-        ${s.danger?`<section class="detail-section"><h3>안전 주의</h3><p class="warn">전복과 어깨 부상 가능성이 있습니다. 구명조끼를 착용하고 구조 가능한 동료와 통제된 환경에서 연습하세요.</p></section>`:""}
         ${required.length?`<section class="detail-section"><h3>먼저 익힐 기술</h3><div class="related">${required.map(n=>`<button type="button" data-related="${byName[n].slug}">${esc(n)}</button>`).join("")}</div></section>`:""}
         ${s.videos.length?`<section class="detail-section"><h3>직접 설명 영상</h3><div class="detail-videos">${s.videos.map(videoHTML).join("")}</div></section>`:""}
         ${related.length?`<section class="detail-section"><h3>관련 기술</h3><div class="related">${related.map(n=>`<button type="button" data-related="${byName[n].slug}">${esc(n)}</button>`).join("")}</div></section>`:""}
