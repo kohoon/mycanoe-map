@@ -25,6 +25,10 @@
     h1{margin:0;font-size:24px;line-height:1.2;letter-spacing:0}
     .subtitle{margin:4px 0 0;color:var(--muted);font-size:13px}
     .map-link{flex:none;text-decoration:none;font-size:13px;font-weight:800;color:var(--green);border:1px solid #9cc7bb;padding:9px 12px;border-radius:6px}
+    .account{display:flex;align-items:center;gap:7px;flex:none}
+    .account-name{font-size:12px;color:var(--muted);font-weight:800}
+    .login-btn{border:0;border-radius:6px;padding:10px 12px;background:#fee500;color:#191600;font-size:12px;font-weight:900;cursor:pointer}
+    .logout-btn{border:1px solid var(--line);border-radius:6px;padding:9px 10px;background:#fff;color:#60716d;font-size:11px;font-weight:800;cursor:pointer}
     .tools{display:flex;gap:10px;margin-top:12px;align-items:center}
     .search{width:min(360px,100%);border:1px solid #b9c9c5;background:#fff;border-radius:6px;padding:10px 12px;color:var(--ink)}
     .search:focus{outline:2px solid rgba(17,106,88,.15);border-color:var(--green)}
@@ -146,7 +150,12 @@
           <h1>패들링 스쿨</h1>
           <p class="subtitle">카누 스트로크를 원리부터 응용까지</p>
         </div>
-        <a class="map-link" href="../">지도로 돌아가기</a>
+        <div class="account">
+          <span id="accountName" class="account-name"></span>
+          <button id="loginBtn" class="login-btn" type="button">카카오 로그인</button>
+          <button id="logoutBtn" class="logout-btn" type="button" hidden>로그아웃</button>
+          <a class="map-link" href="../">지도로 돌아가기</a>
+        </div>
       </div>
       <div class="tools">
         <input id="search" class="search" type="search" placeholder="기술 검색: J 스트로크, 드로, 브레이스…" aria-label="패들링 기술 검색">
@@ -371,13 +380,61 @@
     })));
     const byName=Object.fromEntries(allSkills.map(s=>[s.name,s]));
     const bySlug=Object.fromEntries(allSkills.map(s=>[s.slug,s]));
-    const readSet=key=>{try{return new Set(JSON.parse(localStorage.getItem(key)||"[]"));}catch(e){return new Set();}};
-    const writeSet=(key,set)=>localStorage.setItem(key,JSON.stringify([...set]));
-    const completed=readSet("mc_paddling_completed");
-    const favorites=readSet("mc_paddling_favorites");
-    let recent=(()=>{try{return JSON.parse(localStorage.getItem("mc_paddling_recent")||"[]");}catch(e){return [];}})();
+    const WORKER_URL="https://mycanoe-map.kohoon0140.workers.dev";
+    const getUser=()=>{try{return JSON.parse(localStorage.getItem("mc_user")||"null");}catch(e){return null;}};
+    const setUser=u=>{try{u?localStorage.setItem("mc_user",JSON.stringify(u)):localStorage.removeItem("mc_user");}catch(e){}};
+    function parseLogin(){
+      const h=location.hash||"",m=h.match(/login=([^&]+)/),nk=h.match(/nick=([^&]*)/),tk=h.match(/tok=([^&]*)/);
+      if(!m)return;
+      setUser({uid:decodeURIComponent(m[1]),nick:nk?decodeURIComponent(nk[1]):"",tok:tk?decodeURIComponent(tk[1]):"",t:Date.now()});
+      history.replaceState(null,"",location.pathname+location.search);
+    }
+    function loginUrl(){
+      const back=location.origin+location.pathname+location.search;
+      return WORKER_URL+"/?back="+encodeURIComponent(back);
+    }
+    function startLogin(){location.href=loginUrl();}
+    const completed=new Set();
+    const favorites=new Set();
+    let recent=[];
+    let stateLoaded=false;
+    let saveTimer=0;
     let activeFilter="all";
     let currentSkill=null;
+
+    function renderAccount(){
+      const u=getUser(),name=document.getElementById("accountName"),login=document.getElementById("loginBtn"),logout=document.getElementById("logoutBtn");
+      name.textContent=u&&u.uid?(u.nick||"카카오 사용자"):"";
+      login.hidden=!!(u&&u.uid);
+      logout.hidden=!(u&&u.uid);
+    }
+    async function loadUserState(){
+      const u=getUser();
+      completed.clear();favorites.clear();recent=[];stateLoaded=false;
+      if(!u||!u.uid){renderAccount();render();return;}
+      try{
+        const r=await fetch(`${WORKER_URL}/paddling-state?uid=${encodeURIComponent(u.uid)}&tok=${encodeURIComponent(u.tok||"")}`);
+        if(r.status===401){setUser(null);renderAccount();render();return;}
+        const d=await r.json();
+        (d.completed||[]).forEach(x=>completed.add(x));
+        (d.favorites||[]).forEach(x=>favorites.add(x));
+        recent=Array.isArray(d.recent)?d.recent:[];
+        stateLoaded=true;
+      }catch(e){}
+      renderAccount();render();
+      if(currentSkill)updateSkillToolbar(currentSkill);
+    }
+    function saveUserState(){
+      const u=getUser();if(!u||!u.uid)return;
+      clearTimeout(saveTimer);
+      saveTimer=setTimeout(async()=>{
+        try{
+          const r=await fetch(WORKER_URL+"/paddling-state",{method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({id:u.uid,tok:u.tok||"",favorites:[...favorites],completed:[...completed],recent})});
+          if(r.status===401){setUser(null);renderAccount();render();}
+        }catch(e){}
+      },250);
+    }
 
     function videoHTML(key){
       const v=videos[key];
@@ -394,8 +451,11 @@
       }).join("");
       const filters=[["all","전체 기술"],["beginner","입문·기초"],["video","영상 있는 기술"],["saved","즐겨찾기"],["recent","최근 본 기술"],["todo","미완료"]];
       document.getElementById("sideFilter").innerHTML=filters.map(f=>`<button class="filter-btn ${activeFilter===f[0]?"active":""}" data-filter="${f[0]}" type="button">${f[1]}</button>`).join("");
-      document.querySelectorAll(".filter-btn").forEach(b=>b.onclick=()=>{activeFilter=b.dataset.filter;render();});
-      document.getElementById("progressText").textContent=`${completed.size}/${allSkills.length}`;
+      document.querySelectorAll(".filter-btn").forEach(b=>b.onclick=()=>{
+        if((b.dataset.filter==="saved"||b.dataset.filter==="recent"||b.dataset.filter==="todo")&&!getUser()){startLogin();return;}
+        activeFilter=b.dataset.filter;render();
+      });
+      document.getElementById("progressText").textContent=getUser()?`${completed.size}/${allSkills.length}`:"로그인 필요";
       document.getElementById("progressFill").style.width=`${completed.size/allSkills.length*100}%`;
     }
 
@@ -423,10 +483,15 @@
 
     function bindListActions(){
       document.querySelectorAll("[data-detail]").forEach(b=>b.onclick=()=>openSkill(bySlug[b.dataset.detail],true));
-      document.querySelectorAll(".fav-btn").forEach(b=>b.onclick=()=>{toggleSet(favorites,"mc_paddling_favorites",b.dataset.slug);render();});
-      document.querySelectorAll(".done-btn").forEach(b=>b.onclick=()=>{toggleSet(completed,"mc_paddling_completed",b.dataset.done);render();});
+      document.querySelectorAll(".fav-btn").forEach(b=>b.onclick=()=>{if(toggleSet(favorites,b.dataset.slug))render();});
+      document.querySelectorAll(".done-btn").forEach(b=>b.onclick=()=>{if(toggleSet(completed,b.dataset.done))render();});
     }
-    function toggleSet(set,key,value){set.has(value)?set.delete(value):set.add(value);writeSet(key,set);}
+    function toggleSet(set,value){
+      if(!getUser()){startLogin();return false;}
+      set.has(value)?set.delete(value):set.add(value);
+      saveUserState();
+      return true;
+    }
 
     function render(){
       renderNav();
@@ -481,8 +546,8 @@
         <button class="command primary" id="detailDone" type="button">${completed.has(s.slug)?"✓ 학습 완료":"학습 완료 표시"}</button>
         <button class="command" id="detailFav" type="button">${favorites.has(s.slug)?"★ 즐겨찾기됨":"☆ 즐겨찾기"}</button>
         <button class="command" id="detailShare" type="button">공유</button>`;
-      document.getElementById("detailDone").onclick=()=>{toggleSet(completed,"mc_paddling_completed",s.slug);updateSkillToolbar(s);renderNav();};
-      document.getElementById("detailFav").onclick=()=>{toggleSet(favorites,"mc_paddling_favorites",s.slug);updateSkillToolbar(s);};
+      document.getElementById("detailDone").onclick=()=>{if(toggleSet(completed,s.slug)){updateSkillToolbar(s);renderNav();}};
+      document.getElementById("detailFav").onclick=()=>{if(toggleSet(favorites,s.slug))updateSkillToolbar(s);};
       document.getElementById("detailShare").onclick=async()=>{
         const url=new URL(location.href);url.searchParams.set("skill",s.slug);url.hash="";
         try{await navigator.clipboard.writeText(url.href);document.getElementById("detailShare").textContent="주소 복사됨";}
@@ -492,8 +557,10 @@
     function openSkill(s,pushUrl){
       if(!s)return;
       currentSkill=s;
-      recent=[s.slug,...recent.filter(x=>x!==s.slug)].slice(0,12);
-      localStorage.setItem("mc_paddling_recent",JSON.stringify(recent));
+      if(getUser()){
+        recent=[s.slug,...recent.filter(x=>x!==s.slug)].slice(0,12);
+        if(stateLoaded)saveUserState();
+      }
       skillTitle.innerHTML=`${esc(s.name)} <span class="en">${esc(s.en)}</span>`;
       skillBadges.innerHTML=`<span class="badge">${s.level}</span><span class="badge env">${s.environment}</span><span class="badge">${s.categoryName}</span>${s.danger?`<span class="badge danger">주의</span>`:""}`;
       updateSkillToolbar(s);
@@ -548,9 +615,14 @@
       else if(skillModal.classList.contains("open"))closeSkill(false);
     });
     document.getElementById("search").addEventListener("input",render);
+    parseLogin();
+    document.getElementById("loginBtn").onclick=startLogin;
+    document.getElementById("logoutBtn").onclick=()=>{setUser(null);loadUserState();};
+    renderAccount();
     render();
     const initialSkill=bySlug[new URL(location.href).searchParams.get("skill")];
     if(initialSkill)openSkill(initialSkill,false);
+    loadUserState();
   </script>
 </body>
 </html>

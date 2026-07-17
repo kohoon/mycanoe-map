@@ -672,6 +672,32 @@ export default {
       return new Response("method", { status: 405, headers: cors });
     }
 
+    // 0-3i) 패들링 스쿨 학습 상태 — 사용자당 KV 1건
+    if (url.pathname.endsWith("/paddling-state")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES;
+      const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+      if (!KV) return J({ ok: false, error: "no-store" }, 500);
+      if (req.method === "GET") {
+        const uid = String(url.searchParams.get("uid") || "").slice(0, 40);
+        if (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok")))) return J({ ok: false, error: "relogin" }, 401);
+        let state = {}; try { state = JSON.parse((await KV.get("paddling_" + uid)) || "{}"); } catch (e) {}
+        return J({ ok: true, favorites: state.favorites || [], completed: state.completed || [], recent: state.recent || [] });
+      }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        const uid = String(b.id || "").slice(0, 40);
+        if (!uid || !(await _tokOk(env, uid, b.tok))) return J({ ok: false, error: "relogin" }, 401);
+        const clean = (a, max) => [...new Set((Array.isArray(a) ? a : []).map((x) => String(x).slice(0, 60)).filter(Boolean))].slice(0, max);
+        const state = { favorites: clean(b.favorites, 100), completed: clean(b.completed, 100), recent: clean(b.recent, 20), updated: Date.now() };
+        await KV.put("paddling_" + uid, JSON.stringify(state));
+        return J({ ok: true });
+      }
+      return J({ ok: false, error: "method" }, 405);
+    }
+
     // 0-3f) 수위 조회 — HRFCO 프록시(키는 Secret HRFCO_KEY), KV 캐시 10분
     if (url.pathname.endsWith("/waterlevel")) {
       const origin = req.headers.get("Origin") || "*";
