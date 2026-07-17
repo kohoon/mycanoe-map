@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="오픈 카누 패들링에서 사용하는 주요 용어를 기준별로 정리한 사전">
+  <title>패들 용어사전</title>
+  <style>
+    :root{--ink:#18302c;--muted:#61736f;--line:#d7e2df;--paper:#fff;--green:#116a58;--green-soft:#e6f3ee;--blue:#185e8c;--bg:#f3f7f5}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:126px}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+    button,input{font:inherit}
+    .topbar{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+    .top-inner{width:min(980px,100%);margin:auto;padding:15px 20px 12px}
+    .head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    h1{margin:0;font-size:24px;line-height:1.2;letter-spacing:0}
+    .subtitle{margin:4px 0 0;color:var(--muted);font-size:12px}
+    .back{flex:none;text-decoration:none;color:var(--green);border:1px solid #9cc7bb;border-radius:6px;padding:9px 12px;background:#fff;font-size:13px;font-weight:900}
+    .search{width:min(420px,100%);margin-top:12px;border:1px solid #b9c9c5;border-radius:6px;padding:10px 12px;color:var(--ink);background:#fff}
+    .search:focus{outline:2px solid rgba(17,106,88,.15);border-color:var(--green)}
+    .layout{width:min(980px,100%);margin:auto;padding:24px 20px 56px;display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px}
+    aside{position:sticky;top:137px;align-self:start}
+    aside strong{display:block;margin-bottom:8px;color:#71817d;font-size:12px}
+    aside a{display:block;padding:8px 10px;border-left:2px solid var(--line);color:#50635e;text-decoration:none;font-size:13px;font-weight:800}
+    aside a:hover{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+    .intro{margin-bottom:28px;padding:15px 17px;border-left:4px solid var(--green);background:#fff;color:#425852;font-size:13px;line-height:1.7}
+    .group{margin-bottom:34px}
+    .group h2{margin:0 0 8px;padding-bottom:9px;border-bottom:2px solid #aac9c1;font-size:19px;letter-spacing:0}
+    dl{margin:0}
+    .term{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:20px;padding:12px 4px;border-bottom:1px solid var(--line)}
+    dt{margin:0;font-size:13px;font-weight:900;line-height:1.5}
+    dt span{display:block;color:var(--blue);font-size:11px}
+    dd{margin:0;color:#425852;font-size:13px;line-height:1.65}
+    .empty{display:none;padding:36px 16px;background:#fff;border:1px solid var(--line);text-align:center;color:var(--muted)}
+    footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var(--muted);font-size:11px}
+    @media(max-width:720px){
+      html{scroll-padding-top:132px}
+      .top-inner{padding:13px 14px 10px}
+      h1{font-size:21px}
+      .layout{display:block;padding:17px 14px 40px}
+      aside{position:static;margin-bottom:18px;overflow-x:auto}
+      aside strong{display:none}
+      aside nav{display:flex;width:max-content;gap:6px}
+      aside a{border:1px solid var(--line);border-radius:5px;background:#fff;white-space:nowrap;padding:7px 9px;font-size:12px}
+      .term{grid-template-columns:1fr;gap:3px;padding:11px 2px}
+      dt span{display:inline;margin-left:5px}
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="top-inner">
+      <div class="head">
+        <div><h1>패들 용어사전</h1><p class="subtitle">오픈 카누 기술을 정확히 이해하기 위한 용어 기준</p></div>
+        <a class="back" href="../">패들링 스쿨</a>
+      </div>
+      <input id="search" class="search" type="search" placeholder="용어 검색: 온사이드, 캐치, 거널…" aria-label="패들 용어 검색">
+    </div>
+  </header>
+  <div class="layout">
+    <aside><strong>분류</strong><nav id="nav"></nav></aside>
+    <main>
+      <div class="intro">온사이드·오프사이드는 <strong>패들을 사용하는 쪽</strong>, 인사이드·아웃사이드는 <strong>회전하는 원</strong>을 기준으로 합니다. 같은 방향을 가리키는 상황에서도 기준은 서로 다릅니다.</div>
+      <div id="content"></div>
+      <div id="empty" class="empty">일치하는 용어가 없습니다.</div>
+    </main>
+  </div>
+  <footer>교육 자료마다 번역이 다를 수 있어 영문 용어를 함께 표기합니다.</footer>
+  <script>
+    const groups=[
+      {id:"direction",name:"방향 기준",terms:[
+        ["온사이드","Onside","현재 패들을 물에 넣어 사용하는 쪽. 솔로 카누에서는 패들러가 주로 패들링하는 측면을 뜻합니다."],
+        ["오프사이드","Offside","온사이드의 반대쪽. 패들을 바꾸지 않고 이쪽에서 수행하는 동작은 크로스 동작이라고도 합니다."],
+        ["인사이드","Inside","카누가 회전하는 원의 안쪽. 패들의 위치가 아니라 회전 방향을 기준으로 정합니다."],
+        ["아웃사이드","Outside","카누가 회전하는 원의 바깥쪽. 회전 방향에 따라 온사이드 또는 오프사이드와 같은 쪽이 될 수 있습니다."],
+        ["인사이드 피벗 턴","Inside pivot turn","선수가 패들 쪽으로 도는 제자리 회전. 이 문맥에서는 인사이드와 온사이드가 같은 쪽을 가리킵니다."],
+        ["아웃사이드 피벗 턴","Outside pivot turn","선수가 패들 반대쪽으로 도는 제자리 회전. 이 문맥에서는 아웃사이드와 오프사이드가 같은 쪽을 가리킵니다."]
+      ]},
+      {id:"paddle",name:"패들 구조",terms:[
+        ["그립","Grip","패들 위쪽에서 그립 잡은 손으로 쥐는 손잡이."],["샤프트","Shaft","그립과 블레이드를 연결하는 긴 자루."],
+        ["스로트","Throat","샤프트가 넓어지며 블레이드로 이어지는 목 부분."],["블레이드","Blade","물에 넣어 힘을 전달하는 넓은 부분."],
+        ["팁","Tip","블레이드의 가장 아래쪽 끝."],["파워 페이스","Power face","추진 스트로크에서 물을 받아 힘을 만드는 블레이드 앞면."],
+        ["비파워 페이스","Back face / Non-power face","파워 페이스 반대쪽 면. 로우 브레이스 등에서는 이 면으로 수면을 누릅니다."]
+      ]},
+      {id:"phases",name:"스트로크 단계",terms:[
+        ["셋업","Setup","스트로크를 시작하기 전에 몸통, 손과 패들을 사용할 위치로 준비하는 단계."],["캐치","Catch","블레이드를 물에 넣어 저항을 확보하는 단계."],
+        ["추진 구간","Power phase","고정된 블레이드에 힘을 전달해 카누를 움직이는 단계."],["엑시트","Exit","추진을 마친 블레이드를 물에서 빼는 단계."],
+        ["리커버리","Recovery","다음 캐치를 위해 패들과 몸을 시작 위치로 되돌리는 단계."],["슬라이스","Slice","블레이드 날을 진행 방향으로 세워 물의 저항을 최소화하며 이동시키는 동작."],
+        ["피치","Pitch","물속 블레이드 면이 물을 받는 각도. 작은 각도 변화로 드로우·프라이·스컬링의 힘 방향이 달라집니다."]
+      ]},
+      {id:"canoe",name:"카누와 자세",terms:[
+        ["보우·선수","Bow","카누의 앞쪽 끝."],["스턴·선미","Stern","카누의 뒤쪽 끝."],["거널","Gunwale","카누 선체 위쪽 가장자리를 따라 이어지는 테두리."],
+        ["기울이기","Heel / Tilt","카누를 한쪽으로 기울여 물에 잠기는 선체 형상을 바꾸는 동작."],["에징","Edging","기울기를 제어해 선체의 회전성과 진행 방향을 조절하는 기술."],
+        ["트림","Trim","선수와 선미에 실리는 무게의 균형과 그에 따른 선체의 앞뒤 기울기."],["피벗 포인트","Pivot point","카누가 회전할 때 중심이 되는 지점. 속도와 트림, 스트로크에 따라 위치가 달라집니다."]
+      ]},
+      {id:"current",name:"흐르는 물",terms:[
+        ["본류","Main current","강에서 상대적으로 빠르고 지속적으로 흐르는 주된 물길."],["에디","Eddy","바위나 강굽이 뒤에서 본류와 반대 방향으로 돌거나 흐름이 약해진 구역."],
+        ["에디 라인","Eddy line","본류와 에디가 맞닿아 속도와 방향이 급격히 달라지는 경계."],["페리 글라이드","Ferry glide","선수를 상류 쪽으로 비스듬히 유지하고 흐름을 이용해 강을 가로지르는 기동."],
+        ["더펙·보우 러더","Duffek / Bow rudder","전진 중 선수 옆의 블레이드에 수압을 받아 속도를 회전으로 바꾸는 방향 전환 기술."]
+      ]}
+    ];
+    const esc=s=>s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const norm=s=>s.toLowerCase().replace(/\s+/g,"");
+    document.getElementById("nav").innerHTML=groups.map(g=>`<a href="#${g.id}">${g.name}</a>`).join("");
+    function render(){
+      const q=norm(document.getElementById("search").value);
+      const matched=groups.map(g=>({...g,terms:g.terms.filter(t=>!q||norm(t.join(" ")).includes(q))})).filter(g=>g.terms.length);
+      document.getElementById("content").innerHTML=matched.map(g=>`<section id="${g.id}" class="group"><h2>${esc(g.name)}</h2><dl>${g.terms.map(t=>`<div class="term"><dt>${esc(t[0])}<span>${esc(t[1])}</span></dt><dd>${esc(t[2])}</dd></div>`).join("")}</dl></section>`).join("");
+      document.getElementById("empty").style.display=matched.length?"none":"block";
+    }
+    document.getElementById("search").addEventListener("input",render);
+    render();
+  </script>
+</body>
+</html>

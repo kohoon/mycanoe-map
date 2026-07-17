@@ -37,6 +37,7 @@
     h1{margin:0;font-size:24px;line-height:1.2;letter-spacing:0}
     .subtitle{margin:4px 0 0;color:var(--muted);font-size:13px}
     .map-link{flex:none;text-decoration:none;font-size:13px;font-weight:800;color:var(--green);border:1px solid #9cc7bb;padding:9px 12px;border-radius:6px}
+    .glossary-link{flex:none;text-decoration:none;font-size:13px;font-weight:800;color:var(--blue);border:1px solid #a9c7d9;padding:9px 12px;border-radius:6px;background:#fff}
     .account{display:flex;align-items:center;gap:7px;flex:none}
     .account-name{font-size:12px;color:var(--muted);font-weight:800}
     .login-btn{border:0;border-radius:6px;padding:10px 12px;background:#fee500;color:#191600;font-size:12px;font-weight:900;cursor:pointer}
@@ -122,15 +123,6 @@
     .detail-videos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .related{display:flex;flex-wrap:wrap;gap:6px}
     .related button{border:1px solid #b8d0ca;background:#fff;color:var(--green);border-radius:5px;padding:7px 9px;font-size:12px;font-weight:800;cursor:pointer}
-    .glossary{margin-top:46px;padding-top:8px}
-    .glossary-groups{display:grid;gap:24px}
-    .glossary-group h3{margin:0 0 8px;font-size:14px;color:var(--green)}
-    .glossary-list{margin:0;border-top:1px solid #afc5bf}
-    .glossary-row{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:20px;padding:11px 4px;border-bottom:1px solid var(--line)}
-    .glossary-row dt{margin:0;font-size:13px;font-weight:900;line-height:1.5}
-    .glossary-row dt span{display:block;color:var(--blue);font-size:11px}
-    .glossary-row dd{margin:0;color:#425852;font-size:13px;line-height:1.65}
-    .glossary-note{color:var(--red);font-weight:800}
     .empty{display:none;padding:30px;background:#fff;border:1px solid var(--line);text-align:center;color:var(--muted)}
     .safety{background:var(--amber-soft);border:1px solid #e6c98f;padding:13px 15px;font-size:12px;line-height:1.6;color:#624315;margin-top:18px}
     footer{border-top:1px solid var(--line);padding:22px 20px 36px;text-align:center;color:var(--muted);font-size:11px;line-height:1.6}
@@ -149,7 +141,9 @@
       .search{width:100%}
     }
     @media(max-width:640px){
-      .brand-row{align-items:flex-start}
+      .brand-row{align-items:flex-start;flex-wrap:wrap}
+      .title-wrap{flex:1 1 100%}
+      .account{width:100%;justify-content:flex-end}
       h1{font-size:21px}
       .subtitle{font-size:12px}
       .map-link{padding:8px 9px}
@@ -166,8 +160,6 @@
       .skill-detail{padding:16px 14px 38px}
       .detail-videos{grid-template-columns:1fr}
       .paddle-anatomy figcaption{padding:9px 11px;font-size:11px}
-      .glossary-row{grid-template-columns:1fr;gap:3px;padding:10px 2px}
-      .glossary-row dt span{display:inline;margin-left:5px}
       .school-visual{aspect-ratio:1.55/1}
       .school-visual img{object-position:58% center}
     }
@@ -185,6 +177,7 @@
           <span id="accountName" class="account-name"></span>
           <button id="loginBtn" class="login-btn" type="button">카카오 로그인</button>
           <button id="logoutBtn" class="logout-btn" type="button" hidden>로그아웃</button>
+          <a class="glossary-link" href="./glossary/">용어사전</a>
           <a class="map-link" href="../">지도로 돌아가기</a>
         </div>
       </div>
@@ -214,7 +207,6 @@
         <p>기술 이름보다 블레이드를 어디에 심고, 어느 방향으로 힘을 만들며, 저항 없이 어떻게 회수하는지를 먼저 확인하세요. 영상은 영어이지만 동작 관찰이 쉽도록 기술별로 묶었습니다.</p>
       </section>
       <div id="content"></div>
-      <section id="glossary" class="category glossary"></section>
       <div id="empty" class="empty">일치하는 기술이 없습니다.</div>
       <div class="safety">급류·강풍 환경에서 카누 기울이기, 더펙, 브레이스를 연습하면 전복이나 어깨 부상으로 이어질 수 있습니다. 구명조끼를 착용하고 구조 가능한 동료 및 검증된 강사와 함께 연습하세요.</div>
     </main>
@@ -406,50 +398,6 @@
       "에디 턴":["기울기로 선체 제어","더펙"],"페리 글라이드":["기울기로 선체 제어","전진 스트로크"],"크로스 전진 스트로크":["패들 반대쪽·크로스 동작"],
       "스트로크 연결":["J 스트로크","풀 스윕","드로우"]
     };
-    const glossaryGroups=[
-      {name:"방향 기준",terms:[
-        ["온사이드","Onside","현재 패들을 물에 넣어 사용하는 쪽. 솔로 카누에서는 패들러가 주로 패들링하는 측면을 뜻합니다."],
-        ["오프사이드","Offside","온사이드의 반대쪽. 패들을 바꾸지 않고 이쪽에서 수행하는 동작은 크로스 동작이라고도 합니다."],
-        ["인사이드","Inside","카누가 회전하는 원의 안쪽. 패들의 위치가 아니라 회전 방향을 기준으로 정합니다."],
-        ["아웃사이드","Outside","카누가 회전하는 원의 바깥쪽. 회전 방향에 따라 온사이드 또는 오프사이드와 같은 쪽이 될 수 있습니다."],
-        ["인사이드 피벗 턴","Inside pivot turn","선수가 패들 쪽으로 도는 제자리 회전. 이 문맥에서는 인사이드와 온사이드가 같은 쪽을 가리킵니다."],
-        ["아웃사이드 피벗 턴","Outside pivot turn","선수가 패들 반대쪽으로 도는 제자리 회전. 이 문맥에서는 아웃사이드와 오프사이드가 같은 쪽을 가리킵니다."]
-      ]},
-      {name:"패들 구조",terms:[
-        ["그립","Grip","패들 위쪽에서 그립 잡은 손으로 쥐는 손잡이."],
-        ["샤프트","Shaft","그립과 블레이드를 연결하는 긴 자루."],
-        ["스로트","Throat","샤프트가 넓어지며 블레이드로 이어지는 목 부분."],
-        ["블레이드","Blade","물에 넣어 힘을 전달하는 넓은 부분."],
-        ["팁","Tip","블레이드의 가장 아래쪽 끝."],
-        ["파워 페이스","Power face","추진 스트로크에서 물을 받아 힘을 만드는 블레이드 앞면."],
-        ["비파워 페이스","Back face / Non-power face","파워 페이스 반대쪽 면. 로우 브레이스 등에서는 이 면으로 수면을 누릅니다."]
-      ]},
-      {name:"스트로크 단계",terms:[
-        ["셋업","Setup","스트로크를 시작하기 전에 몸통, 손과 패들을 사용할 위치로 준비하는 단계."],
-        ["캐치","Catch","블레이드를 물에 넣어 저항을 확보하는 단계."],
-        ["추진 구간","Power phase","고정된 블레이드에 힘을 전달해 카누를 움직이는 단계."],
-        ["엑시트","Exit","추진을 마친 블레이드를 물에서 빼는 단계."],
-        ["리커버리","Recovery","다음 캐치를 위해 패들과 몸을 시작 위치로 되돌리는 단계."],
-        ["슬라이스","Slice","블레이드 날을 진행 방향으로 세워 물의 저항을 최소화하며 이동시키는 동작."],
-        ["피치","Pitch","물속 블레이드 면이 물을 받는 각도. 작은 각도 변화로 드로우·프라이·스컬링의 힘 방향이 달라집니다."]
-      ]},
-      {name:"카누와 자세",terms:[
-        ["보우·선수","Bow","카누의 앞쪽 끝."],
-        ["스턴·선미","Stern","카누의 뒤쪽 끝."],
-        ["거널","Gunwale","카누 선체 위쪽 가장자리를 따라 이어지는 테두리."],
-        ["기울이기","Heel / Tilt","카누를 한쪽으로 기울여 물에 잠기는 선체 형상을 바꾸는 동작."],
-        ["에징","Edging","기울기를 제어해 선체의 회전성과 진행 방향을 조절하는 기술."],
-        ["트림","Trim","선수와 선미에 실리는 무게의 균형과 그에 따른 선체의 앞뒤 기울기."],
-        ["피벗 포인트","Pivot point","카누가 회전할 때 중심이 되는 지점. 속도와 트림, 스트로크에 따라 위치가 달라집니다."]
-      ]},
-      {name:"흐르는 물",terms:[
-        ["본류","Main current","강에서 상대적으로 빠르고 지속적으로 흐르는 주된 물길."],
-        ["에디","Eddy","바위나 강굽이 뒤에서 본류와 반대 방향으로 돌거나 흐름이 약해진 구역."],
-        ["에디 라인","Eddy line","본류와 에디가 맞닿아 속도와 방향이 급격히 달라지는 경계."],
-        ["페리 글라이드","Ferry glide","선수를 상류 쪽으로 비스듬히 유지하고 흐름을 이용해 강을 가로지르는 기동."],
-        ["더펙·보우 러더","Duffek / Bow rudder","전진 중 선수 옆의 블레이드에 수압을 받아 속도를 회전으로 바꾸는 방향 전환 기술."]
-      ]}
-    ];
     const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     const norm=s=>(s||"").toLowerCase().replace(/\s+/g,"");
     const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
@@ -549,7 +497,7 @@
       document.getElementById("sideNav").innerHTML=categories.map(c=>{
         const count=allSkills.filter(s=>s.category===c.id).length;
         return `<a href="#${c.id}">${c.name} <small>${count}</small></a>`;
-      }).join("")+`<a href="#glossary">패들 용어사전 <small>${glossaryGroups.reduce((n,g)=>n+g.terms.length,0)}</small></a>`;
+      }).join("");
       const filters=[["all","전체 기술"],["beginner","입문·기초"],["video","영상 있는 기술"],["saved","즐겨찾기"],["recent","최근 본 기술"],["todo","미완료"]];
       document.getElementById("sideFilter").innerHTML=filters.map(f=>`<button class="filter-btn ${activeFilter===f[0]?"active":""}" data-filter="${f[0]}" type="button">${f[1]}</button>`).join("");
       document.querySelectorAll(".filter-btn").forEach(b=>b.onclick=()=>{
@@ -605,14 +553,7 @@
         return `<section id="${c.id}" class="category"><div class="cat-head"><h2>${c.name}</h2><p>${c.desc}</p></div><div class="skills">${matched.map(skillCard).join("")}</div></section>`;
       }).join("");
       document.getElementById("content").innerHTML=html;
-      const glossaryMatches=glossaryGroups.map(g=>({
-        ...g,terms:g.terms.filter(t=>!q||norm(t.join(" ")).includes(q))
-      })).filter(g=>g.terms.length);
-      const glossary=document.getElementById("glossary");
-      glossary.innerHTML=glossaryMatches.length?`<div class="cat-head"><h2>패들 용어사전</h2><p>같은 쪽을 가리켜도 기준이 다른 용어를 구분합니다.</p></div>
-        <div class="glossary-groups">${glossaryMatches.map(g=>`<section class="glossary-group"><h3>${esc(g.name)}</h3><dl class="glossary-list">${g.terms.map(t=>`<div class="glossary-row"><dt>${esc(t[0])}<span>${esc(t[1])}</span></dt><dd>${esc(t[2])}</dd></div>`).join("")}</dl></section>`).join("")}</div>`:"";
-      glossary.style.display=glossaryMatches.length?"block":"none";
-      document.getElementById("empty").style.display=shown||glossaryMatches.length?"none":"block";
+      document.getElementById("empty").style.display=shown?"none":"block";
       bindListActions();
     }
     const skillModal=document.getElementById("skillModal");
