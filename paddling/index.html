@@ -33,6 +33,13 @@
     .side-title{font-size:12px;font-weight:900;color:#71817d;margin-bottom:8px}
     .side a{display:block;text-decoration:none;border-left:2px solid var(--line);padding:8px 10px;color:#50635e;font-size:13px;font-weight:700}
     .side a:hover{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+    .progress-box{margin-bottom:16px;padding:13px;background:#fff;border:1px solid var(--line);border-radius:6px}
+    .progress-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:900}
+    .progress-track{height:6px;margin-top:9px;background:#e3ebe8;border-radius:3px;overflow:hidden}
+    .progress-fill{height:100%;background:var(--green);width:0}
+    .side-filter{display:grid;gap:5px;margin-top:16px}
+    .filter-btn{border:1px solid var(--line);background:#fff;color:#52645f;text-align:left;border-radius:5px;padding:8px 9px;font-size:12px;font-weight:800;cursor:pointer}
+    .filter-btn.active{color:#fff;background:var(--green);border-color:var(--green)}
     .intro{border-left:4px solid var(--green);background:#fff;padding:16px 18px;margin-bottom:28px;box-shadow:var(--shadow)}
     .intro strong{display:block;font-size:15px;margin-bottom:5px}
     .intro p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
@@ -41,10 +48,22 @@
     .cat-head h2{font-size:21px;line-height:1.25;margin:0;letter-spacing:0}
     .cat-head p{margin:0;color:var(--muted);font-size:12px;text-align:right}
     .skills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    .skill{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
-    .skill h3{font-size:15px;margin:0 0 7px;line-height:1.35;letter-spacing:0}
+    .skill{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0;display:flex;flex-direction:column}
+    .skill:hover{border-color:#96bcb2;box-shadow:0 5px 16px rgba(24,75,65,.08)}
+    .skill-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+    .skill h3{font-size:15px;margin:0;line-height:1.35;letter-spacing:0}
     .en{color:var(--blue);font-size:12px;font-weight:800;margin-left:4px}
-    .skill p{font-size:13px;line-height:1.6;margin:0;color:#3f5550}
+    .skill p{font-size:13px;line-height:1.55;margin:9px 0 0;color:#3f5550;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .skill-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+    .badge{display:inline-flex;align-items:center;border-radius:4px;padding:4px 6px;background:var(--blue-soft);color:var(--blue);font-size:10px;font-weight:900}
+    .badge.env{background:var(--green-soft);color:var(--green)}
+    .badge.danger{background:var(--red-soft);color:var(--red)}
+    .skill-actions{display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:12px}
+    .detail-btn{flex:1;border:1px solid #9fc6bb;background:#fff;color:var(--green);border-radius:5px;padding:8px 10px;font-size:12px;font-weight:900;cursor:pointer}
+    .detail-btn:hover{background:var(--green-soft)}
+    .icon-btn{width:34px;height:34px;border:1px solid var(--line);border-radius:5px;background:#fff;color:#60716d;cursor:pointer;font-size:16px}
+    .icon-btn.on{background:var(--amber-soft);border-color:#dfbf7d;color:#8b5500}
+    .done-btn.on{background:var(--green);border-color:var(--green);color:#fff}
     .cue{display:block;margin-top:8px;padding-top:8px;border-top:1px solid #e6ecea;color:var(--green);font-size:12px;font-weight:800;line-height:1.5}
     .warn{color:var(--red)}
     .skill-videos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
@@ -65,6 +84,23 @@
     .modal-title{margin:0;padding:12px 54px 13px 14px;color:#fff;font-size:14px;line-height:1.4}
     .modal-close{position:absolute;right:10px;top:10px;z-index:2;width:36px;height:36px;border:1px solid #899994;background:rgba(20,35,31,.9);color:#fff;border-radius:50%;font-size:23px;line-height:1;cursor:pointer}
     .modal-close:hover{background:#b43c34;border-color:#b43c34}
+    .skill-modal{position:fixed;inset:0;z-index:80;display:none;justify-content:flex-end;background:rgba(8,24,20,.62)}
+    .skill-modal.open{display:flex}
+    .skill-panel{position:relative;width:min(720px,100%);height:100%;overflow:auto;background:var(--bg);box-shadow:-18px 0 50px rgba(0,0,0,.22)}
+    .skill-panel-head{position:sticky;top:0;z-index:2;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);padding:20px 64px 16px 22px}
+    .skill-panel-head h2{margin:0;font-size:24px;line-height:1.25}
+    .skill-panel-close{position:absolute;right:18px;top:18px;width:36px;height:36px;border:1px solid var(--line);background:#fff;border-radius:50%;font-size:23px;cursor:pointer}
+    .skill-detail{padding:20px 22px 44px}
+    .detail-section{margin-bottom:24px}
+    .detail-section h3{margin:0 0 9px;font-size:14px;color:#294740}
+    .detail-section p{margin:0;color:#425852;font-size:14px;line-height:1.7}
+    .detail-steps{margin:0;padding-left:20px;color:#425852;font-size:13px;line-height:1.75}
+    .detail-toolbar{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+    .command{border:1px solid var(--line);background:#fff;border-radius:5px;padding:8px 10px;color:#425852;font-size:12px;font-weight:900;cursor:pointer}
+    .command.primary{background:var(--green);border-color:var(--green);color:#fff}
+    .detail-videos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .related{display:flex;flex-wrap:wrap;gap:6px}
+    .related button{border:1px solid #b8d0ca;background:#fff;color:var(--green);border-radius:5px;padding:7px 9px;font-size:12px;font-weight:800;cursor:pointer}
     .empty{display:none;padding:30px;background:#fff;border:1px solid var(--line);text-align:center;color:var(--muted)}
     .safety{background:var(--amber-soft);border:1px solid #e6c98f;padding:13px 15px;font-size:12px;line-height:1.6;color:#624315;margin-top:18px}
     footer{border-top:1px solid var(--line);padding:22px 20px 36px;text-align:center;color:var(--muted);font-size:11px;line-height:1.6}
@@ -76,6 +112,8 @@
       .side nav{display:flex;gap:6px;width:max-content}
       .side a{border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:#fff;white-space:nowrap;font-size:12px}
       .side a:hover{border-color:var(--green)}
+      .progress-box{display:none}
+      .side-filter{display:flex;gap:6px;width:max-content;margin-top:8px}
       .top-inner{padding:12px 14px 8px}
       .tools{margin-top:10px}
       .search{width:100%}
@@ -92,6 +130,11 @@
       .skill{padding:13px}
       .modal{padding:10px}
       .modal-title{font-size:12px}
+      .skill-panel-head{padding:16px 58px 14px 16px}
+      .skill-panel-head h2{font-size:21px}
+      .skill-panel-close{right:12px;top:12px}
+      .skill-detail{padding:16px 14px 38px}
+      .detail-videos{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -113,8 +156,13 @@
 
   <div class="layout">
     <aside class="side">
+      <div class="progress-box">
+        <div class="progress-head"><span>학습 진도</span><span id="progressText">0/52</span></div>
+        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+      </div>
       <div class="side-title">카테고리</div>
       <nav id="sideNav"></nav>
+      <div id="sideFilter" class="side-filter"></div>
     </aside>
 
     <main>
@@ -132,6 +180,18 @@
     교육용 요약이며 현장 강습을 대체하지 않습니다.<br>
     YouTube 영상의 저작권과 내용은 각 제작자에게 있습니다.
   </footer>
+
+  <div id="skillModal" class="skill-modal" role="dialog" aria-modal="true" aria-labelledby="skillTitle">
+    <article class="skill-panel">
+      <header class="skill-panel-head">
+        <h2 id="skillTitle"></h2>
+        <div id="skillBadges" class="skill-meta"></div>
+        <div id="skillToolbar" class="detail-toolbar"></div>
+        <button id="skillClose" class="skill-panel-close" type="button" aria-label="기술 상세 닫기" title="닫기">×</button>
+      </header>
+      <div id="skillDetail" class="skill-detail"></div>
+    </article>
+  </div>
 
   <div id="videoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-dialog">
@@ -278,42 +338,187 @@
       "연결 스트로크":["linked"]
     };
 
+    const categoryMeta={
+      fundamentals:{level:"입문",environment:"육상·잔잔한 물"},
+      posture:{level:"입문",environment:"잔잔한 물"},
+      forward:{level:"기초",environment:"잔잔한 물"},
+      reverse:{level:"기초",environment:"잔잔한 물"},
+      turning:{level:"기초",environment:"잔잔한 물"},
+      lateral:{level:"중급",environment:"잔잔한 물"},
+      support:{level:"중급",environment:"얕고 잔잔한 물"},
+      whitewater:{level:"급류",environment:"흐르는 물"}
+    };
+    const prerequisites={
+      "파워 구간":["캐치"],"리커버리":["파워 구간"],"전진 스트로크":["캐치","파워 구간","리커버리"],
+      "J 스트로크":["전진 스트로크"],"캐나디언·임페리얼":["J 스트로크"],"인디언 스트로크":["캐나디언·임페리얼"],
+      "사일런트 스트로크":["전진 스트로크"],"C 스트로크":["전진 스트로크"],"스컬링 전진":["스컬링 드로"],
+      "J 러더·리버스 J":["백 스트로크","러더"],"파워 백 앤 러더":["백 스트로크","러더"],"파워 백 스컬":["백 스트로크"],
+      "듀펙":["엣징","드로"],"크로스 보우 듀펙":["듀펙","오프사이드·크로스"],
+      "C-프라이 온사이드 턴":["C 스트로크","프라이"],"스퀘어 스트로크 피벗":["하프 스윕","프라이"],
+      "스컬링 드로":["드로"],"스컬링 프라이":["프라이"],"고정 드로 사이드슬립":["드로"],
+      "고정 프라이 사이드슬립":["프라이"],"크로스 드로·크로스 보우 드로":["오프사이드·크로스","드로"],
+      "하이 브레이스":["로우 브레이스"],"고정 브레이스":["로우 브레이스"],"행잉 브레이스":["고정 브레이스"],
+      "스컬링 브레이스":["로우 브레이스"],"프라이 브레이스":["프라이","로우 브레이스"],
+      "에디라인 진입":["엣징","듀펙"],"페리":["엣징","전진 스트로크"],"크로스 포워드":["오프사이드·크로스"],
+      "연결 스트로크":["J 스트로크","풀 스윕","드로"]
+    };
     const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     const norm=s=>(s||"").toLowerCase().replace(/\s+/g,"");
+    const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+    const allSkills=categories.flatMap(c=>c.skills.map(s=>({
+      name:s[0],en:s[1],summary:s[2],cue:s[3],danger:s[4]==="warn",category:c.id,categoryName:c.name,
+      level:categoryMeta[c.id].level,environment:categoryMeta[c.id].environment,slug:slug(s[1]),videos:skillVideos[s[0]]||[]
+    })));
+    const byName=Object.fromEntries(allSkills.map(s=>[s.name,s]));
+    const bySlug=Object.fromEntries(allSkills.map(s=>[s.slug,s]));
+    const readSet=key=>{try{return new Set(JSON.parse(localStorage.getItem(key)||"[]"));}catch(e){return new Set();}};
+    const writeSet=(key,set)=>localStorage.setItem(key,JSON.stringify([...set]));
+    const completed=readSet("mc_paddling_completed");
+    const favorites=readSet("mc_paddling_favorites");
+    let recent=(()=>{try{return JSON.parse(localStorage.getItem("mc_paddling_recent")||"[]");}catch(e){return [];}})();
+    let activeFilter="all";
+    let currentSkill=null;
+
     function videoHTML(key){
       const v=videos[key];
       return `<article class="video">
         <div class="frame"><button class="video-load" type="button" data-video="${v.id}" data-title="${esc(v.title)}" style="background-image:linear-gradient(rgba(0,0,0,.08),rgba(0,0,0,.22)),url('https://i.ytimg.com/vi/${v.id}/hqdefault.jpg')" aria-label="${esc(v.title)} 재생"></button></div>
-        <div class="video-meta"><strong title="${esc(v.title)}">${esc(v.title)}</strong><small>${esc(v.author)} · <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">YouTube</a></small></div>
+        <div class="video-meta"><strong title="${esc(v.title)}">${esc(v.title)}</strong><small>직접 설명 · ${esc(v.author)} · <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">YouTube</a></small></div>
       </article>`;
     }
 
     function renderNav(){
-      document.getElementById("sideNav").innerHTML=categories.map(c=>`<a href="#${c.id}">${c.name}</a>`).join("");
+      document.getElementById("sideNav").innerHTML=categories.map(c=>{
+        const count=allSkills.filter(s=>s.category===c.id).length;
+        return `<a href="#${c.id}">${c.name} <small>${count}</small></a>`;
+      }).join("");
+      const filters=[["all","전체 기술"],["beginner","입문·기초"],["video","영상 있는 기술"],["saved","즐겨찾기"],["recent","최근 본 기술"],["todo","미완료"]];
+      document.getElementById("sideFilter").innerHTML=filters.map(f=>`<button class="filter-btn ${activeFilter===f[0]?"active":""}" data-filter="${f[0]}" type="button">${f[1]}</button>`).join("");
+      document.querySelectorAll(".filter-btn").forEach(b=>b.onclick=()=>{activeFilter=b.dataset.filter;render();});
+      document.getElementById("progressText").textContent=`${completed.size}/${allSkills.length}`;
+      document.getElementById("progressFill").style.width=`${completed.size/allSkills.length*100}%`;
     }
+
+    function passesFilter(s){
+      if(activeFilter==="beginner")return s.level==="입문"||s.level==="기초";
+      if(activeFilter==="video")return s.videos.length>0;
+      if(activeFilter==="saved")return favorites.has(s.slug);
+      if(activeFilter==="recent")return recent.includes(s.slug);
+      if(activeFilter==="todo")return !completed.has(s.slug);
+      return true;
+    }
+
+    function skillCard(s){
+      return `<article class="skill">
+        <div class="skill-head"><h3>${esc(s.name)}<span class="en">${esc(s.en)}</span></h3>
+          <button class="icon-btn fav-btn ${favorites.has(s.slug)?"on":""}" data-slug="${s.slug}" type="button" title="즐겨찾기" aria-label="${esc(s.name)} 즐겨찾기">${favorites.has(s.slug)?"★":"☆"}</button>
+        </div>
+        <p>${esc(s.summary)}</p>
+        <div class="skill-meta"><span class="badge">${s.level}</span><span class="badge env">${s.environment}</span>${s.videos.length?`<span class="badge">영상 ${s.videos.length}</span>`:""}${s.danger?`<span class="badge danger">주의</span>`:""}</div>
+        <div class="skill-actions"><button class="detail-btn" data-detail="${s.slug}" type="button">자세히 보기</button>
+          <button class="icon-btn done-btn ${completed.has(s.slug)?"on":""}" data-done="${s.slug}" type="button" title="학습 완료" aria-label="${esc(s.name)} 학습 완료">✓</button>
+        </div>
+      </article>`;
+    }
+
+    function bindListActions(){
+      document.querySelectorAll("[data-detail]").forEach(b=>b.onclick=()=>openSkill(bySlug[b.dataset.detail],true));
+      document.querySelectorAll(".fav-btn").forEach(b=>b.onclick=()=>{toggleSet(favorites,"mc_paddling_favorites",b.dataset.slug);render();});
+      document.querySelectorAll(".done-btn").forEach(b=>b.onclick=()=>{toggleSet(completed,"mc_paddling_completed",b.dataset.done);render();});
+    }
+    function toggleSet(set,key,value){set.has(value)?set.delete(value):set.add(value);writeSet(key,set);}
 
     function render(){
       renderNav();
       const q=norm(document.getElementById("search").value);
       let shown=0;
       const html=categories.map(c=>{
-        const matched=c.skills.filter(s=>!q||norm(s.join(" ")).includes(q));
+        const matched=allSkills.filter(s=>s.category===c.id&&passesFilter(s)&&(!q||norm([s.name,s.en,s.summary,s.cue].join(" ")).includes(q)));
         if(!matched.length)return "";
-        shown++;
-        const skillHTML=matched.map(s=>{
-          const keys=skillVideos[s[0]]||[];
-          return `<article class="skill"><h3>${esc(s[0])}<span class="en">${esc(s[1])}</span></h3><p>${esc(s[2])}</p><span class="cue ${s[4]==="warn"?"warn":""}">${s[4]==="warn"?"주의 · ":"핵심 · "}${esc(s[3])}</span>
-            ${keys.length?`<div class="skill-videos">${keys.map(videoHTML).join("")}</div>`:""}
-          </article>`;
-        }).join("");
-        return `<section id="${c.id}" class="category"><div class="cat-head"><h2>${c.name}</h2><p>${c.desc}</p></div>
-          ${matched.length?`<div class="skills">${skillHTML}</div>`:""}
-        </section>`;
+        shown+=matched.length;
+        return `<section id="${c.id}" class="category"><div class="cat-head"><h2>${c.name}</h2><p>${c.desc}</p></div><div class="skills">${matched.map(skillCard).join("")}</div></section>`;
       }).join("");
       document.getElementById("content").innerHTML=html;
       document.getElementById("empty").style.display=shown?"none":"block";
-      document.querySelectorAll(".video-load").forEach(btn=>btn.onclick=()=>openVideo(btn.dataset.video,btn.dataset.title));
+      bindListActions();
     }
+    const skillModal=document.getElementById("skillModal");
+    const skillTitle=document.getElementById("skillTitle");
+    const skillBadges=document.getElementById("skillBadges");
+    const skillToolbar=document.getElementById("skillToolbar");
+    const skillDetail=document.getElementById("skillDetail");
+    const skillClose=document.getElementById("skillClose");
+
+    function practiceSteps(s){
+      const first=s.category==="posture"||s.category==="support"
+        ?"얕고 잔잔한 물에서 선체와 몸의 중심을 먼저 안정시킵니다."
+        :"육상 또는 잔잔한 물에서 블레이드 진입 위치와 면 방향을 확인합니다.";
+      const third=s.category==="whitewater"
+        ?"정지 수역에서 동작을 익힌 뒤 구조 가능한 동료와 함께 약한 흐름부터 적용합니다."
+        :"작은 힘으로 정확도를 만든 뒤 반복 속도와 선체 반응을 점검합니다.";
+      return [first,s.summary,s.cue,third];
+    }
+    function relatedSkills(s){
+      const required=prerequisites[s.name]||[];
+      const same=allSkills.filter(x=>x.category===s.category&&x.name!==s.name&&!required.includes(x.name)).slice(0,3).map(x=>x.name);
+      return [...required,...same].filter((v,i,a)=>a.indexOf(v)===i).slice(0,5);
+    }
+    function detailHTML(s){
+      const required=prerequisites[s.name]||[];
+      const related=relatedSkills(s);
+      return `
+        <section class="detail-section"><h3>언제 쓰는가</h3><p>${esc(s.summary)}</p></section>
+        <section class="detail-section"><h3>동작 핵심</h3><p>${esc(s.cue)}</p></section>
+        <section class="detail-section"><h3>연습 순서</h3><ol class="detail-steps">${practiceSteps(s).map(x=>`<li>${esc(x)}</li>`).join("")}</ol></section>
+        ${s.danger?`<section class="detail-section"><h3>안전 주의</h3><p class="warn">전복과 어깨 부상 가능성이 있습니다. 구명조끼를 착용하고 구조 가능한 동료와 통제된 환경에서 연습하세요.</p></section>`:""}
+        ${required.length?`<section class="detail-section"><h3>먼저 익힐 기술</h3><div class="related">${required.map(n=>`<button type="button" data-related="${byName[n].slug}">${esc(n)}</button>`).join("")}</div></section>`:""}
+        ${s.videos.length?`<section class="detail-section"><h3>직접 설명 영상</h3><div class="detail-videos">${s.videos.map(videoHTML).join("")}</div></section>`:""}
+        ${related.length?`<section class="detail-section"><h3>관련 기술</h3><div class="related">${related.map(n=>`<button type="button" data-related="${byName[n].slug}">${esc(n)}</button>`).join("")}</div></section>`:""}
+      `;
+    }
+    function updateSkillToolbar(s){
+      skillToolbar.innerHTML=`
+        <button class="command primary" id="detailDone" type="button">${completed.has(s.slug)?"✓ 학습 완료":"학습 완료 표시"}</button>
+        <button class="command" id="detailFav" type="button">${favorites.has(s.slug)?"★ 즐겨찾기됨":"☆ 즐겨찾기"}</button>
+        <button class="command" id="detailShare" type="button">공유</button>`;
+      document.getElementById("detailDone").onclick=()=>{toggleSet(completed,"mc_paddling_completed",s.slug);updateSkillToolbar(s);renderNav();};
+      document.getElementById("detailFav").onclick=()=>{toggleSet(favorites,"mc_paddling_favorites",s.slug);updateSkillToolbar(s);};
+      document.getElementById("detailShare").onclick=async()=>{
+        const url=new URL(location.href);url.searchParams.set("skill",s.slug);url.hash="";
+        try{await navigator.clipboard.writeText(url.href);document.getElementById("detailShare").textContent="주소 복사됨";}
+        catch(e){prompt("공유 주소",url.href);}
+      };
+    }
+    function openSkill(s,pushUrl){
+      if(!s)return;
+      currentSkill=s;
+      recent=[s.slug,...recent.filter(x=>x!==s.slug)].slice(0,12);
+      localStorage.setItem("mc_paddling_recent",JSON.stringify(recent));
+      skillTitle.innerHTML=`${esc(s.name)} <span class="en">${esc(s.en)}</span>`;
+      skillBadges.innerHTML=`<span class="badge">${s.level}</span><span class="badge env">${s.environment}</span><span class="badge">${s.categoryName}</span>${s.danger?`<span class="badge danger">주의</span>`:""}`;
+      updateSkillToolbar(s);
+      skillDetail.innerHTML=detailHTML(s);
+      skillModal.classList.add("open");
+      document.body.style.overflow="hidden";
+      skillModal.querySelector(".skill-panel").scrollTop=0;
+      skillDetail.querySelectorAll(".video-load").forEach(btn=>btn.onclick=()=>openVideo(btn.dataset.video,btn.dataset.title));
+      skillDetail.querySelectorAll("[data-related]").forEach(btn=>btn.onclick=()=>openSkill(bySlug[btn.dataset.related],true));
+      if(pushUrl){
+        const url=new URL(location.href);url.searchParams.set("skill",s.slug);history.pushState({skill:s.slug},"",url);
+      }
+      skillClose.focus();
+    }
+    function closeSkill(updateUrl=true){
+      skillModal.classList.remove("open");
+      document.body.style.overflow="";
+      currentSkill=null;
+      if(updateUrl){
+        const url=new URL(location.href);url.searchParams.delete("skill");history.pushState({},"",url);
+      }
+      render();
+    }
+    skillClose.onclick=()=>closeSkill();
+    skillModal.onclick=e=>{if(e.target===skillModal)closeSkill();};
     const modal=document.getElementById("videoModal");
     const modalFrame=document.getElementById("modalFrame");
     const modalTitle=document.getElementById("modalTitle");
@@ -328,13 +533,24 @@
     function closeVideo(){
       modal.classList.remove("open");
       modalFrame.innerHTML="";
-      document.body.style.overflow="";
+      document.body.style.overflow=skillModal.classList.contains("open")?"hidden":"";
     }
     modalClose.onclick=closeVideo;
     modal.onclick=e=>{if(e.target===modal)closeVideo();};
-    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("open"))closeVideo();});
+    document.addEventListener("keydown",e=>{
+      if(e.key!=="Escape")return;
+      if(modal.classList.contains("open"))closeVideo();
+      else if(skillModal.classList.contains("open"))closeSkill();
+    });
+    window.addEventListener("popstate",()=>{
+      const target=bySlug[new URL(location.href).searchParams.get("skill")];
+      if(target)openSkill(target,false);
+      else if(skillModal.classList.contains("open"))closeSkill(false);
+    });
     document.getElementById("search").addEventListener("input",render);
     render();
+    const initialSkill=bySlug[new URL(location.href).searchParams.get("skill")];
+    if(initialSkill)openSkill(initialSkill,false);
   </script>
 </body>
 </html>
