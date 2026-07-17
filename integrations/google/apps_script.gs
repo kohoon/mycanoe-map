@@ -9,7 +9,7 @@
  *   3) 액세스: "나"(소유자) 실행 / "모든 사용자"(익명 포함) 접근 허용
  *
  * 받는 type:
- *   visit   {id, nick, type, dev}                        → logins
+ *   visit / paddling_visit {id, nick, type, dev}         → logins
  *   comment {cid, place, nick, text, stars, img}         → comments
  *   suggest {cat, place, nick, text, lat, lng, img}      → suggestions
  *   collect {status, added, detail}                      → collect
