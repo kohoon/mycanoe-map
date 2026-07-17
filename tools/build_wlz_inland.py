@@ -36,15 +36,22 @@ def buffer_path(latlngs, width_m):
         right.append([round(lo - nx * half / mlng, 6), round(la - ny * half / mlat, 6)])
     return [left + right[::-1] + [left[0]]]
 
-def short_zone(start, toward, length_m, width_m):
-    """기준점에서 물길 진행 방향으로 짧은 지정 구간을 만든다."""
-    d = haversine(start, toward) or 1.0
-    ratio = length_m / d
-    end = [
-        start[0] + (toward[0] - start[0]) * ratio,
-        start[1] + (toward[1] - start[1]) * ratio,
-    ]
-    return buffer_path([start, end], width_m)
+def path_zone(points, length_m, width_m):
+    """물길 중심선을 지정 길이에서 정확히 잘라 강폭만큼 버퍼한다."""
+    out = [points[0]]
+    remaining = length_m
+    for a, b in zip(points, points[1:]):
+        d = haversine(a, b)
+        if d >= remaining:
+            ratio = remaining / (d or 1.0)
+            out.append([
+                a[0] + (b[0] - a[0]) * ratio,
+                a[1] + (b[1] - a[1]) * ratio,
+            ])
+            break
+        out.append(b)
+        remaining -= d
+    return buffer_path(out, width_m)
 
 def _graph(anchor, river, pad, weighted=True):
     """weighted=False면 실거리 그래프(본류 가중치 할인 없음) — 거리 기준 구역용.
@@ -194,18 +201,24 @@ def main():
     print("승촌보…"); add("영산강 승촌보 구역", weir_zone([35.05599,126.74945],"영산강",1000,1000,250), ALL_,"영구","나주시"); S()
     print("죽산보…"); add("영산강 죽산보 구역", weir_zone([34.97328,126.62469],"영산강",1000,1000,250), ALL_,"연중","나주시"); S()
     print("관방보…"); add("영산강 관방보 구역(담양)", weir_zone([35.32413,126.99093],"영산강",500,350,80), ALL_,"영구","담양군"); S()
-    print("곡성 압록유원지·태평리…")
+    print("곡성 압록 합류점…")
     add(
-        "곡성 압록유원지 하류 150m 구역",
-        short_zone([35.19745,127.37492], [35.19750,127.37609], 150, 60),
+        "곡성 압록 합류점·섬진강 하류 150m 구역",
+        path_zone([
+            [35.1936092,127.3772772], [35.1927863,127.3781340],
+            [35.1914535,127.3803870]
+        ], 150, 96),
         ALL_, "매년 6.1~8.31", "곡성군",
-        "압록유원지 기준 하류 150m만 대략 표시(세부 경계는 관할 고시 참조)"
+        "섬진강·보성강 합류점에서 섬진강 하류 방향 150m(현지 강폭 기준 대략 표시)"
     )
     add(
-        "곡성 죽곡면 태평리 하류 50m 구역",
-        short_zone([35.14996,127.32115], [35.14940,127.32050], 50, 60),
+        "곡성 압록 합류점·보성강 방향 50m 구역",
+        path_zone([
+            [35.1936092,127.3772772], [35.1933919,127.3765238],
+            [35.1925318,127.3750281]
+        ], 50, 96),
         ALL_, "매년 6.1~8.31", "곡성군",
-        "죽곡면 태평리 기준 하류 50m만 대략 표시(세부 경계는 관할 고시 참조)"
+        "섬진강·보성강 합류점에서 보성강 방향 50m(현지 강폭 기준 대략 표시)"
     )
     S()
     print("하동 화개…")
