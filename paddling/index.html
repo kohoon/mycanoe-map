@@ -57,6 +57,14 @@
     .video-meta strong{display:block;font-size:11px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .video-meta small{display:block;margin-top:3px;color:#b9c9c5;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .video a{color:#bfe5da}
+    .modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(4,14,12,.82)}
+    .modal.open{display:flex}
+    .modal-dialog{position:relative;width:min(1100px,100%);background:#101715;border:1px solid #4d625d;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+    .modal-frame{aspect-ratio:16/9;background:#000}
+    .modal-frame iframe{display:block;width:100%;height:100%;border:0}
+    .modal-title{margin:0;padding:12px 54px 13px 14px;color:#fff;font-size:14px;line-height:1.4}
+    .modal-close{position:absolute;right:10px;top:10px;z-index:2;width:36px;height:36px;border:1px solid #899994;background:rgba(20,35,31,.9);color:#fff;border-radius:50%;font-size:23px;line-height:1;cursor:pointer}
+    .modal-close:hover{background:#b43c34;border-color:#b43c34}
     .empty{display:none;padding:30px;background:#fff;border:1px solid var(--line);text-align:center;color:var(--muted)}
     .safety{background:var(--amber-soft);border:1px solid #e6c98f;padding:13px 15px;font-size:12px;line-height:1.6;color:#624315;margin-top:18px}
     footer{border-top:1px solid var(--line);padding:22px 20px 36px;text-align:center;color:var(--muted);font-size:11px;line-height:1.6}
@@ -82,6 +90,8 @@
       .cat-head p{text-align:left;margin-top:5px}
       .category{margin-bottom:34px}
       .skill{padding:13px}
+      .modal{padding:10px}
+      .modal-title{font-size:12px}
     }
   </style>
 </head>
@@ -123,6 +133,14 @@
     YouTube 영상의 저작권과 내용은 각 제작자에게 있습니다.
   </footer>
 
+  <div id="videoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-dialog">
+      <div id="modalFrame" class="modal-frame"></div>
+      <h2 id="modalTitle" class="modal-title"></h2>
+      <button id="modalClose" class="modal-close" type="button" aria-label="영상 닫기" title="닫기">×</button>
+    </div>
+  </div>
+
   <script>
     const videos = {
       linked:{id:"OROqEy_M6dk",author:"Ray Goodwin",title:"Paddling a Canoe: Linking Strokes",tags:["Catch·Power·Recovery","연결 동작","엣징"]},
@@ -145,6 +163,15 @@
       pryslip:{id:"5pd5WKWnF-E",author:"David Johnston",title:"Canoeing Pry Sideslip Demonstration",tags:["프라이 사이드슬립","고정 프라이"]},
       rudder:{id:"CEFuSzV4tZ8",author:"Deakin Hunter",title:"Canoe Stern Rudder Stroke Tutorial",tags:["러더","선미 제어"]},
       bowpry:{id:"OlhiyVmFHDg",author:"Becky Mason",title:"Advanced Classic Solo Canoeing: Running Bow Pry",tags:["보우 프라이","슬라이딩 프라이"]},
+      beckyLessons:{id:"J85jtupQ-9I",author:"Becky Mason with Marty Morissette",title:"Solo Canoeing Lessons with Becky Mason",tags:["전진","엣징","연결 동작"]},
+      beckyJ:{id:"4wrh4bC2_Wc",author:"Becky Mason · Canoeroots",title:"Expert Canoeing Advice to Master the J-Stroke",tags:["J 스트로크","직진 보정"]},
+      beckyCanadian:{id:"Sx4J1Lqk9_k",author:"Becky Mason",title:"The J Stroke and Canadian Stroke",tags:["J 스트로크","캐나디언"]},
+      beckyFrontSweep:{id:"AVTFyNkZ7EI",author:"Becky Mason",title:"Classic Solo Canoeing: Front Sweep",tags:["프런트 스윕","회전"]},
+      beckyLowCircle:{id:"8kdAqu-tM3M",author:"Becky Mason",title:"Advanced Classic Solo Canoeing: Low Circle Stroke",tags:["로우 서클","피벗"]},
+      beckyLowBrace:{id:"L9iEqezw_8Y",author:"Becky Mason",title:"Classic Solo Canoeing: Low Brace Turn",tags:["로우 브레이스","브레이스 턴"]},
+      beckyScullDraw:{id:"kmzWLxPtAsU",author:"Becky Mason",title:"Becky Mason Demonstrates a Sculling Draw",tags:["스컬링 드로","횡이동"]},
+      beckyScullPry:{id:"yR8wN11d-RA",author:"Becky Mason",title:"Advanced Classic Solo Canoeing: Sculling Pry",tags:["스컬링 프라이","횡이동"]},
+      beckyBowJam:{id:"GrFLHbTzRnc",author:"Becky Mason",title:"Advanced Classic Solo Canoeing: Bow Jam",tags:["보우 잼","선수 회전"]},
       hanging:{id:"Cn1cfeJ4bXg",author:"Chenika Levett",title:"Canoe Hanging Draw Stroke Tutorial",tags:["행잉 드로","사이드슬립"]},
       brace:{id:"Q5vEp2FTUv0",author:"Canoe Instruction",title:"How to Stop Your Canoe From Flipping: Braces",tags:["로우 브레이스","하이 브레이스","지지"]},
       reverse:{id:"HRr0vb-4Bfk",author:"Charles Burchill",title:"Reverse (Back) Stroke and Variation",tags:["백 스트로크","리버스 J","후진"]},
@@ -223,25 +250,25 @@
     ];
 
     const skillVideos = {
-      "패들 구성":["linked"],"캐치":["forward","linked"],"파워 구간":["forward","linked"],"리커버리":["forward","silent"],
-      "온사이드":["linked"],"오프사이드·크로스":["crossdraw","linked"],
-      "틸팅":["edge"],"엣징":["edge","pivot"],"좌석 끝 자세":["edge"],"닐링":["edge","brace"],
-      "온사이드 턴 엣지":["pivot","edge"],"오프사이드 대응":["crossdraw","duffek"],
-      "전진 스트로크":["forward","linked"],"J 스트로크":["j"],"캐나디언·임페리얼":["canadian"],
+      "패들 구성":["linked"],"캐치":["forward","linked","beckyLessons"],"파워 구간":["forward","linked","beckyLessons"],"리커버리":["forward","silent","beckyLessons"],
+      "온사이드":["linked","beckyLessons"],"오프사이드·크로스":["crossdraw","linked"],
+      "틸팅":["edge","beckyLessons"],"엣징":["edge","pivot","beckyLowBrace"],"좌석 끝 자세":["edge","beckyLessons"],"닐링":["edge","brace","beckyLessons"],
+      "온사이드 턴 엣지":["pivot","edge","beckyLowBrace"],"오프사이드 대응":["crossdraw","duffek"],
+      "전진 스트로크":["forward","linked","beckyLessons"],"J 스트로크":["j","beckyJ","beckyCanadian"],"캐나디언·임페리얼":["canadian","beckyCanadian"],
       "인디언 스트로크":["indian"],"사일런트 스트로크":["silent","indian"],"C 스트로크":["cstroke"],
       "스컬링 전진":["sculling"],
       "백 스트로크":["reverse"],"러더":["rudder"],"J 러더·리버스 J":["reverse","rudder"],
       "파워 백 앤 러더":["reverse","rudder"],"파워 백 스컬":["sculling","reverse"],"스턴 프라이":["sternpry"],
       "정지":["reverse"],
-      "하프 스윕":["sweep"],"풀 스윕":["sweep"],"로우·수평 스윕":["sweep"],
+      "하프 스윕":["sweep","beckyFrontSweep"],"풀 스윕":["sweep","beckyFrontSweep"],"로우·수평 스윕":["sweep","beckyLowCircle"],
       "듀펙":["duffek"],"크로스 보우 듀펙":["duffek"],"C-프라이 온사이드 턴":["cstroke","sternpry"],
-      "스퀘어 스트로크 피벗":["pivotturn","pivot"],
-      "드로":["sideways","crossdraw"],"드로 슬라이스":["sideways"],"스컬링 드로":["scull","sideways"],
-      "프라이":["sideways"],"스컬링 프라이":["sculling","sideways"],"보우·슬라이딩 프라이":["bowpry"],
+      "스퀘어 스트로크 피벗":["pivotturn","pivot","beckyLowCircle"],
+      "드로":["sideways","crossdraw","beckyScullDraw"],"드로 슬라이스":["sideways","beckyScullDraw"],"스컬링 드로":["beckyScullDraw","scull","sideways"],
+      "프라이":["sideways","beckyScullPry"],"스컬링 프라이":["beckyScullPry","sculling","sideways"],"보우·슬라이딩 프라이":["bowpry","beckyBowJam"],
       "고정 드로 사이드슬립":["hanging","sideslip"],"고정 프라이 사이드슬립":["pryslip","sideslip"],
       "크로스 드로·크로스 보우 드로":["crossdraw"],
-      "로우 브레이스":["brace"],"하이 브레이스":["brace"],"고정 브레이스":["brace"],
-      "행잉 브레이스":["hanging","sideslip"],"스컬링 브레이스":["sculling","brace"],"프라이 브레이스":["pryslip","brace"],
+      "로우 브레이스":["beckyLowBrace","brace"],"하이 브레이스":["brace"],"고정 브레이스":["brace","beckyLowBrace"],
+      "행잉 브레이스":["hanging","sideslip"],"스컬링 브레이스":["sculling","brace","beckyLowBrace"],"프라이 브레이스":["pryslip","brace","beckyScullPry"],
       "에디라인 진입":["duffek","crossdraw"],"페리":["linked"],"크로스 포워드":["crossdraw","linked"],
       "연결 스트로크":["linked"]
     };
@@ -280,11 +307,27 @@
       }).join("");
       document.getElementById("content").innerHTML=html;
       document.getElementById("empty").style.display=shown?"none":"block";
-      document.querySelectorAll(".video-load").forEach(btn=>btn.onclick=()=>{
-        const frame=btn.parentElement, id=btn.dataset.video, title=btn.dataset.title;
-        frame.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="${esc(title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
-      });
+      document.querySelectorAll(".video-load").forEach(btn=>btn.onclick=()=>openVideo(btn.dataset.video,btn.dataset.title));
     }
+    const modal=document.getElementById("videoModal");
+    const modalFrame=document.getElementById("modalFrame");
+    const modalTitle=document.getElementById("modalTitle");
+    const modalClose=document.getElementById("modalClose");
+    function openVideo(id,title){
+      modalFrame.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="${esc(title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+      modalTitle.textContent=title;
+      modal.classList.add("open");
+      document.body.style.overflow="hidden";
+      modalClose.focus();
+    }
+    function closeVideo(){
+      modal.classList.remove("open");
+      modalFrame.innerHTML="";
+      document.body.style.overflow="";
+    }
+    modalClose.onclick=closeVideo;
+    modal.onclick=e=>{if(e.target===modal)closeVideo();};
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("open"))closeVideo();});
     document.getElementById("search").addEventListener("input",render);
     render();
   </script>
