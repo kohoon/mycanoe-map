@@ -47,18 +47,15 @@
     .skill p{font-size:13px;line-height:1.6;margin:0;color:#3f5550}
     .cue{display:block;margin-top:8px;padding-top:8px;border-top:1px solid #e6ecea;color:var(--green);font-size:12px;font-weight:800;line-height:1.5}
     .warn{color:var(--red)}
-    .video-block{margin-top:14px}
-    .video-heading{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px}
-    .video-heading span{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:var(--red);color:#fff;border-radius:50%;font-size:11px}
-    .videos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-    .video{background:#17211f;border:1px solid #273a36;border-radius:6px;overflow:hidden;color:#fff}
+    .skill-videos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+    .video{background:#17211f;border:1px solid #273a36;border-radius:5px;overflow:hidden;color:#fff;min-width:0}
     .frame{position:relative;aspect-ratio:16/9;background:#101715}
     .frame iframe{display:block;width:100%;height:100%;border:0}
-    .video-meta{padding:10px 11px 11px}
-    .video-meta strong{display:block;font-size:13px;line-height:1.4}
-    .video-meta small{display:block;margin-top:4px;color:#b9c9c5;font-size:11px}
-    .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-    .tag{background:#2b423d;color:#d9ebe6;border-radius:4px;padding:3px 6px;font-size:10px;font-weight:800}
+    .video-load{position:absolute;inset:0;width:100%;border:0;padding:0;cursor:pointer;background:#101715 center/cover no-repeat;color:#fff}
+    .video-load::after{content:"▶";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:46px;height:34px;border-radius:7px;background:#d62922;color:#fff;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+    .video-meta{padding:8px 9px 9px}
+    .video-meta strong{display:block;font-size:11px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .video-meta small{display:block;margin-top:3px;color:#b9c9c5;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .video a{color:#bfe5da}
     .empty{display:none;padding:30px;background:#fff;border:1px solid var(--line);text-align:center;color:var(--muted)}
     .safety{background:var(--amber-soft);border:1px solid #e6c98f;padding:13px 15px;font-size:12px;line-height:1.6;color:#624315;margin-top:18px}
@@ -80,7 +77,7 @@
       h1{font-size:21px}
       .subtitle{font-size:12px}
       .map-link{padding:8px 9px}
-      .skills,.videos{grid-template-columns:1fr}
+      .skills{grid-template-columns:1fr}
       .cat-head{display:block}
       .cat-head p{text-align:left;margin-top:5px}
       .category{margin-bottom:34px}
@@ -132,7 +129,7 @@
       forward:{id:"WP6_wntRXhw",author:"Ian Patton Paddling Instruction",title:"How to Perfect Your Open Canoe Forward Stroke",tags:["전진","몸통 회전","캐치"]},
       j:{id:"qmExaexsCAQ",author:"Ray Goodwin",title:"Mastering the J Stroke",tags:["J 스트로크","직진 보정"]},
       canadian:{id:"e6qe2Dq3rfw",author:"Ray Goodwin",title:"Canadian Stroke / Knifed J",tags:["캐나디언","나이프드 J","수중 회수"]},
-      indian:{id:"0UIa8bRdOPc",author:"Ray Goodwin",title:"Indian Stroke / Hunting Stroke",tags:["인디언","정숙 패들링"]},
+      indian:{id:"0UIa8bRdOPc",author:"Ray Goodwin",title:"Indian Stroke / Hunting Stroke",tags:["인디언","조용한 패들링"]},
       silent:{id:"35fIXWe2-vs",author:"Rolf Kraiker",title:"Silent Stroke Solo Canoe Technique",tags:["사일런트","리커버리"]},
       cstroke:{id:"Yx8_XeC7C1g",author:"Ray Goodwin",title:"C Stroke for Canoe",tags:["C 스트로크","솔로 턴"]},
       sideways:{id:"7YrCAQVTMPk",author:"Ray Goodwin",title:"Going Sideways: Draw, Pry and Sculling Draw",tags:["드로","프라이","스컬링 드로"]},
@@ -171,7 +168,7 @@
         ["온사이드 턴 엣지","Onside turn edge","회전하려는 패들 쪽으로 카누를 기울여 선체의 회전성을 높입니다.","낮은 속도에서 기울기와 복원 감각부터 익힙니다."],
         ["오프사이드 대응","Offside control","패들을 바꿀 시간이 없는 에디 진입에서 크로스 계열과 프라이 지지를 사용합니다.","반대쪽 엣지와 패들 지지를 동시에 연결합니다."]
       ]},
-      {id:"forward",name:"직진·정숙",desc:"효율적으로 전진하며 방향을 유지",video:["j","canadian","indian","silent","cstroke"],skills:[
+      {id:"forward",name:"직진·조용한 패들링",desc:"효율적으로 전진하고 물소리를 줄이며 방향을 유지",video:["j","canadian","indian","silent","cstroke"],skills:[
         ["전진 스트로크","Forward stroke","캐치·파워·리커버리를 연결해 선체 옆에서 짧고 수직으로 힘을 전달합니다.","엉덩이 뒤까지 당기지 않고 일정한 리듬을 유지합니다."],
         ["J 스트로크","J Stroke","전진 스트로크 끝에서 블레이드 면을 돌려 패들 반대쪽으로 휘는 선수를 짧게 보정합니다.","큰 러더처럼 오래 끌지 말고 짧고 조용하게 마무리합니다."],
         ["캐나디언·임페리얼","Canadian / Imperial","블레이드를 완전히 빼지 않는 수중 리커버리로 조용하게 직진합니다.","파워 구간과 회수 구간의 블레이드 각도를 분명히 나눕니다."],
@@ -225,14 +222,37 @@
       ]}
     ];
 
+    const skillVideos = {
+      "패들 구성":["linked"],"캐치":["forward","linked"],"파워 구간":["forward","linked"],"리커버리":["forward","silent"],
+      "온사이드":["linked"],"오프사이드·크로스":["crossdraw","linked"],
+      "틸팅":["edge"],"엣징":["edge","pivot"],"좌석 끝 자세":["edge"],"닐링":["edge","brace"],
+      "온사이드 턴 엣지":["pivot","edge"],"오프사이드 대응":["crossdraw","duffek"],
+      "전진 스트로크":["forward","linked"],"J 스트로크":["j"],"캐나디언·임페리얼":["canadian"],
+      "인디언 스트로크":["indian"],"사일런트 스트로크":["silent","indian"],"C 스트로크":["cstroke"],
+      "스컬링 전진":["sculling"],
+      "백 스트로크":["reverse"],"러더":["rudder"],"J 러더·리버스 J":["reverse","rudder"],
+      "파워 백 앤 러더":["reverse","rudder"],"파워 백 스컬":["sculling","reverse"],"스턴 프라이":["sternpry"],
+      "정지":["reverse"],
+      "하프 스윕":["sweep"],"풀 스윕":["sweep"],"로우·수평 스윕":["sweep"],
+      "듀펙":["duffek"],"크로스 보우 듀펙":["duffek"],"C-프라이 온사이드 턴":["cstroke","sternpry"],
+      "스퀘어 스트로크 피벗":["pivotturn","pivot"],
+      "드로":["sideways","crossdraw"],"드로 슬라이스":["sideways"],"스컬링 드로":["scull","sideways"],
+      "프라이":["sideways"],"스컬링 프라이":["sculling","sideways"],"보우·슬라이딩 프라이":["bowpry"],
+      "고정 드로 사이드슬립":["hanging","sideslip"],"고정 프라이 사이드슬립":["pryslip","sideslip"],
+      "크로스 드로·크로스 보우 드로":["crossdraw"],
+      "로우 브레이스":["brace"],"하이 브레이스":["brace"],"고정 브레이스":["brace"],
+      "행잉 브레이스":["hanging","sideslip"],"스컬링 브레이스":["sculling","brace"],"프라이 브레이스":["pryslip","brace"],
+      "에디라인 진입":["duffek","crossdraw"],"페리":["linked"],"크로스 포워드":["crossdraw","linked"],
+      "연결 스트로크":["linked"]
+    };
+
     const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     const norm=s=>(s||"").toLowerCase().replace(/\s+/g,"");
     function videoHTML(key){
       const v=videos[key];
       return `<article class="video">
-        <div class="frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/${v.id}" title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
-        <div class="video-meta"><strong>${esc(v.title)}</strong><small>${esc(v.author)} · <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">YouTube에서 열기</a></small>
-        <div class="tags">${v.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
+        <div class="frame"><button class="video-load" type="button" data-video="${v.id}" data-title="${esc(v.title)}" style="background-image:linear-gradient(rgba(0,0,0,.08),rgba(0,0,0,.22)),url('https://i.ytimg.com/vi/${v.id}/hqdefault.jpg')" aria-label="${esc(v.title)} 재생"></button></div>
+        <div class="video-meta"><strong title="${esc(v.title)}">${esc(v.title)}</strong><small>${esc(v.author)} · <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">YouTube</a></small></div>
       </article>`;
     }
 
@@ -246,17 +266,24 @@
       let shown=0;
       const html=categories.map(c=>{
         const matched=c.skills.filter(s=>!q||norm(s.join(" ")).includes(q));
-        const videoMatch=!q||c.video.some(k=>norm([videos[k].title,...videos[k].tags].join(" ")).includes(q));
-        if(!matched.length&&!videoMatch)return "";
+        if(!matched.length)return "";
         shown++;
-        const skillHTML=matched.map(s=>`<article class="skill"><h3>${esc(s[0])}<span class="en">${esc(s[1])}</span></h3><p>${esc(s[2])}</p><span class="cue ${s[4]==="warn"?"warn":""}">${s[4]==="warn"?"주의 · ":"핵심 · "}${esc(s[3])}</span></article>`).join("");
+        const skillHTML=matched.map(s=>{
+          const keys=skillVideos[s[0]]||[];
+          return `<article class="skill"><h3>${esc(s[0])}<span class="en">${esc(s[1])}</span></h3><p>${esc(s[2])}</p><span class="cue ${s[4]==="warn"?"warn":""}">${s[4]==="warn"?"주의 · ":"핵심 · "}${esc(s[3])}</span>
+            ${keys.length?`<div class="skill-videos">${keys.map(videoHTML).join("")}</div>`:""}
+          </article>`;
+        }).join("");
         return `<section id="${c.id}" class="category"><div class="cat-head"><h2>${c.name}</h2><p>${c.desc}</p></div>
           ${matched.length?`<div class="skills">${skillHTML}</div>`:""}
-          ${videoMatch?`<div class="video-block"><h3 class="video-heading"><span>▶</span>관련 영상</h3><div class="videos">${c.video.map(videoHTML).join("")}</div></div>`:""}
         </section>`;
       }).join("");
       document.getElementById("content").innerHTML=html;
       document.getElementById("empty").style.display=shown?"none":"block";
+      document.querySelectorAll(".video-load").forEach(btn=>btn.onclick=()=>{
+        const frame=btn.parentElement, id=btn.dataset.video, title=btn.dataset.title;
+        frame.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="${esc(title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+      });
     }
     document.getElementById("search").addEventListener("input",render);
     render();
