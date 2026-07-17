@@ -202,9 +202,12 @@
     const norm=s=>s.toLowerCase().replace(/\s+/g,"");
     function anatomyHTML(id){
       if(id==="paddle")return `<figure class="anatomy"><svg viewBox="0 0 760 280" role="img" aria-label="카누 패들 부분별 명칭">
-        <defs><style>.p{fill:#d99d51;stroke:#754823;stroke-width:2}.l{fill:none;stroke:#61736f;stroke-width:1.2}.d{fill:#116a58}.t{fill:#18302c;font:700 12px sans-serif}.e{fill:#185e8c;font:10px sans-serif}</style></defs>
-        <path class="p" d="M25 118Q10 118 10 136t15 18h29q14 0 17-18-3-18-17-18z"/><rect class="p" x="65" y="132" width="340" height="8" rx="4"/>
-        <path class="p" d="M398 128q30-2 47-24 25-32 73-35 96-7 222 67-126 74-222 67-48-3-73-35-17-22-47-24z"/>
+        <defs><linearGradient id="realWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b96d2e"/><stop offset=".18" stop-color="#e5ad62"/><stop offset=".52" stop-color="#f2cc87"/><stop offset=".82" stop-color="#d69249"/><stop offset="1" stop-color="#9b5627"/></linearGradient><style>.p{fill:url(#realWood);stroke:#754823;stroke-width:2}.g{fill:none;stroke:#a86530;stroke-width:1.2;opacity:.55}.l{fill:none;stroke:#61736f;stroke-width:1.2}.d{fill:#116a58}.t{fill:#18302c;font:700 12px sans-serif}.e{fill:#185e8c;font:10px sans-serif}</style></defs>
+        <path class="p" d="M12 136 C12 121 23 113 37 117 L56 123 C66 126 71 131 72 136 C71 142 66 146 56 149 L37 155 C23 159 12 151 12 136 Z"/>
+        <path class="p" d="M65 131 C175 130 288 130 410 131 L410 141 C288 142 175 142 65 141 Z"/>
+        <path class="p" d="M402 130 C430 129 446 120 462 103 C483 81 511 74 549 77 C604 80 661 103 740 136 C661 169 604 192 549 195 C511 198 483 191 462 169 C446 152 430 143 402 142 Z"/>
+        <path class="g" d="M82 134 C190 133 300 133 402 134 M82 139 C190 140 300 140 402 139 M451 135 C510 111 596 107 703 133 M451 140 C510 165 596 170 703 140 M505 82 C537 115 537 158 505 190 M558 78 C583 113 583 159 558 193 M615 87 C635 116 635 157 615 184"/>
+        <path d="M409 133 C450 133 473 118 494 98 C520 82 555 82 584 92 C553 111 538 127 536 136 C538 145 553 161 584 180 C555 190 520 190 494 174 C473 154 450 140 409 139 Z" fill="#8f4e24" opacity=".18"/>
         <path class="l" d="M38 117V46h25"/><circle class="d" cx="38" cy="117" r="3"/><text class="t" x="69" y="44">그립</text><text class="e" x="69" y="58">Grip</text>
         <path class="l" d="M235 131V46h30"/><circle class="d" cx="235" cy="131" r="3"/><text class="t" x="271" y="44">샤프트</text><text class="e" x="271" y="58">Shaft</text>
         <path class="l" d="M420 120V46h28"/><circle class="d" cx="420" cy="120" r="3"/><text class="t" x="454" y="44">스로트</text><text class="e" x="454" y="58">Throat</text>

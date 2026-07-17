@@ -283,9 +283,7 @@
     const categories = [
       {id:"fundamentals",name:"기초 원리",desc:"패들과 한 번의 스트로크를 이해하는 기준",video:["linked","forward"],skills:[
         ["패들 구성","Paddle anatomy","패들은 그립, 샤프트, 스로트, 블레이드, 팁으로 나뉩니다. 추진력을 만드는 앞면은 파워 페이스, 반대쪽은 비파워 페이스입니다.","그립 잡은 손의 엄지 방향으로 물속 블레이드 면과 각도를 확인합니다."],
-        ["캐치","Catch","블레이드 팁부터 보트 가까운 물에 조용히 꽂습니다. 샤프트를 수직에 가깝게 세우고 몸통 회전을 미리 만듭니다.","물을 뒤로 당기기보다 블레이드를 고정하고 배가 앞으로 지나간다고 생각합니다."],
-        ["추진 구간","Power phase","팔로만 당기지 않고 몸통 회전과 등·복부를 사용합니다. 그립 잡은 손은 앞으로 누르고 샤프트 잡은 손은 힘을 전달합니다.","블레이드는 엉덩이선 부근에서 빼며 너무 뒤까지 끌지 않습니다."],
-        ["리커버리","Recovery","블레이드를 얇게 빼 저항 없이 다음 캐치로 보냅니다. 손목과 엄지로 블레이드 면을 확인합니다.","리커버리는 휴식이 아니라 다음 캐치의 정확도를 만드는 준비 단계입니다."],
+        ["스트로크의 3단계","Catch · Power · Recovery","캐치에서 블레이드를 보트 가까운 물에 조용히 꽂고, 추진 구간에는 몸통으로 힘을 전달한 뒤, 저항 없이 회수해 다음 캐치로 연결합니다.","물을 뒤로 당기기보다 블레이드를 고정하고 카누가 앞으로 지나가게 하며, 엉덩이선 부근에서 블레이드를 빼 다음 캐치를 준비합니다."],
         ["패들 쪽","Onside","현재 패들을 넣고 있는 쪽을 뜻합니다. 힘을 전달하고 블레이드를 수직으로 세우기 쉬운 주된 작업 방향입니다.","반대쪽 기술과 함께 익혀 어느 방향에서도 카누를 제어합니다."],
         ["패들 반대쪽·크로스 동작","Offside / Cross-deck","패들을 손에서 바꾸지 않고 몸통을 돌려 반대쪽 물에 블레이드를 넣습니다. 크로스 전진 스트로크와 크로스 보우 드로우의 기반입니다.","팔과 어깨만 뻗지 말고 무릎·골반·몸통을 함께 회전합니다.","warn"]
       ]},
@@ -306,7 +304,7 @@
         ["C 스트로크","C stroke","솔로 카누가 출발할 때 선수가 패들 반대쪽으로 돌아가는 것을 막고 곧게 나아가거나 패들 쪽 원을 그릴 때 사용합니다.","선수 바깥에서 드로우로 시작해 전진 스트로크로 연결하고, 엉덩이 부근에서 짧은 J 또는 프라이 보정으로 마칩니다."],
         ["전진 스컬링","Forward sculling","블레이드를 앞뒤로 움직이며 각도 변화로 전진 성분을 만듭니다.","약간의 측방 이동은 자연스러우며 힘의 방향 변화를 느끼는 것이 목적입니다."]
       ]},
-      {id:"reverse",name:"후진·정지",desc:"감속과 후진 중 선체 방향을 유지",video:["reverse","rudder","sternpry","sculling"],skills:[
+      {id:"reverse",name:"후진, 정지, 방향전환",desc:"감속·후진과 선미 스트로크를 이용한 방향 전환",video:["reverse","rudder","sternpry","sculling"],skills:[
         ["백 스트로크","Back stroke","몸통을 회전해 블레이드로 앞쪽을 밀며 감속하거나 후진합니다.","팔로 물만 밀지 말고 몸통과 선체가 함께 움직이게 합니다."],
         ["러더","Rudder","선미 쪽에 블레이드를 세워 진행 중인 카누의 방향을 유지하거나 미세하게 바꿉니다.","오래 끌면 속도가 줄어드므로 짧은 방향 보정에 사용합니다."],
         ["리버스 J 스트로크","Reverse J stroke","선수 또는 솔로 패들러가 후진 추진과 방향 보정을 한 동작으로 연결할 때 사용합니다. 후진 페리(Back ferry) 중에는 선수를 패들 반대쪽으로 움직이는 데에도 사용합니다.","백 스트로크가 끝날 때 그립 잡은 손의 엄지를 뒤쪽 아래로 돌리고, 블레이드를 선체와 평행하게 만든 뒤 샤프트 잡은 손을 카누 바깥으로 밀어 보정합니다."],
@@ -352,7 +350,7 @@
     ];
 
     const skillVideos = {
-      "패들 구성":["paddleHold"],"캐치":["forward"],"추진 구간":["forward"],"리커버리":["forward"],
+      "패들 구성":["paddleHold"],"스트로크의 3단계":["forward","linked"],
       "패들 쪽":[],"패들 반대쪽·크로스 동작":["offside"],
       "카누 기울이기":["edge"],"기울기로 선체 제어":["edge"],"퍼치 자세":[],"무릎 꿇은 자세":["kneeling"],
       "패들 쪽으로 기울여 회전하기":["onsideTurns"],"패들 반대쪽 제어":["offside"],
@@ -385,7 +383,7 @@
       whitewater:{level:"급류",environment:"흐르는 물"}
     };
     const prerequisites={
-      "추진 구간":["캐치"],"리커버리":["추진 구간"],"전진 스트로크":["캐치","추진 구간","리커버리"],
+      "전진 스트로크":["스트로크의 3단계"],
       "J 스트로크":["전진 스트로크"],"캐나디언 스트로크":["J 스트로크"],"인디언 스트로크":["캐나디언 스트로크"],
       "사일런트 스트로크":["전진 스트로크"],"C 스트로크":["전진 스트로크"],"전진 스컬링":["스컬링 드로우"],
       "리버스 J 스트로크":["백 스트로크"],"강한 후진 후 러더":["백 스트로크","러더"],"후진 스컬링":["백 스트로크"],
@@ -408,7 +406,7 @@
     const byName=Object.fromEntries(allSkills.map(s=>[s.name,s]));
     const bySlug=Object.fromEntries(allSkills.map(s=>[s.slug,s]));
     const oldSlugAliases={
-      "stroke-power-phase":"power-phase","offside-cross":"offside-cross-deck","tilting":"heeling-tilting",
+      "stroke-power-phase":"catch-power-recovery","offside-cross":"offside-cross-deck","tilting":"heeling-tilting",
       "onside-turn-edge":"onside-heeled-turn","canadian-imperial":"canadian-stroke",
       "indian-stroke":"indian-hunting-stroke","j-rudder-reverse-j":"reverse-j-stroke",
       "c-to-pry-turn":"c-to-pry-turn-drill","square-stroke-pivot":"square-stroke-pivot-drill",
@@ -417,6 +415,7 @@
       "cross-draw-cross-bow-draw":"cross-bow-draw","hanging-brace":"support-with-a-hanging-draw",
       "sculling-brace":"sculling-low-brace","pry-brace":"righting-pry","ferry":"ferry-glide"
     };
+    ["catch","power-phase","recovery"].forEach(oldSlug=>oldSlugAliases[oldSlug]="catch-power-recovery");
     Object.entries(oldSlugAliases).forEach(([oldSlug,newSlug])=>{if(bySlug[newSlug])bySlug[oldSlug]=bySlug[newSlug];});
     const currentSlug=value=>oldSlugAliases[value]||value;
     const WORKER_URL="https://mycanoe-map.kohoon0140.workers.dev";
@@ -581,8 +580,8 @@
       return `<figure class="paddle-anatomy" aria-labelledby="paddleAnatomyCaption">
         <svg viewBox="0 0 680 300" role="img" aria-label="카누 패들의 그립, 샤프트, 스로트, 블레이드, 팁과 블레이드 면을 표시한 그림">
           <defs>
-            <linearGradient id="paddleWood" x1="0" x2="1">
-              <stop offset="0" stop-color="#d49a50"/><stop offset=".52" stop-color="#f0c57a"/><stop offset="1" stop-color="#bd7838"/>
+            <linearGradient id="paddleWood" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#b96d2e"/><stop offset=".18" stop-color="#e5ad62"/><stop offset=".52" stop-color="#f2cc87"/><stop offset=".82" stop-color="#d69249"/><stop offset="1" stop-color="#9b5627"/>
             </linearGradient>
             <style>
               .part{fill:url(#paddleWood);stroke:#754823;stroke-width:2}
@@ -593,10 +592,11 @@
               .sub{fill:#61736f;font:11px -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
             </style>
           </defs>
-          <path class="part" d="M34 125 Q18 125 18 142 Q18 159 34 159 L61 159 Q75 159 78 146 Q75 133 61 125 Z"/>
-          <rect class="part" x="72" y="138" width="314" height="8" rx="4"/>
-          <path class="part" d="M379 136 Q409 133 425 113 Q443 89 472 82 Q524 70 587 91 Q620 102 648 139 Q620 176 587 187 Q524 208 472 196 Q443 189 425 165 Q409 145 379 148 Z"/>
-          <path class="grain" d="M88 141 H378 M430 139 Q492 99 605 129 M430 145 Q500 180 605 153 M472 88 Q520 137 472 190"/>
+          <path class="part" d="M20 142 C20 127 31 119 45 123 L62 129 C71 132 76 136 77 142 C76 148 71 152 62 155 L45 161 C31 165 20 157 20 142 Z"/>
+          <path class="part" d="M70 137 C172 136 280 136 386 137 L386 147 C280 148 172 148 70 147 Z"/>
+          <path class="part" d="M379 136 C405 135 420 127 435 111 C454 91 480 84 515 86 C565 89 616 110 648 140 C616 170 565 191 515 194 C480 196 454 189 435 169 C420 153 405 145 379 144 Z"/>
+          <path class="grain" d="M88 140 C184 139 282 139 378 140 M88 145 C184 146 282 146 378 145 M430 139 C478 119 548 113 621 137 M430 144 C478 164 548 170 621 143 M472 93 C500 122 500 160 472 187 M519 88 C541 120 541 161 519 192 M565 96 C582 122 582 157 565 184"/>
+          <path d="M385 139 C427 140 448 126 468 107 C493 91 527 92 551 99 C524 117 512 132 510 140 C512 149 524 164 551 181 C527 189 493 189 468 173 C448 154 427 141 385 144 Z" fill="#8f4e24" opacity=".18"/>
 
           <path class="guide" d="M48 124 V72 H86"/><circle class="dot" cx="48" cy="124" r="3"/>
           <text class="label" x="91" y="69">그립</text><text class="sub" x="91" y="85">Grip</text>
@@ -615,11 +615,36 @@
 
           <g transform="translate(34 224)">
             <rect x="0" y="0" width="260" height="50" rx="4" fill="#eef5f2" stroke="#bfd1cc"/>
-            <path d="M15 14 H57 Q68 25 57 36 H15 Z" fill="#d49a50" stroke="#754823"/>
+            <path d="M15 25 C15 15 22 11 31 14 C43 18 54 17 63 25 C54 33 43 32 31 36 C22 39 15 35 15 25 Z" fill="#d99b50" stroke="#754823"/>
             <text class="label" x="70" y="20">파워 페이스</text><text class="sub" x="70" y="36">물을 밀어 추진력을 만드는 앞면</text>
           </g>
         </svg>
         <figcaption id="paddleAnatomyCaption">그립에서 팁까지 이어지는 각 부위. 비파워 페이스(Back face)는 그림에 보이는 파워 페이스의 반대쪽 면입니다.</figcaption>
+      </figure>`;
+    }
+    function sideReferenceHTML(){
+      return `<figure class="paddle-anatomy" aria-labelledby="sideReferenceCaption">
+        <svg viewBox="0 0 680 300" role="img" aria-label="위에서 본 솔로 카누의 온사이드와 오프사이드">
+          <defs><style>
+            .canoeOuter{fill:#c88442;stroke:#70451f;stroke-width:2}.canoeInner{fill:#f7e7cd;stroke:#986838;stroke-width:1.5}
+            .sideGuide{stroke-width:2;stroke-dasharray:6 5}.sideText{font:800 15px -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+            .sideSub{font:11px -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+          </style></defs>
+          <rect x="24" y="34" width="632" height="232" rx="5" fill="#f8fbfa" stroke="#d7e2df"/>
+          <path d="M340 57 C280 82 266 115 266 150 C266 185 280 218 340 243 C400 218 414 185 414 150 C414 115 400 82 340 57 Z" class="canoeOuter"/>
+          <path d="M340 78 C300 98 291 122 291 150 C291 178 300 202 340 222 C380 202 389 178 389 150 C389 122 380 98 340 78 Z" class="canoeInner"/>
+          <rect x="286" y="132" width="108" height="10" rx="2" fill="#9d6737" transform="rotate(90 340 137)"/>
+          <circle cx="340" cy="151" r="18" fill="#244d45"/><path d="M340 169 V205" stroke="#244d45" stroke-width="12" stroke-linecap="round"/>
+          <path d="M376 102 L500 214" stroke="#8a552b" stroke-width="7" stroke-linecap="round"/>
+          <path d="M493 205 C516 215 526 229 518 241 C500 243 483 232 478 215 Z" fill="#d99b50" stroke="#754823" stroke-width="2"/>
+          <path d="M430 65 H615 V213" fill="none" stroke="#116a58" class="sideGuide"/>
+          <circle cx="430" cy="65" r="4" fill="#116a58"/><text x="494" y="91" fill="#116a58" class="sideText">온사이드</text><text x="502" y="108" fill="#116a58" class="sideSub">Onside · 패들 쪽</text>
+          <path d="M250 65 H65 V213" fill="none" stroke="#185e8c" class="sideGuide"/>
+          <circle cx="250" cy="65" r="4" fill="#185e8c"/><text x="91" y="91" fill="#185e8c" class="sideText">오프사이드</text><text x="88" y="108" fill="#185e8c" class="sideSub">Offside · 패들 반대쪽</text>
+          <path d="M340 46 V252" stroke="#9caeaa" stroke-width="1" stroke-dasharray="3 5"/>
+          <text x="315" y="42" fill="#61736f" class="sideSub">선수</text><text x="315" y="269" fill="#61736f" class="sideSub">선미</text>
+        </svg>
+        <figcaption id="sideReferenceCaption">그림은 패들을 오른쪽에 넣은 경우입니다. 패들을 왼쪽으로 바꾸면 온사이드와 오프사이드도 함께 바뀝니다.</figcaption>
       </figure>`;
     }
     function detailHTML(s){
@@ -627,6 +652,7 @@
       const related=relatedSkills(s);
       return `
         ${s.name==="패들 구성"?paddleAnatomyHTML():""}
+        ${s.name==="패들 쪽"||s.name==="패들 반대쪽·크로스 동작"?sideReferenceHTML():""}
         <section class="detail-section"><h3>언제 쓰는가</h3><p>${esc(s.summary)}</p></section>
         <section class="detail-section"><h3>동작 핵심</h3><p>${esc(s.cue)}</p></section>
         <section class="detail-section"><h3>연습 순서</h3><ol class="detail-steps">${practiceSteps(s).map(x=>`<li>${esc(x)}</li>`).join("")}</ol></section>
