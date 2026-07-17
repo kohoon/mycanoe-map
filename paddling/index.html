@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="오픈 카누 패들링 기술을 카테고리별로 정리한 학습 페이지">
+  <title>패들링 지식 | 마이카누</title>
+  <style>
+    :root{
+      color-scheme:light;
+      --ink:#18302c;--muted:#61736f;--line:#d7e2df;--paper:#fff;
+      --green:#116a58;--green-soft:#e6f3ee;--blue:#185e8c;--blue-soft:#e8f2f8;
+      --amber:#9a5b00;--amber-soft:#fff4dc;--red:#a43d35;--red-soft:#fff0ee;
+      --bg:#f3f7f5;--shadow:0 8px 24px rgba(26,65,58,.09);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:144px}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+    button,input{font:inherit}
+    a{color:inherit}
+    .topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+    .top-inner{width:min(1180px,100%);margin:auto;padding:14px 20px 10px}
+    .brand-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .title-wrap{min-width:0}
+    h1{margin:0;font-size:24px;line-height:1.2;letter-spacing:0}
+    .subtitle{margin:4px 0 0;color:var(--muted);font-size:13px}
+    .map-link{flex:none;text-decoration:none;font-size:13px;font-weight:800;color:var(--green);border:1px solid #9cc7bb;padding:9px 12px;border-radius:6px}
+    .tools{display:flex;gap:10px;margin-top:12px;align-items:center}
+    .search{width:min(360px,100%);border:1px solid #b9c9c5;background:#fff;border-radius:6px;padding:10px 12px;color:var(--ink)}
+    .search:focus{outline:2px solid rgba(17,106,88,.15);border-color:var(--green)}
+    .tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 0 1px;scrollbar-width:thin}
+    .tab{white-space:nowrap;border:1px solid var(--line);background:#fff;color:#415650;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer}
+    .tab.active{background:var(--green);border-color:var(--green);color:#fff}
+    .layout{width:min(1180px,100%);margin:0 auto;padding:24px 20px 56px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:28px}
+    .side{position:sticky;top:155px;align-self:start}
+    .side-title{font-size:12px;font-weight:900;color:#71817d;margin-bottom:8px}
+    .side a{display:block;text-decoration:none;border-left:2px solid var(--line);padding:8px 10px;color:#50635e;font-size:13px;font-weight:700}
+    .side a:hover{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+    .source-note{margin-top:18px;padding:12px;border:1px solid var(--line);background:#fff;font-size:11px;line-height:1.55;color:var(--muted)}
+    .intro{border-left:4px solid var(--green);background:#fff;padding:16px 18px;margin-bottom:28px;box-shadow:var(--shadow)}
+    .intro strong{display:block;font-size:15px;margin-bottom:5px}
+    .intro p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
+    .category{margin-bottom:42px}
+    .cat-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:2px solid #aac9c1;padding-bottom:10px;margin-bottom:14px}
+    .cat-head h2{font-size:21px;line-height:1.25;margin:0;letter-spacing:0}
+    .cat-head p{margin:0;color:var(--muted);font-size:12px;text-align:right}
+    .skills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .skill{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+    .skill h3{font-size:15px;margin:0 0 7px;line-height:1.35;letter-spacing:0}
+    .en{color:var(--blue);font-size:12px;font-weight:800;margin-left:4px}
+    .skill p{font-size:13px;line-height:1.6;margin:0;color:#3f5550}
+    .cue{display:block;margin-top:8px;padding-top:8px;border-top:1px solid #e6ecea;color:var(--green);font-size:12px;font-weight:800;line-height:1.5}
+    .warn{color:var(--red)}
+    .video-block{margin-top:14px}
+    .video-heading{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px}
+    .video-heading span{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:var(--red);color:#fff;border-radius:50%;font-size:11px}
+    .videos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .video{background:#17211f;border:1px solid #273a36;border-radius:6px;overflow:hidden;color:#fff}
+    .frame{position:relative;aspect-ratio:16/9;background:#101715}
+    .frame iframe{display:block;width:100%;height:100%;border:0}
+    .video-meta{padding:10px 11px 11px}
+    .video-meta strong{display:block;font-size:13px;line-height:1.4}
+    .video-meta small{display:block;margin-top:4px;color:#b9c9c5;font-size:11px}
+    .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+    .tag{background:#2b423d;color:#d9ebe6;border-radius:4px;padding:3px 6px;font-size:10px;font-weight:800}
+    .video a{color:#bfe5da}
+    .empty{display:none;padding:30px;background:#fff;border:1px solid var(--line);text-align:center;color:var(--muted)}
+    .safety{background:var(--amber-soft);border:1px solid #e6c98f;padding:13px 15px;font-size:12px;line-height:1.6;color:#624315;margin-top:18px}
+    footer{border-top:1px solid var(--line);padding:22px 20px 36px;text-align:center;color:var(--muted);font-size:11px;line-height:1.6}
+    @media(max-width:860px){
+      html{scroll-padding-top:180px}
+      .layout{display:block;padding:18px 14px 44px}
+      .side{display:none}
+      .top-inner{padding:12px 14px 8px}
+      .tools{margin-top:10px}
+      .search{width:100%}
+    }
+    @media(max-width:640px){
+      .brand-row{align-items:flex-start}
+      h1{font-size:21px}
+      .subtitle{font-size:12px}
+      .map-link{padding:8px 9px}
+      .skills,.videos{grid-template-columns:1fr}
+      .cat-head{display:block}
+      .cat-head p{text-align:left;margin-top:5px}
+      .category{margin-bottom:34px}
+      .skill{padding:13px}
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="top-inner">
+      <div class="brand-row">
+        <div class="title-wrap">
+          <h1>패들링 지식</h1>
+          <p class="subtitle">오픈 카누 스트로크를 원리부터 응용까지</p>
+        </div>
+        <a class="map-link" href="../">지도로 돌아가기</a>
+      </div>
+      <div class="tools">
+        <input id="search" class="search" type="search" placeholder="기술 검색: J 스트로크, 드로, 브레이스…" aria-label="패들링 기술 검색">
+      </div>
+      <nav id="tabs" class="tabs" aria-label="기술 카테고리"></nav>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="side">
+      <div class="side-title">카테고리</div>
+      <nav id="sideNav"></nav>
+      <div class="source-note">
+        <strong>정리 기준</strong><br>
+        2026-04-05 카누 패들링 훈련 복습 PDF의 모든 기술을 포함했습니다. 영상은 Ray Goodwin을 우선하고 기술별 교육 영상을 보완했습니다.
+      </div>
+    </aside>
+
+    <main>
+      <section class="intro">
+        <strong>모든 스트로크는 Catch → Power → Recovery로 연결됩니다.</strong>
+        <p>기술 이름보다 블레이드를 어디에 심고, 어느 방향으로 힘을 만들며, 저항 없이 어떻게 회수하는지를 먼저 확인하세요. 영상은 영어이지만 동작 관찰이 쉽도록 기술별로 묶었습니다.</p>
+      </section>
+      <div id="content"></div>
+      <div id="empty" class="empty">일치하는 기술이 없습니다.</div>
+      <div class="safety">급류·강풍 환경의 틸팅, 듀펙, 브레이스 연습은 전복과 어깨 부상 위험이 있습니다. 구명조끼를 착용하고 구조 가능한 동료 및 검증된 강사와 함께 연습하세요.</div>
+    </main>
+  </div>
+
+  <footer>
+    교육용 요약이며 현장 강습을 대체하지 않습니다.<br>
+    YouTube 영상의 저작권과 내용은 각 제작자에게 있습니다.
+  </footer>
+
+  <script>
+    const videos = {
+      linked:{id:"OROqEy_M6dk",author:"Ray Goodwin",title:"Paddling a Canoe: Linking Strokes",tags:["Catch·Power·Recovery","연결 동작","엣징"]},
+      forward:{id:"WP6_wntRXhw",author:"Ian Patton Paddling Instruction",title:"How to Perfect Your Open Canoe Forward Stroke",tags:["전진","몸통 회전","캐치"]},
+      j:{id:"qmExaexsCAQ",author:"Ray Goodwin",title:"Mastering the J Stroke",tags:["J 스트로크","직진 보정"]},
+      canadian:{id:"e6qe2Dq3rfw",author:"Ray Goodwin",title:"Canadian Stroke / Knifed J",tags:["캐나디언","나이프드 J","수중 회수"]},
+      indian:{id:"0UIa8bRdOPc",author:"Ray Goodwin",title:"Indian Stroke / Hunting Stroke",tags:["인디언","정숙 패들링"]},
+      silent:{id:"35fIXWe2-vs",author:"Rolf Kraiker",title:"Silent Stroke Solo Canoe Technique",tags:["사일런트","리커버리"]},
+      cstroke:{id:"Yx8_XeC7C1g",author:"Ray Goodwin",title:"C Stroke for Canoe",tags:["C 스트로크","솔로 턴"]},
+      sideways:{id:"7YrCAQVTMPk",author:"Ray Goodwin",title:"Going Sideways: Draw, Pry and Sculling Draw",tags:["드로","프라이","스컬링 드로"]},
+      scull:{id:"zr8GqU_QQeo",author:"Ray Goodwin",title:"Sculling Draw for Canoe",tags:["스컬링 드로","횡이동"]},
+      crossdraw:{id:"9jPUYqAzCs0",author:"Ray Goodwin",title:"Draw and Cross Bow Draw Strokes",tags:["드로","크로스 보우 드로","회전"]},
+      sideslip:{id:"-0qrBjbKegw",author:"Ray Goodwin",title:"Sideslips: Hanging Draw, Crossdeck and Running Pry",tags:["사이드슬립","행잉 드로","고정 프라이"]},
+      sternpry:{id:"0ANHezCD0gQ",author:"Ray Goodwin",title:"Canoeing: Stern Pry",tags:["스턴 프라이","러더","방향 보정"]},
+      pivot:{id:"cAYU-oia2HY",author:"Ray Goodwin",title:"Turning a Canoe: Inside Pivot Turn",tags:["피벗","엣징","스퀘어 계열"]},
+      duffek:{id:"cTITTMOflqY",author:"Ray Goodwin",title:"Cross Bow Rudder / Cross Bow Duffek",tags:["듀펙","크로스 보우 러더"]},
+      sweep:{id:"JjDwaLTzzCc",author:"CanoeingTV",title:"Canoeing Sweep Strokes",tags:["하프 스윕","풀 스윕","로우 스윕"]},
+      sculling:{id:"2DjoQmdQzO4",author:"Canoe Instruction",title:"Sculling: Canoe Strokes",tags:["스컬링","파워 백 스컬","스컬링 브레이스"]},
+      pivotturn:{id:"Ytf5LMCkKwk",author:"CanoeingTV",title:"Pivot Turns: Maneuvering a Canoe",tags:["피벗","스퀘어 스트로크"]},
+      pryslip:{id:"5pd5WKWnF-E",author:"David Johnston",title:"Canoeing Pry Sideslip Demonstration",tags:["프라이 사이드슬립","고정 프라이"]},
+      rudder:{id:"CEFuSzV4tZ8",author:"Deakin Hunter",title:"Canoe Stern Rudder Stroke Tutorial",tags:["러더","선미 제어"]},
+      bowpry:{id:"OlhiyVmFHDg",author:"Becky Mason",title:"Advanced Classic Solo Canoeing: Running Bow Pry",tags:["보우 프라이","슬라이딩 프라이"]},
+      hanging:{id:"Cn1cfeJ4bXg",author:"Chenika Levett",title:"Canoe Hanging Draw Stroke Tutorial",tags:["행잉 드로","사이드슬립"]},
+      brace:{id:"Q5vEp2FTUv0",author:"Canoe Instruction",title:"How to Stop Your Canoe From Flipping: Braces",tags:["로우 브레이스","하이 브레이스","지지"]},
+      reverse:{id:"HRr0vb-4Bfk",author:"Charles Burchill",title:"Reverse (Back) Stroke and Variation",tags:["백 스트로크","리버스 J","후진"]},
+      edge:{id:"TEobm0VU7cs",author:"John W",title:"Basic Canoe Control: Edge",tags:["틸팅","엣징","자세"]}
+    };
+
+    const categories = [
+      {id:"fundamentals",name:"기초 원리",desc:"패들과 한 번의 스트로크를 이해하는 기준",video:["linked","forward"],skills:[
+        ["패들 구성","Paddle anatomy","그립, 샤프트, 넥·스로트, 블레이드, 팁으로 나뉩니다. 물에 압력을 주는 면은 파워 페이스, 반대쪽은 오프·백 페이스입니다.","그립을 쥔 엄지 방향을 블레이드 각도를 알려주는 스티어링 핑거로 활용합니다."],
+        ["캐치","Catch","블레이드 팁부터 보트 가까이에 조용히 심습니다. 샤프트를 수직에 가깝게 세우고 몸통 회전을 미리 만듭니다.","물을 뒤로 당기기보다 블레이드를 고정하고 배가 앞으로 지나간다고 생각합니다."],
+        ["파워 구간","Stroke / Power phase","팔만 접지 않고 몸통 회전과 등·복부를 사용합니다. 탑핸드는 누르고 아랫손은 힘을 전달합니다.","블레이드는 엉덩이선 부근에서 빼며 너무 뒤까지 끌지 않습니다."],
+        ["리커버리","Recovery","블레이드를 얇게 빼 저항 없이 다음 캐치로 보냅니다. 손목과 엄지로 블레이드 면을 확인합니다.","리커버리는 휴식이 아니라 다음 캐치의 정확도를 만드는 준비 단계입니다."],
+        ["온사이드","Onside","주로 젓는 쪽의 안정적이고 반복 가능한 패들링입니다. 힘 전달과 수직 블레이드 확보에 유리합니다.","한쪽만 익숙해지지 않도록 오프사이드 기술과 함께 연습합니다."],
+        ["오프사이드·크로스","Offside / Cross","패들을 손에서 바꾸지 않고 몸통을 돌려 반대쪽 물을 잡습니다. 크로스 포워드와 크로스 드로의 기반입니다.","어깨만 뻗지 말고 몸통 회전으로 도달 범위를 만듭니다.","warn"]
+      ]},
+      {id:"posture",name:"자세·엣징",desc:"선체의 기울기와 몸의 중심으로 제어",video:["edge","linked"],skills:[
+        ["틸팅","Tilting","카누를 기울이는 동작입니다. 패들 쪽으로 기울이면 샤프트를 더 수직으로 쓰고 선체 회전을 쉽게 만들 수 있습니다.","상체만 물 쪽으로 눕지 말고 머리와 중심은 가능한 한 선체 안에 둡니다.","warn"],
+        ["엣징","Edging","기울기로 물에 닿는 선체 형상을 바꿔 선회성과 안정성을 조절합니다. 에디라인 진입과 빠른 방향 전환의 기반입니다.","어느 엣지를 살릴지 먼저 정한 뒤 스트로크를 연결합니다."],
+        ["좌석 끝 자세","Perched seating","좌석 앞쪽 끝에 앉아 골반을 자유롭게 쓰고 패들의 수직성을 높입니다.","발과 무릎으로 안정적인 지지점을 유지합니다."],
+        ["닐링","Kneeling","무릎을 대고 고관절과 허벅지로 건널과 선체 움직임을 느끼는 자세입니다.","틸팅·브레이스·드로 연습에 유리하지만 무릎과 발이 끼이지 않게 합니다.","warn"],
+        ["온사이드 턴 엣지","Onside turn edge","회전하려는 패들 쪽으로 카누를 기울여 선체의 회전성을 높입니다.","낮은 속도에서 기울기와 복원 감각부터 익힙니다."],
+        ["오프사이드 대응","Offside control","패들을 바꿀 시간이 없는 에디 진입에서 크로스 계열과 프라이 지지를 사용합니다.","반대쪽 엣지와 패들 지지를 동시에 연결합니다."]
+      ]},
+      {id:"forward",name:"직진·정숙",desc:"효율적으로 전진하며 방향을 유지",video:["j","canadian","indian","silent","cstroke"],skills:[
+        ["전진 스트로크","Forward stroke","캐치·파워·리커버리를 연결해 선체 옆에서 짧고 수직으로 힘을 전달합니다.","엉덩이 뒤까지 당기지 않고 일정한 리듬을 유지합니다."],
+        ["J 스트로크","J Stroke","전진 스트로크 끝에서 블레이드 면을 돌려 패들 반대쪽으로 휘는 선수를 짧게 보정합니다.","큰 러더처럼 오래 끌지 말고 짧고 조용하게 마무리합니다."],
+        ["캐나디언·임페리얼","Canadian / Imperial","블레이드를 완전히 빼지 않는 수중 리커버리로 조용하게 직진합니다.","파워 구간과 회수 구간의 블레이드 각도를 분명히 나눕니다."],
+        ["인디언 스트로크","Indian stroke","블레이드를 물속에서 회전해 연속 전진하며 소음과 회수 저항을 줄입니다.","파워 페이스 전환을 부드럽게 이어 리듬을 끊지 않습니다."],
+        ["사일런트 스트로크","Silent stroke","캐치와 리커버리에서 물 튐과 소리를 최소화하는 효율 훈련입니다.","힘보다 블레이드 각도와 조용한 진입·이탈에 집중합니다."],
+        ["C 스트로크","C Stroke","앞쪽 바깥 물을 잡아 C자 경로로 당기며 전진과 회전을 함께 만듭니다.","솔로 카누에서 출발과 온사이드 회전을 연결할 때 유용합니다."],
+        ["스컬링 전진","Forward sculling","블레이드를 앞뒤로 움직이며 각도 변화로 전진 성분을 만듭니다.","약간의 측방 이동은 자연스러우며 힘의 방향 변화를 느끼는 것이 목적입니다."]
+      ]},
+      {id:"reverse",name:"후진·정지",desc:"감속과 후진 중 선체 방향을 유지",video:["reverse","rudder","sternpry","sculling"],skills:[
+        ["백 스트로크","Back stroke","몸통을 회전해 블레이드로 앞쪽을 밀며 감속하거나 후진합니다.","팔로 물만 밀지 말고 몸통과 선체가 함께 움직이게 합니다."],
+        ["러더","Rudder","선미 쪽에 블레이드를 세워 진행 중인 카누의 방향을 유지하거나 미세하게 바꿉니다.","오래 끌면 속도가 줄어드므로 짧은 방향 보정에 사용합니다."],
+        ["J 러더·리버스 J","J Rudder / Reverse J","후진 또는 감속 중 선미에서 블레이드 면을 바꿔 방향을 보정합니다.","러더는 짧게 쓰고 지나친 저항을 만들지 않습니다."],
+        ["파워 백 앤 러더","Power Back and Rudder","강한 후진 스트로크 뒤에 짧은 러더를 연결해 진행 방향을 유지합니다.","파워와 보정을 분리해 몸통 회전으로 연결합니다."],
+        ["파워 백 스컬","Power Back Scull","후진하면서 블레이드를 스컬링해 지속적인 지지력과 방향 제어를 만듭니다.","블레이드 각도와 낮은 몸 중심이 핵심입니다."],
+        ["스턴 프라이","Stern Pry","선미에서 건널을 지렛점처럼 활용해 배의 방향을 빠르게 보정합니다.","건널과 샤프트에 과도한 충격을 주지 않습니다.","warn"],
+        ["정지","Stopping","짧고 대칭적인 백 스트로크로 속도를 줄이며 선체가 한쪽으로 돌지 않게 합니다.","급정지보다 여러 번의 제어된 스트로크가 안정적입니다."]
+      ]},
+      {id:"turning",name:"회전·피벗",desc:"스윕과 정적 블레이드로 선수를 전환",video:["sweep","pivot","pivotturn","duffek","cstroke"],skills:[
+        ["하프 스윕","Half Sweep","선수 또는 선미 쪽 절반만 큰 원으로 쓸어 필요한 쪽의 회전만 만듭니다.","블레이드를 선체에서 멀리 두어 회전 레버를 확보합니다."],
+        ["풀 스윕","Full Sweep","보우부터 스턴까지 넓은 원으로 쓸어 큰 회전을 만듭니다.","전진력이 아니라 회전력이 목적임을 분명히 합니다."],
+        ["로우·수평 스윕","Low / Horizontal Sweep","낮은 블레이드 각도로 수평에 가깝게 쓸어 안정적인 회전을 만듭니다.","낮은 자세와 블레이드 지지를 함께 유지합니다."],
+        ["듀펙","Duffek / Bow rudder","움직이는 배의 앞쪽에 블레이드를 세워 선체 속도를 회전으로 바꿉니다.","블레이드를 너무 닫아 걸리지 않게 하고 중심을 선체 안에 둡니다.","warn"],
+        ["크로스 보우 듀펙","Cross-bow Duffek","오프사이드 앞쪽에 블레이드를 심어 패들을 바꾸지 않고 빠르게 방향을 전환합니다.","팔이 아니라 몸통 전체를 회전해 안전한 어깨 위치를 만듭니다.","warn"],
+        ["C-프라이 온사이드 턴","C-to-Pry turn","C 스트로크로 앞쪽을 당긴 뒤 프라이 성분의 회수로 온사이드 회전을 이어갑니다.","두 힘의 방향 전환을 끊지 않고 한 흐름으로 만듭니다."],
+        ["스퀘어 스트로크 피벗","Square stroke pivot","각진 경로로 힘의 방향을 분절해 느끼며 제자리 피벗을 연습합니다.","라운드 스윕과 비교해 각 구간이 선체에 미치는 영향을 확인합니다."]
+      ]},
+      {id:"lateral",name:"횡이동·사이드슬립",desc:"카누를 옆으로 당기거나 밀어 접안과 라인 조정",video:["sideways","scull","crossdraw","sideslip","hanging","pryslip","bowpry"],skills:[
+        ["드로","Draw","블레이드를 선체 옆에 심고 카누를 패들 쪽으로 당깁니다.","선체에 닿기 전에 블레이드를 슬라이스해 다시 바깥으로 보냅니다."],
+        ["드로 슬라이스","Slice Draw recovery","드로 뒤 블레이드 날을 세워 저항 없이 바깥쪽 캐치 위치로 돌려보냅니다.","블레이드 면 전환을 손목만이 아니라 샤프트 회전으로 제어합니다."],
+        ["스컬링 드로","Sculling Draw","블레이드를 앞뒤로 움직이며 양방향에서 계속 카누를 패들 쪽으로 끌어옵니다.","8자 궤적보다 양 끝에서의 블레이드 각도 전환에 집중합니다."],
+        ["프라이","Pry","블레이드와 건널을 활용해 카누를 패들 반대쪽으로 밀어냅니다.","짧고 제어된 지렛작용을 사용하고 건널을 손상시키지 않습니다.","warn"],
+        ["스컬링 프라이","Sculling Pry","프라이 방향의 힘을 연속적으로 만들어 카누를 지속해서 밀어냅니다.","건널 근처에서 블레이드가 걸리지 않게 각도를 작게 조절합니다."],
+        ["보우·슬라이딩 프라이","Bow / Sliding Pry","선수 앞쪽에서 블레이드를 슬라이드하며 밀어 선수를 회전시킵니다.","전진 속도와 함께 쓰면 힘이 커지므로 짧게 적용합니다."],
+        ["고정 드로 사이드슬립","Stationary / Hanging Draw","움직이는 카누 옆에 드로를 고정해 선체가 패들 쪽으로 미끄러지게 합니다.","블레이드 위치를 앞뒤로 조절해 선체 각도를 유지합니다."],
+        ["고정 프라이 사이드슬립","Stationary Pry Sideslip","고정 프라이로 패들 반대쪽 횡이동 성분을 만듭니다.","오프사이드 틸팅에서 지지 역할과 함께 사용할 수 있습니다."],
+        ["크로스 드로·크로스 보우 드로","Cross Draw / Cross Bow Draw","몸통을 반대쪽으로 돌려 오프사이드 선수를 당기거나 회전시킵니다.","탑핸드가 얼굴을 가로지르지 않도록 몸통 회전을 충분히 만듭니다."]
+      ]},
+      {id:"support",name:"브레이스·지지",desc:"균형을 회복하고 기울어진 선체를 지지",video:["brace","sculling","scull","sideslip"],skills:[
+        ["로우 브레이스","Low Brace","오프 페이스를 낮게 눌러 순간적인 지지력을 만들고 하체로 선체를 복원합니다.","팔꿈치를 낮게 두고 머리가 가장 마지막에 선체 위로 돌아오게 합니다.","warn"],
+        ["하이 브레이스","High Brace","파워 페이스로 더 적극적인 지지를 만들지만 어깨 부상 위험이 큽니다.","손이 몸 뒤로 넘어가지 않게 하고 팔꿈치를 어깨선 아래에 둡니다.","warn"],
+        ["고정 브레이스","Stationary Brace","정지 상태에서 블레이드를 지지점으로 두고 기울기를 유지합니다.","낮은 수심과 통제된 환경에서 틸팅 연습과 연결합니다."],
+        ["행잉 브레이스","Hanging Brace","움직이는 중 블레이드를 물에 걸어 지속적으로 몸 중심을 지지합니다.","행잉 드로와 같은 원리로 블레이드 위치를 선체 속도에 맞춥니다."],
+        ["스컬링 브레이스","Sculling Brace","블레이드를 앞뒤로 움직여 연속 지지력을 만들며 균형을 회복합니다.","각도 변화가 끊기면 지지력이 사라지므로 작고 일정하게 움직입니다."],
+        ["프라이 브레이스","Pry Brace","오프사이드 틸팅에서 프라이 방향 힘으로 선체를 지지합니다.","건널을 지렛점으로 과도하게 누르지 않습니다.","warn"]
+      ]},
+      {id:"whitewater",name:"급류 응용",desc:"엣지와 스트로크를 실제 흐름에서 연결",video:["duffek","crossdraw","linked"],skills:[
+        ["에디라인 진입","Eddy turn","흐름 경계를 각도 있게 통과하며 안쪽 엣지와 듀펙·보우 드로를 연결합니다.","속도, 진입각, 엣지, 시선 네 요소를 진입 전에 결정합니다.","warn"],
+        ["페리","Ferry","선수를 상류 쪽으로 유지하고 엣지와 추진력을 조절해 강을 가로지릅니다.","강한 횡류에서는 패들 교체보다 크로스 포워드가 빠를 수 있습니다.","warn"],
+        ["크로스 포워드","Cross Forward","패들을 바꾸지 않고 반대쪽에서 전진력을 만들어 라인과 엣지를 유지합니다.","어깨를 과신전하지 말고 무릎·골반·몸통을 함께 회전합니다.","warn"],
+        ["연결 스트로크","Linked strokes","전진, 스윕, 드로, 프라이, 듀펙을 멈춤 없이 연결해 흐름에 대응합니다.","기술 사이 리커버리가 다음 기술의 캐치가 되게 만듭니다."]
+      ]}
+    ];
+
+    const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const norm=s=>(s||"").toLowerCase().replace(/\s+/g,"");
+    let active="all";
+
+    function videoHTML(key){
+      const v=videos[key];
+      return `<article class="video">
+        <div class="frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/${v.id}" title="${esc(v.title)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+        <div class="video-meta"><strong>${esc(v.title)}</strong><small>${esc(v.author)} · <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">YouTube에서 열기</a></small>
+        <div class="tags">${v.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
+      </article>`;
+    }
+
+    function renderNav(){
+      const nav=[{id:"all",name:"전체"},...categories.map(c=>({id:c.id,name:c.name}))];
+      document.getElementById("tabs").innerHTML=nav.map(n=>`<button class="tab ${active===n.id?"active":""}" data-id="${n.id}" type="button">${n.name}</button>`).join("");
+      document.getElementById("sideNav").innerHTML=categories.map(c=>`<a href="#${c.id}">${c.name}</a>`).join("");
+      document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{active=b.dataset.id;render();});
+    }
+
+    function render(){
+      renderNav();
+      const q=norm(document.getElementById("search").value);
+      let shown=0;
+      const html=categories.map(c=>{
+        if(active!=="all"&&active!==c.id)return "";
+        const matched=c.skills.filter(s=>!q||norm(s.join(" ")).includes(q));
+        const videoMatch=!q||c.video.some(k=>norm([videos[k].title,...videos[k].tags].join(" ")).includes(q));
+        if(!matched.length&&!videoMatch)return "";
+        shown++;
+        const skillHTML=matched.map(s=>`<article class="skill"><h3>${esc(s[0])}<span class="en">${esc(s[1])}</span></h3><p>${esc(s[2])}</p><span class="cue ${s[4]==="warn"?"warn":""}">${s[4]==="warn"?"주의 · ":"핵심 · "}${esc(s[3])}</span></article>`).join("");
+        return `<section id="${c.id}" class="category"><div class="cat-head"><h2>${c.name}</h2><p>${c.desc}</p></div>
+          ${matched.length?`<div class="skills">${skillHTML}</div>`:""}
+          ${videoMatch?`<div class="video-block"><h3 class="video-heading"><span>▶</span>관련 영상</h3><div class="videos">${c.video.map(videoHTML).join("")}</div></div>`:""}
+        </section>`;
+      }).join("");
+      document.getElementById("content").innerHTML=html;
+      document.getElementById("empty").style.display=shown?"none":"block";
+    }
+    document.getElementById("search").addEventListener("input",render);
+    render();
+  </script>
+</body>
+</html>
