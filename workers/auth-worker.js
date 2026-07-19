@@ -95,7 +95,35 @@ export default {
       return new Response("forbidden-origin", { status: 403, headers: { "Access-Control-Allow-Origin": req.headers.get("Origin") || "*" } });
     }
 
-    // 0) 활동 로그(자동로그인 재접속 등) → 브라우저가 호출, Worker가 Sheet 로 전달
+    // 0) 비로그인 방문 로그 — 원본 IP는 저장하지 않고 날짜별 익명 식별자로만 전달
+    if (url.pathname.endsWith("/anon-log")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (req.method === "POST" && env.LOG_WEBHOOK) {
+        let b = {};
+        try { b = await req.json(); } catch (e) {}
+        const ip = req.headers.get("CF-Connecting-IP") || "0";
+        const ua = (req.headers.get("User-Agent") || "").slice(0, 300);
+        const day = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const anonId = "anon_" + (await _hmacHex("pv|" + day + "|" + ip + "|" + ua, env.ADMIN_KEY || "paddling")).slice(0, 16);
+        const countryRaw = (req.headers.get("CF-IPCountry") || "").toUpperCase();
+        const country = /^[A-Z]{2}$/.test(countryRaw) ? countryRaw : "미상";
+        const dev = b.dev === "모바일" ? "모바일" : "PC";
+        ctx.waitUntil(fetch(env.LOG_WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: anonId, nick: "비로그인", type: "paddling_anon_visit", dev: dev + " · " + country }),
+        }).catch(() => {}));
+      }
+      return new Response("ok", { headers: cors });
+    }
+
+    // 0-1) 로그인 활동 로그(자동로그인 재접속 등) → 브라우저가 호출, Worker가 Sheet 로 전달
     if (url.pathname.endsWith("/log")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = {

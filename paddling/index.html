@@ -210,7 +210,8 @@
 
   <footer>
     교육용 요약이며 현장 강습을 대체하지 않습니다.<br>
-    YouTube 영상의 저작권과 내용은 각 제작자에게 있습니다.
+    YouTube 영상의 저작권과 내용은 각 제작자에게 있습니다.<br>
+    방문 통계를 위해 비로그인 방문자의 IP를 일일 익명값으로 변환하며, 원본 IP는 저장하지 않습니다.
   </footer>
 
   <div id="skillModal" class="skill-modal" role="dialog" aria-modal="true" aria-labelledby="skillTitle">
@@ -446,9 +447,18 @@
     function logPaddlingVisit(){
       try{
         const u=getUser();
-        if(!u||!u.uid||localStorage.getItem("mc_admin"))return;
-        fetch(WORKER_URL+"/log",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({id:u.uid,tok:u.tok||"",nick:u.nick||"",type:"paddling_visit",dev:deviceType()})}).catch(()=>{});
+        if(localStorage.getItem("mc_admin"))return;
+        if(u&&u.uid){
+          fetch(WORKER_URL+"/log",{method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({id:u.uid,tok:u.tok||"",nick:u.nick||"",type:"paddling_visit",dev:deviceType()})}).catch(()=>{});
+          return;
+        }
+        const day=new Date(Date.now()+9*60*60*1000).toISOString().slice(0,10);
+        const key="paddling_anon_visit_"+day;
+        if(localStorage.getItem(key))return;
+        fetch(WORKER_URL+"/anon-log",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({dev:deviceType()}),keepalive:true})
+          .then(r=>{if(r.ok)localStorage.setItem(key,"1");}).catch(()=>{});
       }catch(e){}
     }
     function parseLogin(){
