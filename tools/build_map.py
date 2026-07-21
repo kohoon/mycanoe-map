@@ -198,6 +198,7 @@ __GTAG__
   .obs-lowbridge{background:#6d4c41}
   .obs-yeoul{background:#1e88e5}
   .obs-spot{background:#2e9e5b}
+  .obs-wind{background:#7e57c2}
   #obName{width:100%;box-sizing:border-box;padding:9px;border:1px solid #ccd;border-radius:9px;font-size:13.5px}
   .leaflet-div-icon.obs-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .obs-div .obs-ic{position:absolute;transform:translate(-50%,-50%)}
@@ -344,10 +345,14 @@ __GTAG__
     filter:drop-shadow(0 2px 4px rgba(13,71,161,.65));animation:locbob 2.4s ease-in-out infinite}
   .loc-canoe-in svg{width:38px;height:auto}
   @keyframes locbob{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
-  .cafecard{display:flex;align-items:center;gap:8px;width:150px;box-sizing:border-box;background:#fff;padding:7px 12px 7px 7px;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.2);text-decoration:none;cursor:pointer}
+  .cafe-actions{display:flex;align-items:stretch;gap:6px}
+  .cafecard,.admin-sheet-card{display:flex;align-items:center;gap:8px;box-sizing:border-box;background:#fff;padding:7px 12px 7px 7px;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.2);text-decoration:none;cursor:pointer}
+  .cafecard{width:150px}
   .cafecard .cf-badge{width:30px;height:30px;flex:none;border-radius:8px;background:#03C75A;display:flex;align-items:center;justify-content:center}
   .cafecard .cf-badge svg{width:20px;height:auto}
-  .cafecard .cf-t{font:800 13px sans-serif;color:#1f2d25;white-space:nowrap}
+  .cafecard .cf-t,.admin-sheet-card .cf-t{font:800 13px sans-serif;color:#1f2d25;white-space:nowrap}
+  .admin-sheet-card{display:none;width:112px}
+  .admin-sheet-card .sheet-badge{width:30px;height:30px;flex:none;border-radius:8px;background:#188038;color:#fff;display:flex;align-items:center;justify-content:center;font:800 19px/1 sans-serif}
   .legend-c{width:150px;box-sizing:border-box}
   .spot-pin-in{width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #ec407a;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
   .spot-pin-in svg{width:23px;height:auto;overflow:visible}
@@ -547,7 +552,9 @@ __GTAG__
     .authbox .who{font-size:12.5px;padding:6px 9px}
     .cafecard{width:138px;padding:6px 10px 6px 6px}
     .cafecard .cf-badge{width:27px;height:27px}
-    .cafecard .cf-t{font-size:12px}
+    .cafecard .cf-t,.admin-sheet-card .cf-t{font-size:12px}
+    .admin-sheet-card{width:104px;padding:6px 9px 6px 6px}
+    .admin-sheet-card .sheet-badge{width:27px;height:27px;font-size:17px}
     .legend-c{width:138px;font-size:12px}
     .pmodal{padding:16px 14px 20px}
   }
@@ -670,9 +677,16 @@ function _adminBadge(on){ let el=document.getElementById('adminBadge');
   if(on){ if(!el){ el=document.createElement('div'); el.id='adminBadge'; el.className='admin-badge';
     el.innerHTML='<span class="ab-dot"></span>🔧관리자 <a id="adminExport">내보내기</a> <a id="adminOff">해제</a>'; document.body.appendChild(el);
     document.getElementById('adminExport').onclick=exportComments;
-    document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _adminOk=false; _adminBadge(false); }; } }
+    document.getElementById('adminOff').onclick=function(){ try{localStorage.removeItem('mc_admin');}catch(e){} _setAdmin(false); }; } }
   else if(el){ el.remove(); } }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); }
+async function _updateAdminSheetLink(on){
+  const a=document.getElementById('adminSheetLink'); if(!a) return;
+  if(!on){ a.style.display='none'; a.removeAttribute('href'); return; }
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/admin-sheet-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:adminKey()})});
+    const d=await r.json(); if(r.ok&&d&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.url||'')){ a.href=d.url; a.style.display='flex'; }
+  }catch(e){}
+}
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -788,10 +802,15 @@ const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;   //
 L.control.zoom({position:'bottomleft'}).addTo(map);
 map.addControl(new AuthCtl());   // 카카오 로그인 박스(우상단)
 const CafeCtl=L.Control.extend({ options:{position:'bottomright'},
-  onAdd:function(){ const d=L.DomUtil.create('a','cafecard'); d.href='https://cafe.naver.com/mytalon'; d.target='_blank'; d.rel='noopener';
-    d.innerHTML='<span class="cf-badge">'+CANOE_SVG+'</span><span class="cf-t">마이카누 카페</span>';
+  onAdd:function(){ const d=L.DomUtil.create('div','cafe-actions');
+    const cafe=L.DomUtil.create('a','cafecard',d); cafe.href='https://cafe.naver.com/mytalon'; cafe.target='_blank'; cafe.rel='noopener';
+    cafe.innerHTML='<span class="cf-badge">'+CANOE_SVG+'</span><span class="cf-t">마이카누 카페</span>';
+    const sheet=L.DomUtil.create('a','admin-sheet-card',d); sheet.id='adminSheetLink'; sheet.target='_blank'; sheet.rel='noopener'; sheet.title='로그인 및 접속기록 스프레드시트';
+    sheet.innerHTML='<span class="sheet-badge">▦</span><span class="cf-t">접속기록</span>';
     L.DomEvent.disableClickPropagation(d);
-    L.DomEvent.on(d,'click',function(){ gaEvent('cafe_click'); });
+    L.DomEvent.on(cafe,'click',function(){ gaEvent('cafe_click'); });
+    L.DomEvent.on(sheet,'click',function(){ gaEvent('admin_sheet_click'); });
+    setTimeout(function(){ _updateAdminSheetLink(isAdmin()); },0);
     return d; } });
 
 const baseOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -1508,7 +1527,7 @@ function courseCmt(kind,id){
   if(kind==='c'){ const c=_courseByCid[String(id)]; if(c) openCourseComments('course_c'+id, c, id); }
   else { const c=_kvCourses[id]; if(c) openCourseComments('course_k'+id, c, 'k'+id); }
 }
-// ---- 지형지물(보/징검다리/잠수교/낮은바닥/여울/유명지) — 여울·유명지는 이름 지정 ----
+// ---- 지형지물(보/징검다리/잠수교/낮은바닥/여울/유명지/강풍지대) — 여울·유명지는 이름 지정 ----
 // 줌 게이팅: 마커를 전용 pane에 넣고 줌<12(런칭/랜딩 아이콘 전환 기준)에서는 pane 자체를 숨김
 // (레이어 토글과 독립 — 체크 상태 유지한 채 줌으로만 표시/숨김)
 map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
@@ -1520,7 +1539,7 @@ function _zoomPaneGate(){ const on=map.getZoom()>=13?'':'none';
   map.getPane('damPane').style.display=map.getZoom()>=10?'':'none';
   map.getPane('obsPane').style.display=map.getZoom()>=13?'':'none'; }
 map.on('zoomend', _zoomPaneGate);
-const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'잠수교':{c:'obs-lowbridge',e:'🌉',label:'잠수교'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'}};
+const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'잠수교':{c:'obs-lowbridge',e:'🌉',label:'잠수교'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'},'강풍지대':{c:'obs-wind',e:'💨',label:'강풍지대'}};
 function _obHasName(ty){ return ty==='여울'||ty==='유명지'; }
 const obstacleLayer=L.layerGroup();
 const _obstacles={};
@@ -1566,7 +1585,7 @@ function openObsModal(mode,data){ if(!isAdmin()) return;
   _obMode=mode; let ty='보', note='', name='';
   if(mode==='edit'){ _obCur=data; _obLL={lat:data.lat,lng:data.lng}; ty=data.type; note=data.note||''; name=data.name||''; }
   else { _obCur=null; _obLL={lat:data.lat,lng:data.lng}; }
-  const tys=['보','징검다리','잠수교','낮은바닥','여울','유명지'];
+  const tys=['보','징검다리','잠수교','낮은바닥','여울','유명지','강풍지대'];
   let seg=''; for(let i=0;i<tys.length;i++){ const t=tys[i],info=OBS_TYPES[t]; seg+='<button class="seg-b'+(t===ty?' on':'')+'" data-ty="'+t+'" onclick="obPick(this)">'+info.e+' '+t+'</button>'; }
   document.getElementById('obBody').innerHTML=
     '<h3>'+(mode==='edit'?'✏️ 지형지물 수정':'🗺️ 지형지물 추가')+'</h3>'

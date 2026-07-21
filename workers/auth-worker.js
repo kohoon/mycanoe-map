@@ -162,6 +162,16 @@ export default {
       return new Response(JSON.stringify({ ok: ok }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
+    // 0-1c) 관리자 전용 운영 스프레드시트 링크 — URL은 Cloudflare Secret에만 보관
+    if (url.pathname.endsWith("/admin-sheet-link")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      let b = {}; try { b = await req.json(); } catch (e) {}
+      if (!env.ADMIN_KEY || String(b.key || "") !== String(env.ADMIN_KEY)) return new Response(JSON.stringify({ ok: false }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true, url: env.SHEET_URL || "" }), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+    }
+
     // 0-2) 등록 장소 저장/조회 (Cloudflare KV: env.PLACES, 어드민: env.ADMIN_KEY)
     if (url.pathname.endsWith("/places")) {
       const origin = req.headers.get("Origin") || "*";
@@ -753,7 +763,7 @@ export default {
       return new Response(JSON.stringify(out), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 0-3e) 지형지물(보/징검다리/잠수교/낮은바닥/여울/유명지) — 관리자. KV "obstacles". 여울·유명지는 name 보유
+    // 0-3e) 지형지물(보/징검다리/잠수교/낮은바닥/여울/유명지/강풍지대) — 관리자. KV "obstacles". 여울·유명지는 name 보유
     if (url.pathname.endsWith("/obstacles") || url.pathname.endsWith("/obstacle")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
@@ -767,7 +777,7 @@ export default {
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
-        const TYPES = ["보", "징검다리", "잠수교", "낮은바닥", "여울", "유명지"];
+        const TYPES = ["보", "징검다리", "잠수교", "낮은바닥", "여울", "유명지", "강풍지대"];
         let arr = []; try { arr = JSON.parse((await KV.get("obstacles")) || "[]"); } catch (e) {}
         let created = null;
         const seedAdd = b.action === "add" && String(b.obsId || "").startsWith("weir:");
