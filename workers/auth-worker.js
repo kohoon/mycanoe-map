@@ -582,6 +582,14 @@ export default {
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        const clearCourseCache = () => {
+          const base = url.origin + url.pathname.replace(/\/course(?:s)?$/, "");
+          return Promise.all([
+            base + "/courses",
+            base + "/course?over=1",
+            base + "/course?hidden=1",
+          ].map((u) => caches.default.delete(new Request(u, { method: "GET" }))));
+        };
         const uid = String(b.id || "").slice(0, 40);
         const tokOk = uid && (await _tokOk(env, uid, b.tok));
         const adminOk = !!env.ADMIN_KEY && String(b.adminKey) === String(env.ADMIN_KEY);
@@ -597,6 +605,7 @@ export default {
           hid = hid.filter((x) => String(x) !== cid);
           if (b.action === "hidestatic") hid.push(cid);
           await KV.put("course_hidden", JSON.stringify(hid));
+          ctx.waitUntil(clearCourseCache());
           return J(JSON.stringify({ ok: true }));
         }
         if (b.action === "editstatic") {   // 정적 코스는 원본 GeoJSON 비파괴, 표시 메타만 KV 오버라이드
@@ -612,6 +621,7 @@ export default {
             if (Number.isFinite(km)) over[cid].km = km;
           }
           await KV.put("course_over", JSON.stringify(over));
+          ctx.waitUntil(clearCourseCache());
           return J(JSON.stringify({ ok: true }));
         }
         let arr = []; try { arr = JSON.parse((await KV.get("courses")) || "[]"); } catch (e) {}
@@ -639,6 +649,7 @@ export default {
           return new Response("bad", { status: 400, headers: cors });
         }
         await KV.put("courses", JSON.stringify(arr));
+        ctx.waitUntil(clearCourseCache());
         return J(JSON.stringify({ ok: true }));
       }
       return new Response("method", { status: 405, headers: cors });
