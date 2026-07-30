@@ -78,9 +78,13 @@
   .wayback-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;font-size:12px;font-weight:700}
   .wayback-head button{border:0;background:transparent;color:#607d8b;font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
   .wayback-ctl select{display:block;width:100%;box-sizing:border-box;border:1px solid #afc2d4;border-radius:5px;background:#fff;padding:6px;font:12px sans-serif;color:#263746}
-  .wayback-opacity{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11.5px}
-  .wayback-opacity input{min-width:0;flex:1}
   .wayback-note{display:block;margin-top:5px;color:#718292;font-size:10.5px;line-height:1.35}
+  .wayback-compare{display:none;position:absolute;inset:0;z-index:650;pointer-events:none}
+  .wayback-compare.on{display:block}
+  .wayback-divider{position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-1px);background:rgba(255,255,255,.92);box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 8px rgba(0,0,0,.45)}
+  .wayback-side{position:absolute;top:12px;transform:translateX(-50%);padding:6px 10px;border-radius:6px;background:rgba(20,31,42,.84);color:#fff;font:700 12px/1.2 sans-serif;box-shadow:0 2px 7px rgba(0,0,0,.28);white-space:nowrap}
+  .wayback-now{left:25%}
+  .wayback-old{left:75%}
   .dam-wayback{margin-top:8px;border:1px solid #90a4ae;border-radius:6px;background:#fff;color:#254b65;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer}
   .sw-course{background:linear-gradient(90deg,#7c4dff 0 33%,#d500f9 33% 66%,#00897b 66% 100%)!important}
   .rv-sw{display:inline-block;width:14px;margin-right:6px;text-align:center;font-size:12px;flex:none}
@@ -663,6 +667,7 @@ function setSatSource(src){
   baseSat.addLayer(src==='vworld' ? satImgV : satImgEsri);
   baseSat.addLayer(satLabels);
   if(map.hasLayer(baseSat)){ const mz=(src==='vworld')?SAT_MAXZOOM_V:SAT_MAXZOOM_E; map.setMaxZoom(mz); if(map.getZoom()>mz) map.setZoom(mz); }
+  const now=document.querySelector('#waybackCompare .wayback-now'); if(now) now.textContent='현재 · '+(src==='vworld'?'VWorld':'Esri');
   _syncSatToggle();
 }
 setSatSource(_satSrc);   // baseSat 초기 채움(토글 UI는 아직 없으니 _syncSatToggle 은 no-op)
@@ -687,20 +692,34 @@ function _wbLoadVersions(){
 }
 function _wbDraw(){
   if(!_wbTarget) return;
-  const sel=document.getElementById('waybackDate'), op=document.getElementById('waybackOpacity');
+  const sel=document.getElementById('waybackDate');
   if(!sel||!sel.value) return;
   if(_wbLayer) map.removeLayer(_wbLayer);
   const url='https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/'+sel.value+'/{z}/{y}/{x}';
-  _wbLayer=L.tileLayer(url,{bounds:_wbBounds(_wbTarget),maxNativeZoom:18,maxZoom:19,opacity:op?parseFloat(op.value):.75,attribution:'Historical imagery © Esri Wayback'}).addTo(map);
+  _wbLayer=L.tileLayer(url,{bounds:_wbBounds(_wbTarget),maxNativeZoom:18,maxZoom:19,opacity:1,attribution:'Historical imagery © Esri Wayback'}).addTo(map);
   _wbLayer.bringToFront(); if(map.hasLayer(satLabels)) satLabels.bringToFront();
+  _wbLayer.on('load tileload',_wbClip);
+  requestAnimationFrame(_wbClip);
+  const old=document.querySelector('#waybackCompare .wayback-old');
+  if(old) old.textContent='과거 · '+(sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text.replace(' 배포본',''):'선택 시점');
+  const ui=document.getElementById('waybackCompare'); if(ui) ui.classList.add('on');
   try{ localStorage.setItem('mc_wayback_id',sel.value); }catch(e){}
+}
+function _wbClip(){
+  if(!_wbLayer) return;
+  const c=_wbLayer.getContainer(); if(!c) return;
+  const sz=map.getSize(), nw=map.containerPointToLayerPoint([0,0]), se=map.containerPointToLayerPoint([sz.x,sz.y]);
+  const mid=map.containerPointToLayerPoint([Math.round(sz.x/2),0]).x;
+  c.style.clip='rect('+nw.y+'px '+se.x+'px '+se.y+'px '+mid+'px)';
 }
 function _closeWayback(){
   if(_wbLayer){ map.removeLayer(_wbLayer); _wbLayer=null; }
   _wbTarget=null;
   const p=document.getElementById('waybackCtl'); if(p) p.classList.remove('on');
+  const ui=document.getElementById('waybackCompare'); if(ui) ui.classList.remove('on');
   const c=_layerControl&&_layerControl.getContainer(); if(c) c.style.width='';
 }
+map.on('move zoom resize',_wbClip);
 function _openWayback(cd){
   const d=(DAMS||[]).find(function(x){return String(x.cd)===String(cd);}); if(!d) return;
   _wbTarget=d;
@@ -711,6 +730,9 @@ function _openWayback(cd){
   const p=document.getElementById('waybackCtl'), sel=document.getElementById('waybackDate'), nm=document.getElementById('waybackName');
   if(!p||!sel) return;
   p.classList.add('on'); if(nm) nm.textContent=d.lake+' 주변';
+  let ui=document.getElementById('waybackCompare');
+  if(!ui){ ui=L.DomUtil.create('div','wayback-compare',map.getContainer()); ui.id='waybackCompare';
+    ui.innerHTML='<div class="wayback-side wayback-now">현재 · '+(_satSrc==='vworld'?'VWorld':'Esri')+'</div><div class="wayback-divider"></div><div class="wayback-side wayback-old">과거 위성영상</div>'; }
   const c=_layerControl&&_layerControl.getContainer(); if(c) c.style.width='232px';
   sel.disabled=true; sel.innerHTML='<option>과거 영상 목록 불러오는 중…</option>';
   _wbLoadVersions().then(function(rows){
@@ -2212,17 +2234,12 @@ function _syncSatToggle(){
   const p=L.DomUtil.create('div','wayback-ctl'); p.id='waybackCtl';
   p.innerHTML='<div class="wayback-head"><span>과거 위성 · <span id="waybackName"></span></span><button id="waybackClose" type="button" title="과거 영상 닫기">×</button></div>'
     +'<select id="waybackDate" aria-label="과거 위성영상 배포일"></select>'
-    +'<label class="wayback-opacity"><span>과거 영상</span><input id="waybackOpacity" type="range" min="0.2" max="1" step="0.1" value="0.8"><span id="waybackOpacityVal">80%</span></label>'
-    +'<small class="wayback-note">선택일은 ESRI 배포일입니다. 실제 촬영일은 지역별로 다를 수 있습니다.</small>';
+    +'<small class="wayback-note">왼쪽은 현재, 오른쪽은 선택한 과거 영상입니다. 선택일은 ESRI 배포일이며 실제 촬영일은 지역별로 다를 수 있습니다.</small>';
   const src=document.getElementById('satSrcToggle');
   if(src) src.insertAdjacentElement('afterend',p); else base.insertAdjacentElement('afterend',p);
   L.DomEvent.disableClickPropagation(p); L.DomEvent.disableScrollPropagation(p);
-  const sel=document.getElementById('waybackDate'), op=document.getElementById('waybackOpacity');
+  const sel=document.getElementById('waybackDate');
   L.DomEvent.on(sel,'change',function(){ _wbDraw(); gaEvent('wayback_date'); });
-  L.DomEvent.on(op,'input',function(){
-    const v=parseFloat(op.value); document.getElementById('waybackOpacityVal').textContent=Math.round(v*100)+'%';
-    if(_wbLayer) _wbLayer.setOpacity(v);
-  });
   L.DomEvent.on(document.getElementById('waybackClose'),'click',function(e){ L.DomEvent.stop(e); _closeWayback(); });
 })();
 // 위성지도 최대 줌(출처별) + 선택 저장 + 서브토글 동기화
