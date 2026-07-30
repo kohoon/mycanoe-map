@@ -707,7 +707,8 @@ setSatSource(_satSrc);   // baseSat 초기 채움(토글 UI는 아직 없으니 
 
 // ESRI World Imagery Wayback: 선택한 호수 주변 타일만 과거 배포본으로 덮는다.
 const WAYBACK_CAP='https://wayback.maptiles.arcgis.com/arcgis/rest/services/world_imagery/wmts?request=GetCapabilities&service=WMTS&version=1.0.0';
-let _wbVersions=null, _wbLayer=null, _wbTarget=null;
+let _wbVersions=null, _wbLayer=null, _wbTarget=null, _wbLoadSeq=0;
+const _wbLocalCache={};
 function _wbBounds(d){ return L.latLngBounds([d.lat-.09,d.lng-.12],[d.lat+.09,d.lng+.12]); }
 function _wbLoadVersions(){
   if(_wbVersions) return Promise.resolve(_wbVersions);
@@ -722,6 +723,37 @@ function _wbLoadVersions(){
     if(!rows.length) throw new Error('Wayback versions empty');
     _wbVersions=rows; return rows;
   });
+}
+function _wbTileAt(d,z){
+  const n=Math.pow(2,z), lat=Math.max(-85.0511,Math.min(85.0511,+d.lat||0)), lng=+d.lng||0;
+  return {x:Math.floor((lng+180)/360*n),y:Math.floor((1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*n)};
+}
+async function _wbLocalVersions(rows,d,onProgress){
+  const key=String(d.cd||'')+'|'+Number(d.lat).toFixed(4)+'|'+Number(d.lng).toFixed(4);
+  if(_wbLocalCache[key]) return _wbLocalCache[key];
+  const z=14, p=_wbTileAt(d,z), sigs=new Array(rows.length);
+  let next=0, done=0;
+  async function worker(){
+    while(next<rows.length){
+      const i=next++, v=rows[i];
+      const u='https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/'+v.id+'/'+z+'/'+p.y+'/'+p.x;
+      try{
+        const r=await fetch(u,{redirect:'follow'}), b=await r.arrayBuffer();
+        const h=await crypto.subtle.digest('SHA-256',b);
+        sigs[i]=Array.from(new Uint8Array(h)).map(function(x){return x.toString(16).padStart(2,'0');}).join('');
+      }catch(e){ sigs[i]=v.id; }
+      done++; if(onProgress) onProgress(done,rows.length);
+    }
+  }
+  await Promise.all(Array.from({length:8},worker));
+  const changed=[];
+  for(let i=0;i<rows.length;){
+    let j=i; while(j+1<rows.length&&sigs[j+1]===sigs[i]) j++;
+    changed.push(rows[j]);   // 같은 영상이 이어진 배포본 중 실제로 처음 등장한 날짜
+    i=j+1;
+  }
+  _wbLocalCache[key]=changed;
+  return changed;
 }
 function _wbDraw(){
   if(!_wbTarget) return;
@@ -746,6 +778,7 @@ function _wbClip(){
   c.style.clip='rect('+nw.y+'px '+se.x+'px '+se.y+'px '+mid+'px)';
 }
 function _closeWayback(){
+  _wbLoadSeq++;
   if(_wbLayer){ map.removeLayer(_wbLayer); _wbLayer=null; }
   _wbTarget=null;
   const p=document.getElementById('waybackCtl'); if(p) p.classList.remove('on');
@@ -755,6 +788,7 @@ function _closeWayback(){
 map.on('move zoom resize',_wbClip);
 function _openWayback(cd){
   const d=(DAMS||[]).find(function(x){return String(x.cd)===String(cd);}); if(!d) return;
+  const loadSeq=++_wbLoadSeq;
   _wbTarget=d;
   if(map.hasLayer(baseOSM)) map.removeLayer(baseOSM);
   if(!map.hasLayer(baseSat)) baseSat.addTo(map);
@@ -769,10 +803,15 @@ function _openWayback(cd){
   const c=_layerControl&&_layerControl.getContainer(); if(c) c.style.width='232px';
   sel.disabled=true; sel.innerHTML='<option>과거 영상 목록 불러오는 중…</option>';
   _wbLoadVersions().then(function(rows){
+    if(loadSeq!==_wbLoadSeq) return [];
+    sel.innerHTML='<option>해당 위치 변경일 분석 중…</option>';
+    return _wbLocalVersions(rows,d,function(done,total){ if(loadSeq===_wbLoadSeq) sel.innerHTML='<option>해당 위치 변경일 분석 중… '+done+'/'+total+'</option>'; });
+  }).then(function(rows){
+    if(loadSeq!==_wbLoadSeq||!rows.length) return;
     let saved=''; try{ saved=localStorage.getItem('mc_wayback_id')||''; }catch(e){}
     sel.innerHTML=rows.map(function(v){return '<option value="'+v.id+'"'+(v.id===saved?' selected':'')+'>'+v.date+' 배포본</option>';}).join('');
     sel.disabled=false; _wbDraw();
-  }).catch(function(){ sel.innerHTML='<option>영상 목록을 불러오지 못했습니다</option>'; });
+  }).catch(function(){ if(loadSeq===_wbLoadSeq) sel.innerHTML='<option>영상 목록을 불러오지 못했습니다</option>'; });
   _syncSatToggle(); gaEvent('wayback_open');
 }
 
@@ -2267,7 +2306,7 @@ function _syncSatToggle(){
   const p=L.DomUtil.create('div','wayback-ctl'); p.id='waybackCtl';
   p.innerHTML='<div class="wayback-head"><span>과거 위성 · <span id="waybackName"></span></span><button id="waybackClose" type="button" title="과거 영상 닫기">×</button></div>'
     +'<select id="waybackDate" aria-label="과거 위성영상 배포일"></select>'
-    +'<small class="wayback-note">왼쪽은 현재, 오른쪽은 선택한 과거 영상입니다. 선택일은 ESRI 배포일이며 실제 촬영일은 지역별로 다를 수 있습니다.</small>';
+    +'<small class="wayback-note">선택한 댐 위치의 영상이 실제로 바뀐 배포본만 표시합니다. 왼쪽은 현재, 오른쪽은 과거 영상이며 실제 촬영일은 지역별로 다를 수 있습니다.</small>';
   const src=document.getElementById('satSrcToggle');
   if(src) src.insertAdjacentElement('afterend',p); else base.insertAdjacentElement('afterend',p);
   L.DomEvent.disableClickPropagation(p); L.DomEvent.disableScrollPropagation(p);
