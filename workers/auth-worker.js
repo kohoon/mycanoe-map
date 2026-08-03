@@ -625,6 +625,7 @@ export default {
           return J(JSON.stringify({ ok: true }));
         }
         let arr = []; try { arr = JSON.parse((await KV.get("courses")) || "[]"); } catch (e) {}
+        let savedCourse = null;
         if (b.action === "delete" || b.action === "deleteuser") {
           if (!adminOk && !(await ownerEditOk(b.courseId))) return new Response("forbidden", { status: 403, headers: cors });
           arr = arr.filter((x) => String(x.id) !== String(b.courseId));
@@ -643,14 +644,16 @@ export default {
             km: Number(s && s.km) || 0,
             mode: String((s && s.mode) || "").slice(0, 12),
           })) : [];
-          arr.unshift({ id: Date.now(), name: String(b.name || "코스").slice(0, 80), coords: coords, km: Number(b.km) || 0, segments: segments, t: Date.now(), owner: adminOk ? "admin" : uid, nick: String(b.nick || "").slice(0, 20) });
+          const now = Date.now();
+          savedCourse = { id: now, name: String(b.name || "코스").slice(0, 80), coords: coords, km: Number(b.km) || 0, segments: segments, t: now, owner: adminOk ? "admin" : uid, nick: String(b.nick || "").slice(0, 20) };
+          arr.unshift(savedCourse);
           if (arr.length > 200) arr = arr.slice(0, 200);
         } else {
           return new Response("bad", { status: 400, headers: cors });
         }
         await KV.put("courses", JSON.stringify(arr));
         ctx.waitUntil(clearCourseCache());
-        return J(JSON.stringify({ ok: true }));
+        return J(JSON.stringify({ ok: true, course: savedCourse }));
       }
       return new Response("method", { status: 405, headers: cors });
     }
