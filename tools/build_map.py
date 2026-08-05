@@ -134,6 +134,7 @@ def _datahash(_name):
     return _hl.sha1(_p.read_bytes()).hexdigest()[:8] if _p.exists() else "0"
 PROTECT_VER = _datahash("protect_polygons.geojson")
 WLZ_VER = _datahash("wlz.geojson")
+RIVERS_VER = _datahash("rivers.geojson")
 _cf = DATA / "courses.geojson"
 courses = json.loads(_cf.read_text(encoding="utf-8")) if _cf.exists() else {"type": "FeatureCollection", "features": []}
 # 코스에도 ID 부여(코스명 기준 고정)
@@ -376,6 +377,31 @@ __GTAG__
   @media(min-width:520px){.pmodal-wrap{align-items:center}.pmodal{border-radius:16px}}
   .pmodal-x{position:absolute;top:12px;right:12px;border:0;background:#eee;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer}
   .pmodal h3{margin:0 30px 8px 0;font-size:18px;color:#1b3a2b}
+  #myModal .pmodal{max-width:760px;width:min(760px,calc(100% - 24px));padding:0;overflow:hidden}
+  #myBody{height:min(680px,86vh);display:flex;flex-direction:column;color:#263238}
+  .my-head{padding:20px 22px 14px;border-bottom:1px solid #e4eaed;background:#fff}
+  .my-head h3{margin:0 38px 3px 0;font-size:20px}.my-head p{margin:0;color:#728087;font-size:12px}
+  .my-tabs{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid #dfe6e9;background:#fff;overflow-x:auto;flex:none}
+  .my-tab{border:0;border-bottom:3px solid transparent;background:none;padding:13px 15px 11px;color:#66777f;font:700 13px sans-serif;white-space:nowrap;cursor:pointer}
+  .my-tab.on{color:#0d5c78;border-bottom-color:#0d88a6}
+  .my-pane{padding:18px 22px 28px;overflow:auto;flex:1;background:#f8fafb}
+  .my-profile{display:flex;align-items:center;gap:13px;padding-bottom:17px;border-bottom:1px solid #dde5e8}
+  .my-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0d6d79;color:#fff;font:800 19px sans-serif;flex:none}
+  .my-profile b{font-size:17px}.my-profile span{display:block;color:#718087;font-size:12px;margin-top:3px}
+  .my-section-title{margin:20px 0 9px;font:800 13px sans-serif;color:#37474f}
+  .my-info-row,.my-list-row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid #e2e8eb;min-width:0}
+  .my-info-row span:first-child{width:88px;color:#718087;font-size:12px}.my-info-row b{font-size:13px}
+  .my-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #dce4e7;border-bottom:1px solid #dce4e7;background:#fff}
+  .my-stat{padding:15px 8px;text-align:center;border-right:1px solid #e3e9eb}.my-stat:last-child{border-right:0}
+  .my-stat b{display:block;font-size:19px;color:#0d6478}.my-stat span{font-size:11px;color:#718087}
+  .my-tools{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .my-tools input,.my-tools select{height:36px;box-sizing:border-box;border:1px solid #ccd8dd;border-radius:6px;background:#fff;padding:0 10px;font-size:12px}
+  .my-tools input{flex:1;min-width:150px}.my-toggle{font-size:12px;color:#52656e;margin-left:auto;white-space:nowrap}
+  .my-list-row .my-list-main{min-width:0;flex:1;cursor:pointer}.my-list-main b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.my-list-main small{color:#7c8b92;font-size:11px}
+  .my-kind{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e8f2f4;flex:none;font-size:15px}
+  .my-actions{display:flex;gap:4px;flex:none}.my-icon-btn{border:1px solid #ccd8dd;background:#fff;color:#52656e;border-radius:6px;min-width:32px;height:32px;padding:0 8px;cursor:pointer;font-size:12px}.my-icon-btn.del{color:#c62828;border-color:#ecc5c5}
+  .my-empty{text-align:center;color:#829097;font-size:13px;padding:44px 12px}.my-empty b{display:block;color:#4c6068;margin-bottom:5px;font-size:14px}
+  @media(max-width:620px){#myModal .pmodal{width:100%;height:94vh;max-height:94vh;border-radius:14px 14px 0 0}#myBody{height:94vh}.my-head{padding:17px 16px 12px}.my-tabs{padding:0 7px}.my-tab{padding:12px 11px 10px}.my-pane{padding:14px 15px 24px}.my-stats{grid-template-columns:repeat(2,1fr)}.my-stat:nth-child(2){border-right:0}.my-stat:nth-child(-n+2){border-bottom:1px solid #e3e9eb}.my-tools{align-items:stretch}.my-toggle{width:100%;margin-left:0}.my-actions .label{display:none}}
   #pmLinks{font-size:13px;margin-bottom:10px}
   .pm-memo{color:#556;font-size:13px;margin-top:6px}
   .pm-note{font-size:12.5px;font-weight:700;line-height:1.45;border-radius:8px;padding:7px 9px;margin:0 0 8px}
@@ -685,7 +711,7 @@ __GTAG__
 <script>
 const POINTS = __POINTS__;
 // 상수원보호·수상레저금지 면은 임베드하지 않고 줌인(≥11) 시 외부 .geojson 을 fetch(아래 줌게이트).
-const DATAVER = {protect:"__PROTECT_VER__", wlz:"__WLZ_VER__"};   // 콘텐츠 해시 캐시버스팅
+const DATAVER = {protect:"__PROTECT_VER__", wlz:"__WLZ_VER__", rivers:"__RIVERS_VER__"};   // 콘텐츠 해시 캐시버스팅
 let protectLayer = null, wlzLayer = null;          // 첫 줌인 때 생성
 let _protectLoading = null, _wlzLoading = null;    // in-flight fetch(중복 방지)
 let _protectWanted = true, _wlzWanted = true;      // 기본 ON 의도(토글이 뒤집음)
@@ -716,7 +742,7 @@ async function _updateAdminSheetLink(on){
     const d=await r.json(); if(r.ok&&d&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.url||'')){ a.href=d.url; a.style.display='flex'; }
   }catch(e){}
 }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);}catch(e){} }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -2025,6 +2051,10 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
       return await r.json();
     }catch(e){ return []; }
   }
+  async function loadMyTrips(){
+    try{ const r=await fetch(fapi('/trips?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))); return r.ok?await r.json():[]; }
+    catch(e){ return []; }
+  }
   function focusCourseCourse(c){
     if(!c||!c.coords||c.coords.length<2) return;
     _courseFocusId='k'+c.id;
@@ -2033,45 +2063,48 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
     _fitAndPop(c.coords, c.name, c.km);
     openCourseComments('course_k'+c.id, c, 'k'+c.id);
   }
-  function render(mine){
-    mine=mine||[];
-    let h='<h3>👤 '+pmEsc(u.nick||'회원')+'</h3>'
-      +'<label class="my-toggle"><input type="checkbox" id="favOnlyChk"'+(_favOnly?' checked':'')+'> 지도에 즐겨찾기만 표시</label>'
-      +'<div class="lg-sub" style="margin-top:10px">⭐ 즐겨찾기 ('+_favList.length+')</div>';
-    if(!_favList.length) h+='<div class="pm-empty">장소·코스 모달에서 ♡ 를 눌러 추가하세요</div>';
-    else h+=_favList.map(function(x,i){
-      return '<div class="my-fav"><a class="mf-go" data-i="'+i+'">'+(x.k==='c'?'〰️':'📍')+' '+pmEsc(x.n||x.t)+'</a><a class="mf-del" data-i="'+i+'">✕</a></div>';
-    }).join('');
-    h+='<div class="lg-sub" style="margin-top:14px">🛶 내 코스 ('+mine.length+')</div>';
-    if(!mine.length) h+='<div class="pm-empty">내가 만든 코스가 없어요. 하단 측정 후 저장하면 여기에 나옵니다.</div>';
-    else h+=mine.map(function(c){
-      return '<div class="my-fav"><a class="mf-go" data-cid="'+c.id+'">〰️ '+pmEsc(c.name||'코스')+'</a><a class="mf-del" data-cid="'+c.id+'">✕</a></div>';
-    }).join('');
-    body.innerHTML=h;
-    document.getElementById('favOnlyChk').onchange=function(){ setFavOnly(this.checked); };
-    body.querySelectorAll('.mf-go[data-i]').forEach(function(a){ a.onclick=function(){ gotoFav(_favList[+a.getAttribute('data-i')]); }; });
-    body.querySelectorAll('.mf-del[data-i]').forEach(function(a){ a.onclick=function(){
-      const x=_favList[+a.getAttribute('data-i')];
-      fetch(fapi('/fav'),{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({id:u.uid,tok:u.tok||'',target:x.t,on:false})}).then(function(r){ if(r.ok){
-          _favSet.delete(x.t); _favList=_favList.filter(function(y){return y.t!==x.t;}); if(_favOnly) applyFavFilter(); render(mine); } });
-    }; });
-    body.querySelectorAll('.mf-go[data-cid]').forEach(function(a){ a.onclick=function(){
-      const c=mine.find(function(x){ return String(x.id)===String(a.getAttribute('data-cid')); });
-      if(c) focusCourseCourse(c);
-    }; });
-    body.querySelectorAll('.mf-del[data-cid]').forEach(function(a){ a.onclick=function(){
-      const cid=a.getAttribute('data-cid'); const c=mine.find(function(x){ return String(x.id)===String(cid); });
-      if(!c) return;
-      if(!confirm('이 코스를 삭제할까요?')) return;
-      const bodyReq=isAdmin()?{action:'delete',adminKey:adminKey(),courseId:c.id}:{action:'deleteuser',id:u.uid,tok:u.tok||'',courseId:c.id};
-      fetch(fapi('/course'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(bodyReq)}).then(function(r){
-        if(r.ok){ loadFavs().then(function(){ loadMyCourses().then(function(next){ render(next||[]); }); }); }
-        else alert('삭제 실패'); });
-    }; });
+  let state={tab:'info',mine:[],trips:[],q:'',favKind:'all'};
+  function dateText(t){ if(!t) return '기록 없음'; const d=new Date(t),p=function(v){return String(v).padStart(2,'0');}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+  function durText(sec){ sec=Math.max(0,+sec||0); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60); return h?h+'시간 '+m+'분':m+'분'; }
+  function shell(content){
+    const tabs=[['info','내 정보'],['favs','즐겨찾기'],['courses','내 코스'],['activity','활동 기록']];
+    body.innerHTML='<div class="my-head"><h3>'+pmEsc(u.nick||'회원')+'님의 마이페이지</h3><p>내 정보와 저장한 콘텐츠를 관리합니다</p></div>'
+      +'<div class="my-tabs">'+tabs.map(function(x){return '<button class="my-tab'+(state.tab===x[0]?' on':'')+'" data-tab="'+x[0]+'">'+x[1]+'</button>';}).join('')+'</div>'
+      +'<div class="my-pane">'+content+'</div>';
+    body.querySelectorAll('.my-tab').forEach(function(b){b.onclick=function(){state.tab=b.getAttribute('data-tab'); render();};});
   }
+  function renderInfo(){
+    const p=_appProfile||{}, km=state.trips.reduce(function(s,x){return s+(+x.distKm||0);},0), sec=state.trips.reduce(function(s,x){return s+(+x.durSec||0);},0);
+    shell('<div class="my-profile"><div class="my-avatar">'+pmEsc((u.nick||'회').charAt(0))+'</div><div><b>'+pmEsc(u.nick||'회원')+'</b><span>카카오 계정 연결됨 · '+(isAdmin()?'관리자':'일반회원')+'</span></div></div>'
+      +'<div class="my-section-title">기본정보</div><div class="my-info-row"><span>가입일</span><b>'+dateText(p.t)+'</b></div><div class="my-info-row"><span>닉네임</span><b>'+pmEsc(u.nick||'회원')+'</b></div>'
+      +'<div class="my-section-title">활동통계</div><div class="my-stats"><div class="my-stat"><b>'+_favList.length+'</b><span>즐겨찾기</span></div><div class="my-stat"><b>'+state.mine.length+'</b><span>내 코스</span></div><div class="my-stat"><b>'+state.trips.length+'</b><span>패들링</span></div><div class="my-stat"><b>'+km.toFixed(1)+'</b><span>누적 km</span></div></div>'
+      +(state.trips.length?'<div class="my-info-row"><span>누적 시간</span><b>'+durText(sec)+'</b></div>':''));
+  }
+  function renderFavs(){
+    const q=state.q.toLowerCase(), list=_favList.map(function(x,i){return {x:x,i:i};}).filter(function(z){return (state.favKind==='all'||z.x.k===state.favKind)&&(!q||String(z.x.n||z.x.t).toLowerCase().indexOf(q)>=0);});
+    let h='<div class="my-tools"><input id="mySearch" value="'+pmEsc(state.q)+'" placeholder="이름 검색"><select id="favKind"><option value="all">전체</option><option value="p">장소</option><option value="c">코스</option></select><label class="my-toggle"><input type="checkbox" id="favOnlyChk"'+(_favOnly?' checked':'')+'> 지도에 즐겨찾기만 표시</label></div>';
+    h+=list.length?list.map(function(z){const x=z.x;return '<div class="my-list-row"><span class="my-kind">'+(x.k==='c'?'〰️':'📍')+'</span><div class="my-list-main" data-fi="'+z.i+'"><b>'+pmEsc(x.n||x.t)+'</b><small>'+(x.k==='c'?'코스':'장소')+'</small></div><div class="my-actions"><button class="my-icon-btn" data-fi="'+z.i+'" title="지도에서 보기">⌖ <span class="label">지도</span></button><button class="my-icon-btn del" data-fd="'+z.i+'" title="즐겨찾기 해제">✕</button></div></div>';}).join(''):'<div class="my-empty"><b>즐겨찾기가 없습니다</b>장소나 코스 상세에서 ♡를 눌러 추가할 수 있습니다.</div>';
+    shell(h); const sel=document.getElementById('favKind'); sel.value=state.favKind; sel.onchange=function(){state.favKind=this.value;renderFavs();};
+    document.getElementById('mySearch').oninput=function(){const pos=this.selectionStart;state.q=this.value;renderFavs();const n=document.getElementById('mySearch');n.focus();n.setSelectionRange(pos,pos);}; document.getElementById('favOnlyChk').onchange=function(){setFavOnly(this.checked);};
+    body.querySelectorAll('[data-fi]').forEach(function(a){a.onclick=function(){gotoFav(_favList[+a.getAttribute('data-fi')]);};});
+    body.querySelectorAll('[data-fd]').forEach(function(a){a.onclick=function(){const x=_favList[+a.getAttribute('data-fd')]; fetch(fapi('/fav'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:u.uid,tok:u.tok||'',target:x.t,on:false})}).then(function(r){if(r.ok){_favSet.delete(x.t);_favList=_favList.filter(function(y){return y.t!==x.t;});if(_favOnly)applyFavFilter();renderFavs();}});};});
+  }
+  function renderCourses(){
+    const q=state.q.toLowerCase(), list=state.mine.filter(function(c){return !q||String(c.name||'').toLowerCase().indexOf(q)>=0;}).sort(function(a,b){return (+b.t||0)-(+a.t||0);});
+    let h='<div class="my-tools"><input id="mySearch" value="'+pmEsc(state.q)+'" placeholder="코스명 검색"><span style="font-size:12px;color:#718087">최근 생성순</span></div>';
+    h+=list.length?list.map(function(c){return '<div class="my-list-row"><span class="my-kind">〰️</span><div class="my-list-main" data-cgo="'+c.id+'"><b>'+pmEsc(c.name||'코스')+'</b><small>'+(c.km?(+c.km).toFixed(1)+'km · ':'')+dateText(c.t)+'</small></div><div class="my-actions"><button class="my-icon-btn" data-cshare="'+c.id+'" title="공유 링크 복사">↗ <span class="label">공유</span></button><button class="my-icon-btn" data-cedit="'+c.id+'" title="수정">✎</button><button class="my-icon-btn del" data-cdel="'+c.id+'" title="삭제">✕</button></div></div>';}).join(''):'<div class="my-empty"><b>만든 코스가 없습니다</b>거리측정 후 코스로 등록하면 이곳에서 관리할 수 있습니다.</div>';
+    shell(h); document.getElementById('mySearch').oninput=function(){const pos=this.selectionStart;state.q=this.value;renderCourses();const n=document.getElementById('mySearch');n.focus();n.setSelectionRange(pos,pos);};
+    body.querySelectorAll('[data-cgo]').forEach(function(a){a.onclick=function(){const c=state.mine.find(function(x){return String(x.id)===a.getAttribute('data-cgo');});if(c)focusCourseCourse(c);};});
+    body.querySelectorAll('[data-cshare]').forEach(function(a){a.onclick=function(){shareCourse('k'+a.getAttribute('data-cshare'));};});
+    body.querySelectorAll('[data-cedit]').forEach(function(a){a.onclick=function(){const id=a.getAttribute('data-cedit'),c=state.mine.find(function(x){return String(x.id)===id;});if(c){_kvCourses[c.id]=c;closeMyPage();editCourse(c.id);}};});
+    body.querySelectorAll('[data-cdel]').forEach(function(a){a.onclick=function(){const id=a.getAttribute('data-cdel'),c=state.mine.find(function(x){return String(x.id)===id;});if(!c||!confirm('이 코스를 삭제할까요?'))return;const req=isAdmin()?{action:'delete',adminKey:adminKey(),courseId:c.id}:{action:'deleteuser',id:u.uid,tok:u.tok||'',courseId:c.id};fetch(fapi('/course'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)}).then(function(r){if(r.ok){state.mine=state.mine.filter(function(x){return String(x.id)!==id;});renderCourses();}else alert('삭제 실패');});};});
+  }
+  function renderActivity(){
+    const list=state.trips||[]; let h=list.length?list.map(function(x){return '<div class="my-list-row"><span class="my-kind">🛶</span><div class="my-list-main"><b>'+pmEsc(x.title||'카누잉')+'</b><small>'+dateText(x.start)+' · '+(+x.distKm||0).toFixed(1)+'km · '+durText(x.durSec)+'</small></div></div>';}).join(''):'<div class="my-empty"><b>아직 활동 기록이 없습니다</b>GPS 패들링 기록 기능의 운영 적용 후 이곳에서 관리할 수 있습니다.</div>'; shell(h);
+  }
+  function render(){if(state.tab==='favs')renderFavs();else if(state.tab==='courses')renderCourses();else if(state.tab==='activity')renderActivity();else renderInfo();}
   body.innerHTML='<div class="pm-empty">불러오는 중…</div>';
-  Promise.all([loadFavs(),loadMyCourses()]).then(function(res){ render(res[1]||[]); });
+  Promise.all([loadFavs(),loadMyCourses(),loadMyTrips()]).then(function(res){state.mine=res[1]||[];state.trips=res[2]||[];render();});
 }
 function gotoFav(x){ if(!x) return; closeMyPage();
   if(x.k==='c'){
@@ -2462,6 +2495,26 @@ _ov['<span class="rv-sw">💧</span>수위'] = waterLevelLayer;        // 기본
 _ov['<span class="rv-sw">🏞️</span>호수·댐 수위'] = damLevelLayer;  // 기본 OFF, 줌≥10 표시
 _ov['<span class="rv-sw">📹</span>수위관측 CCTV'] = cctvLayer;   // 기본 OFF, 줌≥12 표시
 const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':baseSat}, _ov, {collapsed:false, position:'bottomright'}).addTo(map);
+// 관리자 전용 전국 하천 중심선(OSM named river/stream, 기본 OFF, 최초 토글 시 지연 로드)
+const _riverAdminGroup=L.layerGroup();
+let _riverMain=null,_riverStream=null,_riverLoading=null,_riverControlAdded=false;
+function _riverZoomGate(){ if(!_riverStream||!map.hasLayer(_riverAdminGroup)) return; const show=map.getZoom()>=11; if(show&&!_riverAdminGroup.hasLayer(_riverStream))_riverAdminGroup.addLayer(_riverStream); else if(!show&&_riverAdminGroup.hasLayer(_riverStream))_riverAdminGroup.removeLayer(_riverStream); }
+function _loadAdminRivers(){
+  if(_riverMain) return Promise.resolve(); if(_riverLoading)return _riverLoading;
+  _riverLoading=fetch('rivers.geojson?v='+DATAVER.rivers).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(fc){
+    const opts=function(kind){return {filter:function(f){return (f.properties||{}).kind===kind;},style:kind==='river'?{color:'#00a5cf',weight:2.6,opacity:.82}:{color:'#48b8d0',weight:1.4,opacity:.7},onEachFeature:function(f,l){const n=(f.properties||{}).name;if(n)l.bindTooltip(pmEsc(n),{sticky:true,direction:'top'});}};};
+    _riverMain=L.geoJSON(fc,opts('river')); _riverStream=L.geoJSON(fc,opts('stream')); _riverAdminGroup.addLayer(_riverMain); _riverZoomGate();
+  }).catch(function(){alert('하천 데이터를 불러오지 못했습니다');}).finally(function(){_riverLoading=null;}); return _riverLoading;
+}
+function _syncAdminRiverLayer(on){
+  if(!_layerControl)return;
+  if(on&&!_riverControlAdded){_layerControl.addOverlay(_riverAdminGroup,_sw('#00a5cf')+'주요 강·하천 <small>(관리자)</small>');_riverControlAdded=true;}
+  else if(!on&&_riverControlAdded){if(map.hasLayer(_riverAdminGroup))map.removeLayer(_riverAdminGroup);_layerControl.removeLayer(_riverAdminGroup);_riverControlAdded=false;}
+}
+map.on('overlayadd',function(e){if(e.layer===_riverAdminGroup){map.attributionControl.addAttribution('하천 &copy; OpenStreetMap 기여자');_loadAdminRivers().then(_riverZoomGate);}});
+map.on('overlayremove',function(e){if(e.layer===_riverAdminGroup)map.attributionControl.removeAttribution('하천 &copy; OpenStreetMap 기여자');});
+map.on('zoomend',_riverZoomGate);
+if(isAdmin())_syncAdminRiverLayer(true);
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
 _protectPH.addTo(map); _wlzPH.addTo(map);   // 기본 ON(체크). 실제 면은 줌게이트가 제어. obstacle/수위와 동일 거동.
 const Z_HEAVY = 11;
@@ -3339,6 +3392,7 @@ html = (HTML
         .replace("__POINTS__", json.dumps(points, ensure_ascii=False, separators=(",", ":")))
         .replace("__PROTECT_VER__", PROTECT_VER)   # 상수원/수상레저 면은 임베드 대신 외부 fetch(아래 버전 토큰)
         .replace("__WLZ_VER__", WLZ_VER)
+        .replace("__RIVERS_VER__", RIVERS_VER)
         .replace("__WLSTN__", json.dumps(wlstn, ensure_ascii=False, separators=(",", ":")))
         .replace("__CCTVS__", json.dumps(cctvs, ensure_ascii=False, separators=(",", ":")))
         .replace("__WEIRS__", json.dumps(weirs, ensure_ascii=False, separators=(",", ":")))
