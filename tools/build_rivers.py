@@ -81,6 +81,43 @@ def runs_in_country(points, polygons):
     return runs
 
 
+def merge_named_features(features):
+    groups = {}
+    for feature in features:
+        p = feature["properties"]
+        groups.setdefault((p["kind"], p["name"]), []).append(feature["geometry"]["coordinates"])
+    merged = []
+    for (kind, name), lines in groups.items():
+        tolerance = 0.004 if kind == "river" else 0.0015
+        while lines:
+            chain = lines.pop()
+            changed = True
+            while changed:
+                changed = False
+                best = None
+                for i, other in enumerate(lines):
+                    choices = [
+                        ((chain[-1][0]-other[0][0])**2+(chain[-1][1]-other[0][1])**2, "append"),
+                        ((chain[-1][0]-other[-1][0])**2+(chain[-1][1]-other[-1][1])**2, "append_rev"),
+                        ((chain[0][0]-other[-1][0])**2+(chain[0][1]-other[-1][1])**2, "prepend"),
+                        ((chain[0][0]-other[0][0])**2+(chain[0][1]-other[0][1])**2, "prepend_rev"),
+                    ]
+                    dist, mode = min(choices)
+                    if best is None or dist < best[0]:
+                        best = (dist, i, mode)
+                if best and best[0] <= tolerance * tolerance:
+                    _, i, mode = best; other = lines.pop(i)
+                    if mode == "append": chain += other[1:] if chain[-1] == other[0] else other
+                    elif mode == "append_rev":
+                        other.reverse(); chain += other[1:] if chain[-1] == other[0] else other
+                    elif mode == "prepend": chain = (other[:-1] if other[-1] == chain[0] else other) + chain
+                    else:
+                        other.reverse(); chain = (other[:-1] if other[-1] == chain[0] else other) + chain
+                    changed = True
+            merged.append({"type": "Feature", "properties": {"name": name, "kind": kind}, "geometry": {"type": "LineString", "coordinates": chain}})
+    return merged
+
+
 def load_overpass(kind, local_path=None):
     if local_path:
         return json.loads(Path(local_path).read_text(encoding="utf-8"))
@@ -108,6 +145,7 @@ def main():
                 coords = simplify(run, tol)
                 if len(coords) >= 2:
                     features.append({"type": "Feature", "properties": {"name": name, "kind": kind}, "geometry": {"type": "LineString", "coordinates": coords}})
+    features = merge_named_features(features)
     fc = {"type": "FeatureCollection", "features": features}
     OUT.write_text(json.dumps(fc, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{OUT}: {len(features)} segments, {OUT.stat().st_size / 1024 / 1024:.1f} MB")

@@ -2526,11 +2526,19 @@ function _riverSearch(q){
   });
 }
 function clearRiverSearch(){_riverSearchFocus.clearLayers();map.closePopup();}
+function riverShareUrl(name){const u=new URL(location.href);u.searchParams.delete('course');u.searchParams.set('river',name);return u.toString();}
+function shareRiver(name){const u=riverShareUrl(name);gaEvent('river_share',{name:name});if(navigator.share){navigator.share({title:'마이카누 · '+name,url:u}).catch(function(){});}else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){alert('하천 링크가 복사됐어요!\n'+u);}).catch(function(){prompt('아래 링크 복사',u);});}else prompt('아래 링크 복사',u);}
+function shareRiverEncoded(name){try{shareRiver(decodeURIComponent(name));}catch(e){}}
 function focusRiverSearch(x){
   _riverSearchFocus.clearLayers(); const bounds=L.latLngBounds([]);
   (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;L.polyline(ll,{color:'#061d3d',weight:8,opacity:.58,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#1459a6',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
-  if(bounds.isValid()){map.fitBounds(bounds.pad(.06),{maxZoom:13});const c=bounds.getCenter();L.popup().setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>검색된 전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>').openOn(map);} gaEvent('river_search',{name:x.name});
+  if(bounds.isValid()){map.fitBounds(bounds.pad(.06),{maxZoom:13});const c=bounds.getCenter(),enc=encodeURIComponent(x.name);L.popup().setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="shareRiverEncoded(\''+enc+'\')">공유</button> <button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>').openOn(map);} gaEvent('river_search',{name:x.name});
 }
+function focusRiverFromUrl(){
+  const name=new URL(location.href).searchParams.get('river');if(!name)return;
+  _loadAdminRivers().then(function(){const fs=_riverFeatures.filter(function(f){return String((f.properties||{}).name||'')===name;});if(!fs.length)return;focusRiverSearch({name:name,features:fs});});
+}
+setTimeout(focusRiverFromUrl,900);
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
 _protectPH.addTo(map); _wlzPH.addTo(map);   // 기본 ON(체크). 실제 면은 줌게이트가 제어. obstacle/수위와 동일 거동.
 const Z_HEAVY = 11;
