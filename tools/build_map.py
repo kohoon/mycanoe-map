@@ -742,7 +742,7 @@ async function _updateAdminSheetLink(on){
     const d=await r.json(); if(r.ok&&d&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.url||'')){ a.href=d.url; a.style.display='flex'; }
   }catch(e){}
 }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);}catch(e){} }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);}catch(e){} if(on)try{focusPlaceFromUrl();}catch(e){} }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -1274,7 +1274,7 @@ function addPlaceMarker(pl){
   _placeMarkerById[id]={m:m,cat:k,name:nm,rec:rec}; _kvPlaces.push(rec); }
 function loadPlaces(){ if(!WORKER_URL) return;
   fetch(WORKER_URL.replace(/\/+$/,'')+'/places').then(function(r){return r.json();})
-    .then(function(list){ (list||[]).forEach(addPlaceMarker); }).catch(function(){}); }
+    .then(function(list){ (list||[]).forEach(addPlaceMarker); focusPlaceFromUrl(); }).catch(function(){}); }
 // loadPlaces()는 placeover 로드 후 호출(오버라이드 선적용)
 function addPlace(){
   if(!isAdmin()) return; const a=window._curAddr; if(!a) return;
@@ -1606,8 +1606,10 @@ function openPlaceModal(pl){
   renderPmCat(pl);
   _clearPhoto(); renderRateRow();
   const warn=(pl.cat==='런칭/랜딩 후보지')?'<div class="pm-note pm-note-warn">⚠️ 런칭/랜딩 가능한지 확인이 필요한 곳</div>':'';
+  const share=(pl.cat==='런칭/랜딩'||pl.cat==='런칭/랜딩 후보지')?'<div class="course-actions"><a class="course-btn" onclick="sharePlace(_pmPlace)">🔗 공유</a></div>':'';
   document.getElementById('pmLinks').innerHTML=warn+'<div id="pmWx" class="pm-wx"></div>'
     +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'')
+    +share
     +((isAdmin()&&pl.id!=null)?'<div class="pm-padmin"><a onclick="editPlace()">✏️ 수정</a><a onclick="movePlace()">📍 위치 이동</a><a onclick="deletePlace()">🗑 삭제</a></div>':'');
   placeWeather(pl.lat,pl.lng);
   document.getElementById('pmAdmin').innerHTML='';
@@ -1617,6 +1619,20 @@ function openPlaceModal(pl){
   gaEvent('place_open',{name:pl.name||''}); loadComments();
 }
 function closePlaceModal(){ document.getElementById('pmodal').classList.remove('open'); }
+function placeShareUrl(pl){
+  const u=new URL(location.href);u.searchParams.delete('course');u.searchParams.delete('river');u.searchParams.delete('riverAt');
+  if(pl&&pl.id!=null)u.searchParams.set('place',String(pl.id));
+  else if(pl)u.searchParams.set('placeAt',(+pl.lat).toFixed(5)+','+(+pl.lng).toFixed(5));
+  return u.toString();
+}
+function sharePlace(pl){const u=placeShareUrl(pl);gaEvent('place_share',{name:(pl&&pl.name)||''});if(navigator.share){navigator.share({title:'마이카누 · '+((pl&&pl.name)||'런칭/랜딩'),url:u}).catch(function(){});}else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){alert('장소 링크가 복사됐어요!\n'+u);}).catch(function(){prompt('아래 링크 복사',u);});}else prompt('아래 링크 복사',u);}
+let _placeUrlFocused=false;
+function focusPlaceFromUrl(){
+  if(_placeUrlFocused)return;const u=new URL(location.href),id=u.searchParams.get('place'),at=(u.searchParams.get('placeAt')||'').split(',').map(Number);let e=id!=null?_placeMarkerById[id]:null;
+  if(!e&&isFinite(at[0])&&isFinite(at[1])){let best=null,gap=Infinity;Object.keys(_placeMarkerById).forEach(function(k){const x=_placeMarkerById[k],ll=x&&x.m&&x.m.getLatLng();if(!ll)return;const d=(ll.lat-at[0])*(ll.lat-at[0])+(ll.lng-at[1])*(ll.lng-at[1]);if(d<gap){gap=d;best=x;}});if(gap<0.000001)e=best;}
+  if(!e||e.deleted)return;const pl=e.rec||(e.f?featPlace(e.f):null);if(!pl||!_visiblePlaceCat(pl.cat))return;_placeUrlFocused=true;map.setView([pl.lat,pl.lng],16);openPlaceModal(pl);
+}
+setTimeout(focusPlaceFromUrl,1200);
 // ---- 관리자: 장소 제목·내용 수정 / 삭제(숨김) — 통합 placeover ----
 function editPlace(){ if(!isAdmin()||!_pmPlace||_pmPlace.id==null) return; const p=_pmPlace;
   document.getElementById('pmLinks').innerHTML='<div class="pm-editform"><input id="peName" maxlength="60" value="'+pmEsc(p.name||'')+'" placeholder="제목">'
@@ -1935,7 +1951,7 @@ async function savePlaceMove(id, lat, lng, m, fromSlug){ if(!isAdmin()) return;
       gaEvent('place_move'); alert('위치 이동 완료 — 코멘트·별점·즐겨찾기도 함께 이동됐어요'); }
     else { if(m&&m._preLL) m.setLatLng(m._preLL); alert('이동 실패(권한 확인)'); } }
   catch(e){ if(m&&m._preLL) m.setLatLng(m._preLL); alert('오류'); } }
-fetch(fapi('/placeover')).then(function(r){return r.json();}).then(function(m){ _placeOver=m||{}; applyPlaceOver(); loadPlaces(); }).catch(function(){ loadPlaces(); });
+fetch(fapi('/placeover')).then(function(r){return r.json();}).then(function(m){ _placeOver=m||{}; applyPlaceOver(); focusPlaceFromUrl(); loadPlaces(); }).catch(function(){ focusPlaceFromUrl(); loadPlaces(); });
 function applyZoomIcons(){ const dot=map.getZoom()<Z_ICON; const f=function(m){ if(!m._kind||m._isDot===dot) return; m._isDot=dot; m.setIcon(dot?dotIcon(m._kind):fullIcon(m._kind)); };
   famousLayer.eachLayer(f); canoeLayer.eachLayer(f); }
 map.on('zoomend', applyZoomIcons);
