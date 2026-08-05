@@ -1692,6 +1692,7 @@ map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
 map.createPane('wlPane');  map.getPane('wlPane').style.zIndex='650';
 map.createPane('damPane'); map.getPane('damPane').style.zIndex='648';
 map.createPane('cctvPane'); map.getPane('cctvPane').style.zIndex='645';
+map.createPane('launchPane'); map.getPane('launchPane').style.zIndex='690';   // 지도 콘텐츠 중 최상위: 런칭/랜딩·후보지
 function _zoomPaneGate(){ const on=map.getZoom()>=13?'':'none';
   map.getPane('wlPane').style.display=on; map.getPane('cctvPane').style.display=on;
   map.getPane('damPane').style.display=map.getZoom()>=10?'':'none';
@@ -1862,7 +1863,8 @@ function beavertailPaddleIcon(){ return L.divIcon({className:'spot-pin',html:'<s
 const Z_ICON=12;
 function dotIcon(kind){ const c=kind==='spot'?'dot-spot':kind==='wreck'?'dot-wreck':(kind==='candidate'?'dot-candidate':'dot-canoe'); return L.divIcon({className:'dotpin '+c,html:'',iconSize:[10,10],iconAnchor:[5,5]}); }
 function fullIcon(kind){ return kind==='spot'?beavertailPaddleIcon():kind==='wreck'?wreckIcon():canoeIcon(kind); }
-function makeMarker(ll,kind){ const dot=map.getZoom()<Z_ICON; const m=L.marker(ll,{icon:dot?dotIcon(kind):fullIcon(kind)}); m._kind=kind; m._isDot=dot; return m; }
+function _placePane(kind){ return (kind==='canoe'||kind==='candidate')?'launchPane':'markerPane'; }
+function makeMarker(ll,kind){ const dot=map.getZoom()<Z_ICON; const m=L.marker(ll,{icon:dot?dotIcon(kind):fullIcon(kind),pane:_placePane(kind),zIndexOffset:(kind==='canoe'||kind==='candidate')?1000:0}); m._kind=kind; m._isDot=dot; return m; }
 const _placeMarkerById={};   // id -> {m, cat:'spot'|'canoe', name}
 function _measPickPoint(ll, label){
   const pt=L.latLng(+ll.lat, +ll.lng);
@@ -1894,7 +1896,7 @@ function setPlaceKind(id, cat, save){
   if(e.cat!==cat){
     (e.cat==='spot'?famousLayer:canoeLayer).removeLayer(e.m);
     const ik=(cat==='spot')?'spot':(cat==='candidate'?'candidate':(isWreck(e.name)?'wreck':'canoe'));
-    e.m._kind=ik; const dot=map.getZoom()<Z_ICON; e.m._isDot=dot; e.m.setIcon(dot?dotIcon(ik):fullIcon(ik));
+    e.m._kind=ik; e.m.options.pane=_placePane(ik); e.m.options.zIndexOffset=(ik==='canoe'||ik==='candidate')?1000:0; const dot=map.getZoom()<Z_ICON; e.m._isDot=dot; e.m.setIcon(dot?dotIcon(ik):fullIcon(ik));
     (cat==='spot'?famousLayer:canoeLayer).addLayer(e.m); e.cat=cat;
   }
   if(save){ fetch(fapi('/placecat'),{method:'POST',headers:{'Content-Type':'application/json'},
