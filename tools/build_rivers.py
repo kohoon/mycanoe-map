@@ -85,10 +85,12 @@ def merge_named_features(features):
     groups = {}
     for feature in features:
         p = feature["properties"]
-        groups.setdefault((p["kind"], p["name"]), []).append(feature["geometry"]["coordinates"])
+        groups.setdefault(p["name"], []).append((p["kind"], feature["geometry"]["coordinates"]))
     merged = []
-    for (kind, name), lines in groups.items():
-        tolerance = 0.03 if kind == "river" else 0.0015
+    for name, parts in groups.items():
+        kind = "river" if any(k == "river" for k, _ in parts) else "stream"
+        lines = [line for _, line in parts]
+        tolerance = 0.04 if kind == "river" else 0.0015
         while lines:
             chain = lines.pop()
             changed = True
