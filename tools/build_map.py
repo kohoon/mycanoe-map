@@ -2504,13 +2504,13 @@ function _loadAdminRivers(){
   if(_riverMain) return Promise.resolve(); if(_riverLoading)return _riverLoading;
   _riverLoading=fetch('rivers.geojson?v='+DATAVER.rivers).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(fc){
     _riverFeatures=fc.features||[];
-    const opts=function(kind){return {filter:function(f){return (f.properties||{}).kind===kind;},style:kind==='river'?{color:'#123f78',weight:2.8,opacity:.9}:{color:'#2864a8',weight:1.5,opacity:.78},onEachFeature:function(f,l){const n=(f.properties||{}).name;if(n)l.bindTooltip(pmEsc(n),{sticky:true,direction:'top'});}};};
+    const opts=function(kind){return {filter:function(f){return (f.properties||{}).kind===kind;},style:kind==='river'?{color:'#003b73',weight:2.8,opacity:.94}:{color:'#14528a',weight:1.5,opacity:.84},onEachFeature:function(f,l){const n=(f.properties||{}).name;if(n)l.bindTooltip(pmEsc(n),{sticky:true,direction:'top'});}};};
     _riverMain=L.geoJSON(fc,opts('river')); _riverStream=L.geoJSON(fc,opts('stream')); _riverAdminGroup.addLayer(_riverMain); _riverZoomGate();
   }).catch(function(){alert('하천 데이터를 불러오지 못했습니다');}).finally(function(){_riverLoading=null;}); return _riverLoading;
 }
 function _syncAdminRiverLayer(on){
   if(!_layerControl)return;
-  if(on&&!_riverControlAdded){_layerControl.addOverlay(_riverAdminGroup,_sw('#123f78')+'주요 강·하천 <small>(관리자)</small>');_riverControlAdded=true;}
+  if(on&&!_riverControlAdded){_layerControl.addOverlay(_riverAdminGroup,_sw('#003b73')+'주요 강·하천 <small>(관리자)</small>');_riverControlAdded=true;}
   else if(!on&&_riverControlAdded){if(map.hasLayer(_riverAdminGroup))map.removeLayer(_riverAdminGroup);_layerControl.removeLayer(_riverAdminGroup);_riverControlAdded=false;}
 }
 map.on('overlayadd',function(e){if(e.layer===_riverAdminGroup){map.attributionControl.addAttribution('하천 &copy; OpenStreetMap 기여자');_loadAdminRivers().then(_riverZoomGate);}});
@@ -2540,7 +2540,7 @@ function shareRiver(name,lat,lng){const u=riverShareUrl(name,lat,lng);gaEvent('r
 function shareRiverEncoded(name,lat,lng){try{shareRiver(decodeURIComponent(name),lat,lng);}catch(e){}}
 function focusRiverSearch(x){
   _riverSearchFocus.clearLayers(); const bounds=L.latLngBounds([]);
-  (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;L.polyline(ll,{color:'#061d3d',weight:8,opacity:.58,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#1459a6',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
+  (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;L.polyline(ll,{color:'#001a33',weight:8,opacity:.68,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#003b73',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
   if(bounds.isValid()){map.fitBounds(bounds.pad(.06),{maxZoom:13});const c=bounds.getCenter(),enc=encodeURIComponent(x.name);L.popup().setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>'+pmEsc(_riverRegionLabel(c.lat,c.lng))+' · 전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="shareRiverEncoded(\''+enc+'\','+c.lat+','+c.lng+')">공유</button> <button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>').openOn(map);} gaEvent('river_search',{name:x.name});
 }
 function focusRiverFromUrl(){
