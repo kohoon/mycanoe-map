@@ -88,7 +88,7 @@ def merge_named_features(features):
         groups.setdefault((p["kind"], p["name"]), []).append(feature["geometry"]["coordinates"])
     merged = []
     for (kind, name), lines in groups.items():
-        tolerance = 0.004 if kind == "river" else 0.0015
+        tolerance = 0.03 if kind == "river" else 0.0015
         while lines:
             chain = lines.pop()
             changed = True
@@ -125,6 +125,13 @@ def load_overpass(kind, local_path=None):
     return fetch_json(OVERPASS_URL, urllib.parse.urlencode({"data": query}).encode())
 
 
+def normalize_name(name):
+    name = str(name or "").strip()
+    if "임진강" in name:
+        return "임진강"
+    return name
+
+
 def main():
     river_path = sys.argv[1] if len(sys.argv) > 1 else None
     stream_path = sys.argv[2] if len(sys.argv) > 2 else None
@@ -139,7 +146,7 @@ def main():
         raw = load_overpass(kind, path)
         for way in raw.get("elements", []):
             tags = way.get("tags", {})
-            name = tags.get("name:ko") or tags.get("name")
+            name = normalize_name(tags.get("name:ko") or tags.get("name"))
             points = [[round(n["lon"], 6), round(n["lat"], 6)] for n in way.get("geometry", [])]
             for run in runs_in_country(points, polygons):
                 coords = simplify(run, tol)
