@@ -2340,22 +2340,31 @@ function _riverSearch(q){
   if(!isAdmin()||!_riverFeatures.length)return [];
   const nq=String(q||'').replace(/\s/g,'').toLowerCase(), groups={};
   _riverFeatures.forEach(function(f){const p=f.properties||{},n=String(p.name||'');if(!n||n.replace(/\s/g,'').toLowerCase().indexOf(nq)<0)return;(groups[n]||(groups[n]=[])).push(f);});
-  return Object.keys(groups).sort(function(a,b){const ae=a.replace(/\s/g,'').toLowerCase()===nq,be=b.replace(/\s/g,'').toLowerCase()===nq;return ae===be?a.localeCompare(b,'ko'):(ae?-1:1);}).slice(0,8).map(function(n){
-    const fs=groups[n],cs=fs[0].geometry.coordinates,m=cs[Math.floor(cs.length/2)]; return {kind:'river',label:'🌊 '+n,sub:(fs[0].properties.kind==='river'?'강·하천':'지류 하천')+' · 전체 물줄기',lat:m[1],lng:m[0],name:n,features:fs};
-  });
+  const names=Object.keys(groups).sort(function(a,b){const ae=a.replace(/\s/g,'').toLowerCase()===nq,be=b.replace(/\s/g,'').toLowerCase()===nq;return ae===be?a.localeCompare(b,'ko'):(ae?-1:1);}),out=[];
+  names.forEach(function(n){groups[n].forEach(function(f){if(out.length>=10)return;const cs=f.geometry.coordinates,m=cs[Math.floor(cs.length/2)],region=_riverRegionLabel(m[1],m[0]);out.push({kind:'river',label:'🌊 '+n,sub:region+' · '+((f.properties||{}).kind==='river'?'강·하천':'지류 하천')+' · 전체 물줄기',lat:m[1],lng:m[0],name:n,features:[f]});});});return out;
+}
+function _riverRegionLabel(lat,lng){
+  if(lat>=37.50&&lat<=37.72&&lng>=126.76&&lng<=127.20)return '서울';
+  if(lat>=37.30&&lat<37.50&&lng>=126.80&&lng<=127.18)return '안양/과천';
+  if(lat>=37.0&&lng>=126.55&&lng<=127.85)return '경기';
+  if(lat>=37.0&&lng>127.65)return '강원';
+  if(lat<35.8&&lng>=127.55&&lng<=129.6)return '경남';
+  if(lat<36.4&&lng<127.55)return '전라';
+  if(lat<37.2&&lng>=127.5)return '충청/경북';
+  return '대한민국';
 }
 function clearRiverSearch(){_riverSearchFocus.clearLayers();map.closePopup();}
-function riverShareUrl(name){const u=new URL(location.href);u.searchParams.delete('course');u.searchParams.set('river',name);return u.toString();}
-function shareRiver(name){const u=riverShareUrl(name);gaEvent('river_share',{name:name});if(navigator.share){navigator.share({title:'마이카누 · '+name,url:u}).catch(function(){});}else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){alert('하천 링크가 복사됐어요!\n'+u);}).catch(function(){prompt('아래 링크 복사',u);});}else prompt('아래 링크 복사',u);}
-function shareRiverEncoded(name){try{shareRiver(decodeURIComponent(name));}catch(e){}}
+function riverShareUrl(name,lat,lng){const u=new URL(location.href);u.searchParams.delete('course');u.searchParams.set('river',name);if(isFinite(lat)&&isFinite(lng))u.searchParams.set('riverAt',(+lat).toFixed(5)+','+(+lng).toFixed(5));return u.toString();}
+function shareRiver(name,lat,lng){const u=riverShareUrl(name,lat,lng);gaEvent('river_share',{name:name});if(navigator.share){navigator.share({title:'마이카누 · '+name,url:u}).catch(function(){});}else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){alert('하천 링크가 복사됐어요!\n'+u);}).catch(function(){prompt('아래 링크 복사',u);});}else prompt('아래 링크 복사',u);}
+function shareRiverEncoded(name,lat,lng){try{shareRiver(decodeURIComponent(name),lat,lng);}catch(e){}}
 function focusRiverSearch(x){
   _riverSearchFocus.clearLayers(); const bounds=L.latLngBounds([]);
   (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;L.polyline(ll,{color:'#061d3d',weight:8,opacity:.58,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#1459a6',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
-  if(bounds.isValid()){map.fitBounds(bounds.pad(.06),{maxZoom:13});const c=bounds.getCenter(),enc=encodeURIComponent(x.name);L.popup().setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="shareRiverEncoded(\''+enc+'\')">공유</button> <button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>').openOn(map);} gaEvent('river_search',{name:x.name});
+  if(bounds.isValid()){map.fitBounds(bounds.pad(.06),{maxZoom:13});const c=bounds.getCenter(),enc=encodeURIComponent(x.name);L.popup().setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>'+pmEsc(_riverRegionLabel(c.lat,c.lng))+' · 전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="shareRiverEncoded(\''+enc+'\','+c.lat+','+c.lng+')">공유</button> <button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>').openOn(map);} gaEvent('river_search',{name:x.name});
 }
 function focusRiverFromUrl(){
-  const name=new URL(location.href).searchParams.get('river');if(!name)return;
-  _loadAdminRivers().then(function(){const fs=_riverFeatures.filter(function(f){return String((f.properties||{}).name||'')===name;});if(!fs.length)return;focusRiverSearch({name:name,features:fs});});
+  const u=new URL(location.href),name=u.searchParams.get('river'),at=(u.searchParams.get('riverAt')||'').split(',').map(Number);if(!name)return;
+  _loadAdminRivers().then(function(){let fs=_riverFeatures.filter(function(f){return String((f.properties||{}).name||'')===name;});if(!fs.length)return;if(isFinite(at[0])&&isFinite(at[1]))fs.sort(function(a,b){function d(f){const c=f.geometry.coordinates[Math.floor(f.geometry.coordinates.length/2)];return (c[1]-at[0])*(c[1]-at[0])+(c[0]-at[1])*(c[0]-at[1]);}return d(a)-d(b);}),fs=fs.slice(0,1);focusRiverSearch({name:name,features:fs});});
 }
 setTimeout(focusRiverFromUrl,900);
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
