@@ -190,6 +190,12 @@ export default {
         const uid = String(b.id || "").slice(0, 40);
         if (!uid || !(await _tokOk(env, uid, b.tok))) return J({ ok: false, error: "relogin" }, 401);
         let current = null; try { current = JSON.parse((await KV.get("profile:" + uid)) || "null"); } catch (e) {}
+        if (b.action === "mypage-tour-seen") {
+          if (!current || !current.nick) return J({ ok: false, error: "no-profile" }, 400);
+          current.mypageTourSeen = Date.now();
+          await KV.put("profile:" + uid, JSON.stringify(current));
+          return J({ ok: true, profile: current });
+        }
         if (current && current.nick) return J({ ok: true, profile: current });
         const nick = String(b.nick || "").trim().replace(/\s+/g, " ").slice(0, 20);
         const norm = nick.toLocaleLowerCase("ko-KR");
@@ -197,7 +203,7 @@ export default {
         const nk = "profile_nick:" + norm;
         const owner = await KV.get(nk);
         if (owner && String(owner) !== uid) return J({ ok: false, error: "duplicate" }, 409);
-        const profile = { nick, t: Date.now() };
+        const profile = { nick, t: Date.now(), mypageTourSeen: 0 };
         await KV.put(nk, uid); await KV.put("profile:" + uid, JSON.stringify(profile));
         return J({ ok: true, profile });
       }
