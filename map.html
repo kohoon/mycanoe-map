@@ -2202,11 +2202,13 @@ function _damSpark24M(d){
     rows=(rows||[]).filter(function(x){return x&&isFinite(x.v)&&x.v>0&&x.t;}).sort(function(a,b){return a.t-b.t;});
     if(rows.length<120) return '';
     const vals=rows.map(function(x){return x.v;});
-    const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=(mx-mn)||0.01;
+    const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+    const fld=parseFloat(d.fld),pfh=parseFloat(d.pfh),ref=isFinite(fld)?fld:(isFinite(pfh)?pfh:NaN),refName=isFinite(fld)?'제한수위':(isFinite(pfh)?'계획홍수위':'');
+    const axisMin=mn,axisMax=Math.max(mx,isFinite(ref)?ref:mx),rng=(axisMax-axisMin)||0.01;
     const W=210,H=54,padL=3,padR=3,padT=5,padB=15,plotW=W-padL-padR,plotH=H-padT-padB;
     const first=rows[0].t.getTime(), last=rows[rows.length-1].t.getTime(), span=(last-first)||1;
     const xOf=function(t){ return padL+(t.getTime()-first)/span*plotW; };
-    const yOf=function(v){ return padT+plotH-(v-mn)/rng*plotH; };
+    const yOf=function(v){ return padT+plotH-(v-axisMin)/rng*plotH; };
     const pts=rows.map(function(r){ return xOf(r.t).toFixed(1)+','+yOf(r.v).toFixed(1); }).join(' ');
     let ticks='', labs='';
     const cursor=new Date(rows[0].t.getFullYear(), rows[0].t.getMonth(), 1);
@@ -2222,13 +2224,15 @@ function _damSpark24M(d){
     const dTxt=Math.abs(dlt)<0.05?'보합':(dlt>0?'+'+dlt.toFixed(1)+'m':dlt.toFixed(1)+'m');
     const months=Math.max(1,Math.round((rows[rows.length-1].t-rows[0].t)/(30.4375*86400000)));
     const period=rows[0].t.getFullYear()+'.'+(rows[0].t.getMonth()+1)+'~'+rows[rows.length-1].t.getFullYear()+'.'+(rows[rows.length-1].t.getMonth()+1);
+    let refLine='';
+    if(isFinite(ref)&&ref>=axisMin&&ref<=axisMax){const ry=yOf(ref);refLine='<line x1="'+padL+'" y1="'+ry.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ry.toFixed(1)+'" stroke="#c62828" stroke-width="1" stroke-dasharray="3 3"/><text x="'+(W-padR-1)+'" y="'+Math.min(H-padB-1,ry+7).toFixed(1)+'" text-anchor="end" font-size="7" fill="#b71c1c">'+refName+'</text>';}
     return '<div style="margin-top:8px"><small style="color:#667;font-weight:700">지난 '+months+'개월 저수위 추이</small>'
       +'<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block;margin-top:2px;max-width:100%">'
       +'<rect x="0" y="0" width="'+W+'" height="'+H+'" rx="6" fill="#f7fafb"/>'
-      +ticks+'<polyline points="'+pts+'" fill="none" stroke="#1976d2" stroke-width="1.7"/>'
+      +ticks+refLine+'<polyline points="'+pts+'" fill="none" stroke="#1976d2" stroke-width="1.7"/>'
       +'<circle cx="'+xOf(rows[rows.length-1].t).toFixed(1)+'" cy="'+yOf(cur).toFixed(1)+'" r="2.3" fill="#263238"/>'
       +labs+'</svg>'
-      +'<small style="color:#889;display:block;margin-top:1px">'+period+' · 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m · 변화 '+dTxt+'</small></div>';
+      +'<small style="color:#889;display:block;margin-top:1px">'+period+' · 실제 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m · 변화 '+dTxt+(isFinite(ref)?' · 축 상단 '+refName+' '+ref.toFixed(2)+'m':'')+'</small></div>';
   };
   const c=_damSparkCache[d.cd];
   if(c && Date.now()-c.ts<3600000) return Promise.resolve(build(c.rows));
