@@ -2356,13 +2356,13 @@ function _loadAdminRivers(){
   if(_riverMain) return Promise.resolve(); if(_riverLoading)return _riverLoading;
   _riverLoading=fetch('rivers.geojson?v='+DATAVER.rivers).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(fc){
     _riverFeatures=fc.features||[];
-    const opts=function(kind){return {filter:function(f){return (f.properties||{}).kind===kind;},style:kind==='river'?{color:'#00a5cf',weight:2.6,opacity:.82}:{color:'#48b8d0',weight:1.4,opacity:.7},onEachFeature:function(f,l){const n=(f.properties||{}).name;if(n)l.bindTooltip(pmEsc(n),{sticky:true,direction:'top'});}};};
+    const opts=function(kind){return {filter:function(f){return (f.properties||{}).kind===kind;},style:kind==='river'?{color:'#123f78',weight:2.8,opacity:.9}:{color:'#2864a8',weight:1.5,opacity:.78},onEachFeature:function(f,l){const n=(f.properties||{}).name;if(n)l.bindTooltip(pmEsc(n),{sticky:true,direction:'top'});}};};
     _riverMain=L.geoJSON(fc,opts('river')); _riverStream=L.geoJSON(fc,opts('stream')); _riverAdminGroup.addLayer(_riverMain); _riverZoomGate();
   }).catch(function(){alert('하천 데이터를 불러오지 못했습니다');}).finally(function(){_riverLoading=null;}); return _riverLoading;
 }
 function _syncAdminRiverLayer(on){
   if(!_layerControl)return;
-  if(on&&!_riverControlAdded){_layerControl.addOverlay(_riverAdminGroup,_sw('#00a5cf')+'주요 강·하천 <small>(관리자)</small>');_riverControlAdded=true;}
+  if(on&&!_riverControlAdded){_layerControl.addOverlay(_riverAdminGroup,_sw('#123f78')+'주요 강·하천 <small>(관리자)</small>');_riverControlAdded=true;}
   else if(!on&&_riverControlAdded){if(map.hasLayer(_riverAdminGroup))map.removeLayer(_riverAdminGroup);_layerControl.removeLayer(_riverAdminGroup);_riverControlAdded=false;}
 }
 map.on('overlayadd',function(e){if(e.layer===_riverAdminGroup){map.attributionControl.addAttribution('하천 &copy; OpenStreetMap 기여자');_loadAdminRivers().then(_riverZoomGate);}});
@@ -2380,7 +2380,7 @@ function _riverSearch(q){
 function clearRiverSearch(){_riverSearchFocus.clearLayers();map.closePopup();}
 function focusRiverSearch(x){
   _riverSearchFocus.clearLayers(); const bounds=L.latLngBounds([]);
-  (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;L.polyline(ll,{color:'#063f52',weight:7,opacity:.55,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#00c3df',weight:4,opacity:.95,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
+  (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;L.polyline(ll,{color:'#061d3d',weight:8,opacity:.58,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#1459a6',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
   if(bounds.isValid()){map.fitBounds(bounds.pad(.06),{maxZoom:13});const c=bounds.getCenter();L.popup().setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>검색된 전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>').openOn(map);} gaEvent('river_search',{name:x.name});
 }
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
@@ -2613,7 +2613,7 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   if(!q){ closeSearchPreview(true); return; } const seq=++_searchSeq; box.textContent='검색 중…'; gaEvent('search',{q:q.slice(0,40)});
   // 1) 내 지도 결과 먼저. 관리자는 하천 인덱스를 최초 검색 시 지연 로드한다.
   if(isAdmin()&&!_riverFeatures.length){try{await _loadAdminRivers();}catch(e){}}
-  const local=_localSearch(q).concat(_riverSearch(q));
+  const local=_riverSearch(q).concat(_localSearch(q));   // 강·천을 검색 미리보기 최상단에 배치
   // 2) 외부 지오코더 — V-World(도로명·지번·장소) 우선, 없으면 Nominatim 폴백
   let geo=[];
   if(VKEY){
