@@ -172,6 +172,38 @@ export default {
       return new Response(JSON.stringify({ ok: true, url: env.SHEET_URL || "" }), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
     }
 
+    // 0-1d) 앱 전용 닉네임 — 최초 1회 설정, 카카오 프로필명과 분리
+    if (url.pathname.endsWith("/profile")) {
+      const origin = req.headers.get("Origin") || "*";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      const KV = env.PLACES; if (!KV) return J({ ok: false, error: "no-store" }, 500);
+      if (req.method === "GET") {
+        const uid = String(url.searchParams.get("uid") || "").slice(0, 40);
+        if (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok")))) return J({ ok: false, error: "relogin" }, 401);
+        let profile = null; try { profile = JSON.parse((await KV.get("profile:" + uid)) || "null"); } catch (e) {}
+        return J({ ok: true, profile });
+      }
+      if (req.method === "POST") {
+        let b = {}; try { b = await req.json(); } catch (e) {}
+        const uid = String(b.id || "").slice(0, 40);
+        if (!uid || !(await _tokOk(env, uid, b.tok))) return J({ ok: false, error: "relogin" }, 401);
+        let current = null; try { current = JSON.parse((await KV.get("profile:" + uid)) || "null"); } catch (e) {}
+        if (current && current.nick) return J({ ok: true, profile: current });
+        const nick = String(b.nick || "").trim().replace(/\s+/g, " ").slice(0, 20);
+        const norm = nick.toLocaleLowerCase("ko-KR");
+        if (nick.length < 2 || !/^[\p{L}\p{N}._ -]+$/u.test(nick) || /^(관리자|admin|마이카누)$/i.test(nick)) return J({ ok: false, error: "invalid" }, 400);
+        const nk = "profile_nick:" + norm;
+        const owner = await KV.get(nk);
+        if (owner && String(owner) !== uid) return J({ ok: false, error: "duplicate" }, 409);
+        const profile = { nick, t: Date.now() };
+        await KV.put(nk, uid); await KV.put("profile:" + uid, JSON.stringify(profile));
+        return J({ ok: true, profile });
+      }
+      return J({ ok: false, error: "method" }, 405);
+    }
+
     // 0-2) 등록 장소 저장/조회 (Cloudflare KV: env.PLACES, 어드민: env.ADMIN_KEY)
     if (url.pathname.endsWith("/places")) {
       const origin = req.headers.get("Origin") || "*";
@@ -265,6 +297,7 @@ export default {
         const slug = String(b.place || "").slice(0, 40);
         if (!slug) return new Response("bad", { status: 400, headers: cors });
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
+        const clearCommentCache = () => caches.default.delete(new Request(url.origin + url.pathname + "?place=" + encodeURIComponent(slug), { method: "GET" }));
         let obj = { admin: "", list: [] };
         try { obj = JSON.parse((await KV.get("cmt:" + slug)) || EMPTY); } catch (e) {}
         if (b.action === "cmtdel" || b.action === "cmtedit") {   // 어드민: 코멘트 삭제/수정
@@ -279,7 +312,8 @@ export default {
             if (it) it.text = String(b.text || "").slice(0, 100);
           }
           await KV.put("cmt:" + slug, JSON.stringify(obj));
-          return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, "Content-Type": "application/json" } });
+          ctx.waitUntil(clearCommentCache());
+          return new Response(JSON.stringify({ ok: true, comments: obj }), { headers: { ...cors, "Content-Type": "application/json" } });
         }
         if (b.admin) {
           if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
@@ -331,7 +365,8 @@ export default {
           }
         }
         await KV.put("cmt:" + slug, JSON.stringify(obj));
-        return new Response("ok", { headers: cors });
+        ctx.waitUntil(clearCommentCache());
+        return new Response(JSON.stringify({ ok: true, comments: obj }), { headers: { ...cors, "Content-Type": "application/json" } });
       }
       return new Response("method", { status: 405, headers: cors });
     }
@@ -1112,9 +1147,11 @@ export default {
     });
     const me = await meRes.json();
     const id = String(me.id || "");
-    const nick =
+    const kakaoNick =
       (me.kakao_account && me.kakao_account.profile && me.kakao_account.profile.nickname) ||
       (me.properties && me.properties.nickname) || "";
+    let nick = kakaoNick;
+    if (env.PLACES && id) { try { const p = JSON.parse((await env.PLACES.get("profile:" + id)) || "null"); if (p && p.nick) nick = p.nick; } catch (e) {} }
 
     // 로그인 기록 → Google Sheet(Apps Script 웹앱). LOG_WEBHOOK 은 대시보드 Secret 으로 설정.
     if (env.LOG_WEBHOOK) {

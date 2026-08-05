@@ -440,7 +440,6 @@ __GTAG__
   .cm-note{font-size:11.5px;color:#8a93a0;margin-top:7px}
   .cm-note b{color:#d500f9}
   #cmMsg{font-size:13px;color:#c0392b;margin-top:9px;min-height:18px;text-align:center}
-  .pm-cid{font-size:11px;color:#aab;font-weight:400}
   .noticebtn{position:relative;cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none;width:104px;box-sizing:border-box;text-align:center}
   .nt-badge{position:absolute;top:-7px;right:-7px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#e53935;color:#fff;font:700 10px/17px sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.35)}
   #ntBody h3{margin:0 30px 10px 0;font-size:18px;color:#1b3a2b}
@@ -535,18 +534,20 @@ __GTAG__
   .admin-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3100;display:flex;align-items:center;gap:8px;white-space:nowrap;background:#263238;color:#fff;padding:7px 13px;border-radius:22px;font:700 12.5px sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
   .admin-badge .ab-dot{width:8px;height:8px;border-radius:50%;background:#69f0ae;box-shadow:0 0 6px #69f0ae}
   .admin-badge a{color:#80d8ff;text-decoration:none;cursor:pointer;margin-left:4px}
-  #authModal{position:fixed;inset:0;z-index:3600;display:none;align-items:center;justify-content:center}
-  #authModal.open{display:flex}
+  #authModal,#nickModal{position:fixed;inset:0;z-index:3600;display:none;align-items:center;justify-content:center}
+  #authModal.open,#nickModal.open{display:flex}
   .auth-card{position:relative;background:#fff;border-radius:18px;padding:24px 22px;width:280px;max-width:86vw;text-align:center;box-shadow:0 18px 44px rgba(0,0,0,.34);animation:pmUp .25s ease}
   .auth-lock{width:56px;height:56px;border-radius:50%;background:#263238;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px}
   .auth-card h3{margin:2px 0 4px;font-size:18px;color:#1b2a33}
   .auth-card p{font-size:12.5px;color:#7a8a93;margin:0 0 16px}
   #authKey{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccd;border-radius:10px;font-size:15px;text-align:center;letter-spacing:2px}
+  #nickInput{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccd;border-radius:10px;font-size:15px;text-align:center}
   .auth-row{display:flex;gap:9px;margin-top:14px}
   .auth-row button{flex:1;border:0;border-radius:10px;padding:12px;font:700 14px sans-serif;cursor:pointer}
   .auth-ok{background:#263238;color:#fff}
   .auth-cancel{background:#eef1f3;color:#456}
   #authMsg{font-size:12.5px;color:#e53935;margin-top:9px;min-height:16px}
+  #nickMsg{font-size:12.5px;color:#e53935;margin-top:9px;min-height:16px}
   @media(max-width:520px){
     .measbtn{padding:8px 11px;font-size:12px}
     .search input{max-width:150px;font-size:12px}
@@ -620,6 +621,17 @@ __GTAG__
     <input id="authKey" type="password" autocomplete="off" placeholder="관리자 키">
     <div class="auth-row"><button class="auth-cancel" onclick="closeAuthModal()">취소</button><button class="auth-ok" id="authOk">확인</button></div>
     <div id="authMsg"></div>
+  </div>
+</div>
+<div id="nickModal">
+  <div class="pmodal-bg"></div>
+  <div class="auth-card">
+    <div class="auth-lock">👤</div>
+    <h3>마이카누 닉네임</h3>
+    <p>앱에서 활동할 닉네임을 최초 한 번 설정합니다</p>
+    <input id="nickInput" type="text" maxlength="20" autocomplete="nickname" placeholder="2~20자 닉네임">
+    <div class="auth-row"><button class="auth-ok" id="nickOk">시작하기</button></div>
+    <div id="nickMsg"></div>
   </div>
 </div>
 <div id="noticeModal" class="pmodal-wrap">
@@ -739,16 +751,44 @@ function logVisit(){   // 접속(자동로그인 재접속)마다 기록 → Wor
       body:JSON.stringify({id:u.uid, tok:u.tok||'', nick:u.nick||'', type:'visit', dev:devType()})}).catch(function(){});
   }catch(e){}
 }
+let _profilePromise=null;
+function ensureAppProfile(){
+  if(_profilePromise) return _profilePromise;
+  _profilePromise=(async function(){
+    const u=getUser(); if(!u||!u.uid) return false;
+    try{
+      const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/profile?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''),{cache:'no-store'});
+      if(r.status===401){ setUser(null); showGate(); return false; }
+      const d=await r.json();
+      if(d.profile&&d.profile.nick){ u.nick=d.profile.nick; setUser(u); renderAuth(); logVisit(); return true; }
+      return await openNicknameModal(u);
+    }catch(e){ _profilePromise=null; return false; }
+  })();
+  return _profilePromise;
+}
+function openNicknameModal(u){ return new Promise(function(resolve){
+  const m=document.getElementById('nickModal'), inp=document.getElementById('nickInput'), msg=document.getElementById('nickMsg'), ok=document.getElementById('nickOk');
+  inp.value=(u.kakaoNick||u.nick||'').slice(0,20); msg.textContent=''; m.classList.add('open');
+  async function submit(){ const nick=(inp.value||'').trim(); if(nick.length<2){ msg.textContent='닉네임을 2자 이상 입력하세요'; return; }
+    ok.disabled=true; msg.style.color='#778'; msg.textContent='확인 중…';
+    try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:u.uid,tok:u.tok||'',nick:nick})});
+      const d=await r.json().catch(function(){return {};});
+      if(r.ok&&d.profile){ u.nick=d.profile.nick; setUser(u); m.classList.remove('open'); renderAuth(); logVisit(); resolve(true); }
+      else { msg.style.color='#e53935'; msg.textContent=r.status===409?'이미 사용 중인 닉네임입니다':(r.status===401?'다시 로그인해 주세요':'한글·영문·숫자와 공백, . _ - 만 사용할 수 있습니다'); }
+    }catch(e){ msg.style.color='#e53935'; msg.textContent='저장하지 못했습니다. 다시 시도하세요'; }
+    finally{ ok.disabled=false; }
+  }
+  ok.onclick=submit; inp.onkeydown=function(e){if(e.key==='Enter') submit();}; setTimeout(function(){inp.focus();inp.select();},80);
+}); }
 (function(){   // 로그인 콜백(#login=ID&nick=NICK) 처리 + 세션 복원
   const h=location.hash||'', m=h.match(/login=([^&]+)/), nk=h.match(/nick=([^&]*)/), tk=h.match(/tok=([^&]*)/);
   if(m){
     const uid=decodeURIComponent(m[1]), nick=nk?decodeURIComponent(nk[1]):'';
-    setUser({uid:uid, nick:nick, tok:tk?decodeURIComponent(tk[1]):'', t:Date.now()});
+    setUser({uid:uid, nick:nick, kakaoNick:nick, tok:tk?decodeURIComponent(tk[1]):'', t:Date.now()});
     history.replaceState(null,'',location.pathname+location.search);
     if(window.gtag) gtag('set',{user_id:uid});
     gaEvent('login',{method:'kakao'});
-    logVisit();   // 새 로그인도 로그시트 기록(누락 버그 수정) — 토큰 방금 저장됨
-  } else { const u=getUser(); if(u&&u.uid){ if(window.gtag) gtag('set',{user_id:u.uid}); logVisit(); } }
+  } else { const u=getUser(); if(u&&u.uid){ if(window.gtag) gtag('set',{user_id:u.uid}); } }
 })();
 // 로그인 관문: 미로그인 시 지도 차단(로그인 화면 표시)
 function showGate(){ const g=document.getElementById('gate'); if(g) g.style.display='flex'; }
@@ -777,7 +817,7 @@ function showWelcome(){
 (function(){
   const gb=document.getElementById('gateLogin');
   if(gb) gb.onclick=function(){ gaEvent('login_start'); location.href=loginWorkerUrl(); };
-  const u=getUser(); if(u&&u.uid){ hideGate(); fetchNotices().then(function(){ updateNoticeBadge(); showWelcome(); }); } else showGate();
+  const u=getUser(); if(u&&u.uid){ hideGate(); ensureAppProfile().then(function(ok){ if(ok) fetchNotices().then(function(){ updateNoticeBadge(); showWelcome(); }); }); } else showGate();
 })();
 function renderAuth(){
   const d=document.getElementById('authbox'); if(!d) return;
@@ -785,7 +825,7 @@ function renderAuth(){
   if(u&&u.uid){
     d.innerHTML='<span class="who"><span class="dot"></span><a id="mypageA" title="마이페이지">'+pmEsc(u.nick||'회원')+'</a> <a id="logoutA">로그아웃</a></span>';
     const my=document.getElementById('mypageA'); if(my) L.DomEvent.on(my,'click',function(e){ L.DomEvent.stop(e); openMyPage(); });
-    const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); gaEvent('logout'); renderAuth(); showGate(); });
+    const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); _profilePromise=null; gaEvent('logout'); renderAuth(); showGate(); });
   } else {
     d.innerHTML='<button id="loginA">카카오 로그인</button>';
     const lb=document.getElementById('loginA'); if(lb) L.DomEvent.on(lb,'click',function(e){ L.DomEvent.stop(e); gaEvent('login_start'); location.href=loginWorkerUrl(); });
@@ -1687,7 +1727,7 @@ async function deleteObstacle(id){ if(!isAdmin()) return; if(!confirm('이 지�
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',adminKey:adminKey(),obsId:id})});
     if(r.ok){ if(o&&o._m) obstacleLayer.removeLayer(o._m); delete _obstacles[id]; map.closePopup(); } }catch(e){} }
 async function loadComments(){ if(!WORKER_URL||!_pmSlug) return;
-  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments?place='+encodeURIComponent(_pmSlug)); renderComments(await r.json()); }
+  try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments?place='+encodeURIComponent(_pmSlug),{cache:'no-store'}); renderComments(await r.json()); }
   catch(e){ renderComments({}); document.getElementById('pmCmts').innerHTML='<div class="pm-empty">코멘트를 불러오지 못했어요(잠시 후 다시)</div>'; } }
 function renderComments(d){ d=d||{}; let ah='';
   if(d.admin) ah+='<div class="pm-adminbox"><b>📌 관리자</b><div>'+linkify(d.admin)+'</div></div>';
@@ -1699,19 +1739,19 @@ function renderComments(d){ d=d||{}; let ah='';
     const tm=c.t?' <span class="pm-cmt-t">'+_cmtTime(c.t)+'</span>':'';
     const im=c.img?'<div class="pm-cmt-img"><img src="'+imgUrl(c.img)+'" loading="lazy" onclick="openImg(\''+c.img+'\')"></div>':'';
     const adm=isAdmin()?'<span class="pm-cmt-adm"><a style="color:#1565c0" onclick="editCmt('+c.id+')">수정</a><a style="color:#c62828" onclick="delCmt('+c.id+')">삭제</a></span>':'';
-    return '<div class="pm-cmt"><div class="pm-cmt-h">'+adm+'<b>'+pmEsc(c.nick||'익명')+'</b>'+stars+tm+(c.id?' <span class="pm-cid">#'+c.id+'</span>':'')+'</div>'
+    return '<div class="pm-cmt"><div class="pm-cmt-h">'+adm+'<b>'+pmEsc(c.nick||'익명')+'</b>'+stars+tm+'</div>'
       +(c.text?'<div class="pm-cmt-b">'+linkify(c.text)+'</div>':'')+im+'</div>';
   }).join('') : '<div class="pm-empty">첫 코멘트를 남겨보세요</div>';
 }
 async function delCmt(cid){ if(!isAdmin()) return; if(!confirm('이 코멘트(첨부 사진 포함)를 삭제할까요?')) return;
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'cmtdel',adminKey:adminKey(),place:_pmSlug,cid:cid})});
-    if(r.ok){ loadComments(); fetchRate((getUser()||{}).uid); } }catch(e){} }
+    if(r.ok){ const d=await r.json().catch(function(){return {};}); if(d.comments) renderComments(d.comments); else loadComments(); fetchRate((getUser()||{}).uid); } }catch(e){} }
 async function editCmt(cid){ if(!isAdmin()) return; const nt=prompt('코멘트 수정'); if(nt===null) return;
   try{ const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'cmtedit',adminKey:adminKey(),place:_pmSlug,cid:cid,text:nt.slice(0,100)})});
-    if(r.ok) loadComments(); }catch(e){} }
-function _cmtTime(t){ if(!t) return ''; const d=new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+    if(r.ok){ const d=await r.json().catch(function(){return {};}); if(d.comments) renderComments(d.comments); else loadComments(); } }catch(e){} }
+function _cmtTime(t){ if(!t) return ''; const d=new Date(t), p=function(v){return String(v).padStart(2,'0');}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }
 let _pmPhotoFile=null;
 function _setPhotoPrev(){ const el=document.getElementById('pmPhotoPrev'); const btn=document.getElementById('pmPhotoBtn'); if(!el) return;
   if(_pmPhotoFile){ const u=URL.createObjectURL(_pmPhotoFile);
@@ -1719,16 +1759,18 @@ function _setPhotoPrev(){ const el=document.getElementById('pmPhotoPrev'); const
   else { el.innerHTML=''; if(btn) btn.classList.remove('on'); } }
 function _clearPhoto(){ _pmPhotoFile=null; const f=document.getElementById('pmPhoto'); if(f) f.value=''; _setPhotoPrev(); }
 async function submitComment(){ const u=getUser(); if(!u||!u.uid){ alert('로그인 후 이용하세요'); return; }
+  const commentSlug=_pmSlug;
   const inp=document.getElementById('pmInput'); const t=(inp.value||'').trim().slice(0,100);
   if(!t && !_pmPhotoFile){ return; }
   const msg=document.getElementById('pmMsg'); msg.textContent=_pmPhotoFile?'사진 올리는 중…':'등록 중…';
-  const body={place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,tok:u.tok||'',nick:u.nick||'',text:t};
+  const body={place:commentSlug,name:(_pmPlace||{}).name||'',id:u.uid,tok:u.tok||'',nick:u.nick||'',text:t};
   if(_composeStars>=1) body.stars=_composeStars;
   try{
     if(_pmPhotoFile){ body.img=await uploadImg(_pmPhotoFile); }
     msg.textContent='등록 중…';
     const r=await fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(r.ok){ inp.value=''; _clearPhoto(); msg.textContent=''; gaEvent('comment_add',{stars:_composeStars||0,photo:body.img?1:0}); loadComments(); fetchRate(u.uid); }
+    if(r.ok){ const d=await r.json().catch(function(){return {};}); inp.value=''; _clearPhoto(); msg.textContent=''; gaEvent('comment_add',{stars:_composeStars||0,photo:body.img?1:0});
+      if(_pmSlug===commentSlug&&d.comments) renderComments(d.comments); else if(_pmSlug===commentSlug) loadComments(); fetchRate(u.uid); }
     else if(r.status===401){ msg.textContent='보안 강화 — 로그아웃 후 다시 로그인해 주세요'; }
     else msg.textContent='등록 실패'; }
   catch(e){ msg.textContent=(typeof e==='string'?e:'오류'); } }
@@ -1736,7 +1778,7 @@ function editAdminComment(){ if(!isAdmin()) return; const u=getUser();
   const t=prompt('관리자 코멘트 (이 장소 설명)', window._pmAdminCur||''); if(t===null) return;
   fetch(WORKER_URL.replace(/\/+$/,'')+'/comments',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({place:_pmSlug,name:(_pmPlace||{}).name||'',id:u.uid,adminKey:adminKey(),nick:u.nick||'',admin:true,text:t.slice(0,300)})})
-    .then(function(r){ if(r.ok) loadComments(); }).catch(function(){}); }
+    .then(async function(r){ if(r.ok){ const d=await r.json().catch(function(){return {};}); if(d.comments) renderComments(d.comments); else loadComments(); } }).catch(function(){}); }
 (function(){ const s=document.getElementById('pmSend'); if(s) s.onclick=submitComment;
   const i=document.getElementById('pmInput'); if(i) i.addEventListener('keydown',function(e){ if(e.key==='Enter') submitComment(); });
   const ph=document.getElementById('pmPhoto'); if(ph) ph.addEventListener('change',function(){ const f=this.files&&this.files[0];
