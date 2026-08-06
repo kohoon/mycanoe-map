@@ -135,6 +135,7 @@ def _datahash(_name):
 PROTECT_VER = _datahash("protect_polygons.geojson")
 WLZ_VER = _datahash("wlz.geojson")
 RIVERS_VER = _datahash("rivers.geojson")
+ROADS_VER = _datahash("roads.geojson")
 _cf = DATA / "courses.geojson"
 courses = json.loads(_cf.read_text(encoding="utf-8")) if _cf.exists() else {"type": "FeatureCollection", "features": []}
 # 코스에도 ID 부여(코스명 기준 고정)
@@ -200,6 +201,7 @@ __GTAG__
   .obs-yeoul{background:#1e88e5}
   .obs-spot{background:#2e9e5b}
   .obs-wind{background:#7e57c2}
+  .obs-dragons{background:#455a64}
   #obName{width:100%;box-sizing:border-box;padding:9px;border:1px solid #ccd;border-radius:9px;font-size:13.5px}
   .leaflet-div-icon.obs-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .obs-div .obs-ic{position:absolute;transform:translate(-50%,-50%)}
@@ -711,7 +713,7 @@ __GTAG__
 <script>
 const POINTS = __POINTS__;
 // 상수원보호·수상레저금지 면은 임베드하지 않고 줌인(≥11) 시 외부 .geojson 을 fetch(아래 줌게이트).
-const DATAVER = {protect:"__PROTECT_VER__", wlz:"__WLZ_VER__", rivers:"__RIVERS_VER__"};   // 콘텐츠 해시 캐시버스팅
+const DATAVER = {protect:"__PROTECT_VER__", wlz:"__WLZ_VER__", rivers:"__RIVERS_VER__", roads:"__ROADS_VER__"};   // 콘텐츠 해시 캐시버스팅
 let protectLayer = null, wlzLayer = null;          // 첫 줌인 때 생성
 let _protectLoading = null, _wlzLoading = null;    // in-flight fetch(중복 방지)
 let _protectWanted = true, _wlzWanted = true;      // 기본 ON 의도(토글이 뒤집음)
@@ -742,7 +744,7 @@ async function _updateAdminSheetLink(on){
     const d=await r.json(); if(r.ok&&d&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.url||'')){ a.href=d.url; a.style.display='flex'; }
   }catch(e){}
 }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);}catch(e){} if(on)try{focusPlaceFromUrl();}catch(e){} }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);_syncAdminRoadLayer(on);}catch(e){} if(on)try{focusPlaceFromUrl();}catch(e){} }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -1701,7 +1703,7 @@ function courseCmt(kind,id){
   if(kind==='c'){ const c=_courseByCid[String(id)]; if(c) openCourseComments('course_c'+id, c, id); }
   else { const c=_kvCourses[id]; if(c) openCourseComments('course_k'+id, c, 'k'+id); }
 }
-// ---- 지형지물(보/징검다리/잠수교/낮은바닥/여울/유명지/강풍지대) — 여울·유명지는 이름 지정 ----
+// ---- 지형지물(보/징검다리/잠수교/용치/낮은바닥/여울/유명지/강풍지대) — 여울·유명지는 이름 지정 ----
 // 줌 게이팅: 마커를 전용 pane에 넣고 줌<12(런칭/랜딩 아이콘 전환 기준)에서는 pane 자체를 숨김
 // (레이어 토글과 독립 — 체크 상태 유지한 채 줌으로만 표시/숨김)
 map.createPane('obsPane'); map.getPane('obsPane').style.zIndex='640';
@@ -1714,7 +1716,7 @@ function _zoomPaneGate(){ const on=map.getZoom()>=13?'':'none';
   map.getPane('damPane').style.display=map.getZoom()>=10?'':'none';
   map.getPane('obsPane').style.display=map.getZoom()>=13?'':'none'; }
 map.on('zoomend', _zoomPaneGate);
-const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'잠수교':{c:'obs-lowbridge',e:'🌉',label:'잠수교'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'},'강풍지대':{c:'obs-wind',e:'💨',label:'강풍지대'}};
+const OBS_TYPES={'보':{c:'obs-bo',e:'🚧',label:'보'},'징검다리':{c:'obs-jing',e:'🪨',label:'징검다리'},'잠수교':{c:'obs-lowbridge',e:'🌉',label:'잠수교'},'용치':{c:'obs-dragons',e:'🔺',label:'용치'},'낮은바닥':{c:'obs-shal',e:'〰️',label:'얕음'},'여울':{c:'obs-yeoul',e:'🌊',label:'여울'},'유명지':{c:'obs-spot',e:'⭐',label:'유명지'},'강풍지대':{c:'obs-wind',e:'💨',label:'강풍지대'}};
 function _obHasName(ty){ return ty==='여울'||ty==='유명지'; }
 const obstacleLayer=L.layerGroup();
 const _obstacles={};
@@ -1760,7 +1762,7 @@ function openObsModal(mode,data){ if(!isAdmin()) return;
   _obMode=mode; let ty='보', note='', name='';
   if(mode==='edit'){ _obCur=data; _obLL={lat:data.lat,lng:data.lng}; ty=data.type; note=data.note||''; name=data.name||''; }
   else { _obCur=null; _obLL={lat:data.lat,lng:data.lng}; }
-  const tys=['보','징검다리','잠수교','낮은바닥','여울','유명지','강풍지대'];
+  const tys=['보','징검다리','잠수교','용치','낮은바닥','여울','유명지','강풍지대'];
   let seg=''; for(let i=0;i<tys.length;i++){ const t=tys[i],info=OBS_TYPES[t]; seg+='<button class="seg-b'+(t===ty?' on':'')+'" data-ty="'+t+'" onclick="obPick(this)">'+info.e+' '+t+'</button>'; }
   document.getElementById('obBody').innerHTML=
     '<h3>'+(mode==='edit'?'✏️ 지형지물 수정':'🗺️ 지형지물 추가')+'</h3>'
@@ -2585,6 +2587,36 @@ function focusRiverFromUrl(){
   _loadAdminRivers().then(function(){let fs=_riverFeatures.filter(function(f){return String((f.properties||{}).name||'')===name;});if(!fs.length)return;if(isFinite(at[0])&&isFinite(at[1]))fs.sort(function(a,b){function d(f){const c=f.geometry.coordinates[Math.floor(f.geometry.coordinates.length/2)];return (c[1]-at[0])*(c[1]-at[0])+(c[0]-at[1])*(c[0]-at[1]);}return d(a)-d(b);}),fs=fs.slice(0,1);focusRiverSearch({name:name,features:fs});});
 }
 setTimeout(focusRiverFromUrl,900);
+// ---- 관리자 전용 도로 노선(OSM, 검색/레이어 최초 사용 시 지연 로드) ----
+const _roadAdminGroup=L.layerGroup();
+const _roadSearchFocus=L.layerGroup().addTo(map);
+let _roadData=null,_roadLoading=null,_roadControlAdded=false,_roadFeatures=[];
+const _roadMeta={expressway:{label:'고속도로',color:'#3f454b',weight:3.8},national:{label:'국도',color:'#73787d',weight:2.8},local:{label:'지방도',color:'#a7abb0',weight:1.9}};
+function _roadDisplay(p){const m=_roadMeta[p.kind]||_roadMeta.local,ref=String(p.ref||'').replace(/;/g,'·');return (p.name?p.name+' · ':'')+m.label+' '+ref+'호선';}
+function _loadAdminRoads(){
+  if(!isAdmin())return Promise.resolve();if(_roadData)return Promise.resolve();if(_roadLoading)return _roadLoading;
+  _roadLoading=fetch('roads.geojson?v='+DATAVER.roads).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(fc){
+    if(!isAdmin())return;_roadFeatures=fc.features||[];_roadData=L.geoJSON(fc,{style:function(f){const m=_roadMeta[(f.properties||{}).kind]||_roadMeta.local;return {color:m.color,weight:m.weight,opacity:.86};},onEachFeature:function(f,l){l.bindTooltip(pmEsc(_roadDisplay(f.properties||{})),{sticky:true,direction:'top'});}});_roadAdminGroup.addLayer(_roadData);
+  }).catch(function(){alert('도로 데이터를 불러오지 못했습니다');}).finally(function(){_roadLoading=null;});return _roadLoading;
+}
+function _syncAdminRoadLayer(on){
+  if(!_layerControl)return;if(on&&!_roadControlAdded){_layerControl.addOverlay(_roadAdminGroup,_sw('#73787d')+'도로 노선 <small>(관리자)</small>');_roadControlAdded=true;}
+  else if(!on&&_roadControlAdded){if(map.hasLayer(_roadAdminGroup))map.removeLayer(_roadAdminGroup);_layerControl.removeLayer(_roadAdminGroup);_roadControlAdded=false;_roadSearchFocus.clearLayers();_roadFeatures=[];_roadData=null;_roadAdminGroup.clearLayers();}
+}
+map.on('overlayadd',function(e){if(e.layer===_roadAdminGroup&&isAdmin()){map.attributionControl.addAttribution('도로 &copy; OpenStreetMap 기여자');_loadAdminRoads();}});
+map.on('overlayremove',function(e){if(e.layer===_roadAdminGroup)map.attributionControl.removeAttribution('도로 &copy; OpenStreetMap 기여자');});
+function _roadSearch(q){
+  if(!isAdmin()||!_roadFeatures.length)return [];const nq=String(q||'').replace(/\s/g,'').toLowerCase(),digits=(nq.match(/\d+/)||[])[0]||'',out=[];
+  _roadFeatures.forEach(function(f){const p=f.properties||{},disp=_roadDisplay(p),hay=(disp+' '+(p.name||'')+' '+((p.aliases||[]).join(' '))+' '+(p.ref||'')).replace(/\s/g,'').toLowerCase(),refs=String(p.ref||'').split(';');if(hay.indexOf(nq)<0&&(!digits||refs.indexOf(digits)<0))return;
+    const lines=f.geometry.coordinates||[],line=lines[Math.floor(lines.length/2)]||[],m=line[Math.floor(line.length/2)];if(!m)return;const meta=_roadMeta[p.kind]||_roadMeta.local;out.push({kind:'road',label:'🛣️ '+disp,sub:meta.label+' · 전체 노선',lat:m[1],lng:m[0],name:disp,feature:f,roadKind:p.kind,exact:hay.indexOf(nq)===0||String(p.ref)===digits});
+  });return out.sort(function(a,b){return (+b.exact)-(+a.exact)||a.label.localeCompare(b.label,'ko');}).slice(0,10);
+}
+function clearRoadSearch(){_roadSearchFocus.clearLayers();map.closePopup();}
+function focusRoadSearch(x){
+  if(!isAdmin())return;_roadSearchFocus.clearLayers();const bounds=L.latLngBounds([]),m=_roadMeta[x.roadKind]||_roadMeta.local,lines=(x.feature&&x.feature.geometry.coordinates)||[];
+  lines.forEach(function(line){const ll=line.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;L.polyline(ll,{color:'#fff',weight:m.weight+4,opacity:.85,interactive:false}).addTo(_roadSearchFocus);L.polyline(ll,{color:m.color,weight:m.weight+1.5,opacity:1,interactive:false}).addTo(_roadSearchFocus);bounds.extend(ll);});
+  if(bounds.isValid()){map.fitBounds(bounds.pad(.04),{maxZoom:13});L.popup().setLatLng(bounds.getCenter()).setContent('<b>🛣️ '+pmEsc(x.name)+'</b><br><small>전체 노선 강조 표시</small><br><button class="addplace-btn" onclick="clearRoadSearch()">강조 해제</button>').openOn(map);}gaEvent('road_search',{name:x.name});
+}
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
 _protectPH.addTo(map); _wlzPH.addTo(map);   // 기본 ON(체크). 실제 면은 줌게이트가 제어. obstacle/수위와 동일 거동.
 const Z_HEAVY = 11;
@@ -2813,10 +2845,11 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   ev.preventDefault();
   const q=document.getElementById('srchQ').value.trim(); const box=document.getElementById('srchRes');
   if(!q){ closeSearchPreview(true); return; } const seq=++_searchSeq; box.textContent='검색 중…'; gaEvent('search',{q:q.slice(0,40)});
-  // 1) 내 지도 결과 먼저. 관리자는 하천 인덱스를 최초 검색 시 지연 로드한다.
-  if(isAdmin()&&!_riverFeatures.length){try{await _loadAdminRivers();}catch(e){}}
+  // 1) 내 지도 결과 먼저. 관리자는 하천·도로 인덱스를 최초 검색 시 지연 로드한다.
+  if(isAdmin()){const loads=[];if(!_riverFeatures.length)loads.push(_loadAdminRivers());if(!_roadFeatures.length)loads.push(_loadAdminRoads());try{await Promise.all(loads);}catch(e){}}
   const riverLocal=_riverSearch(q);await _enrichRiverRegions(riverLocal);
-  const local=riverLocal.concat(_localSearch(q));   // 강·천을 검색 미리보기 최상단에 배치
+  const roadLocal=_roadSearch(q);
+  const local=riverLocal.concat(roadLocal,_localSearch(q));   // 강·천, 도로를 검색 미리보기 상단에 배치
   // 2) 외부 지오코더 — V-World(도로명·지번·장소) 우선, 없으면 Nominatim 폴백
   let geo=[];
   if(VKEY){
@@ -2834,7 +2867,9 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
     ze.preventDefault(); const x=_res[a.dataset.i];
     closeSearchPreview(false); const _si=document.getElementById('srchQ'); if(_si) _si.blur();   // 선택 후 미리보기 리스트 닫기
     if(x.kind==='river'){ focusRiverSearch(x); return; }
+    if(x.kind==='road'){ focusRoadSearch(x); return; }
     _riverSearchFocus.clearLayers();
+    _roadSearchFocus.clearLayers();
     const pin=showSearchPin(x.lat,x.lng,(x.disp||x.label||q).replace(/^[^가-힣A-Za-z0-9]+/,''));
     if(x.kind==='place'){ map.setView([x.lat,x.lng],15); openPlaceModal(featPlace(x.feat)); }
     else if(x.kind==='course'){ const cs=x.feat.geometry.coordinates.map(function(c){return [c[1],c[0]];}); _fitAndPop(cs, x.feat.properties.name, x.feat.properties.km); }
@@ -3467,6 +3502,7 @@ html = (HTML
         .replace("__PROTECT_VER__", PROTECT_VER)   # 상수원/수상레저 면은 임베드 대신 외부 fetch(아래 버전 토큰)
         .replace("__WLZ_VER__", WLZ_VER)
         .replace("__RIVERS_VER__", RIVERS_VER)
+        .replace("__ROADS_VER__", ROADS_VER)
         .replace("__WLSTN__", json.dumps(wlstn, ensure_ascii=False, separators=(",", ":")))
         .replace("__CCTVS__", json.dumps(cctvs, ensure_ascii=False, separators=(",", ":")))
         .replace("__WEIRS__", json.dumps(weirs, ensure_ascii=False, separators=(",", ":")))
