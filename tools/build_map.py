@@ -2226,7 +2226,29 @@ function _wlTrend(cd){   // 최근 24시간 1H 수위 → 스파크라인 SVG
         +'<small style="color:#889">24시간 추이 '+arrow+'</small></div>';
     }).catch(function(){ return ''; });
 }
-const _wlYrCache={};
+const _wlYrCache={},_wlSparkCache={};
+function _wlSpark24M(s,cd){
+  if(!HRFCO_KEY)return Promise.resolve('');
+  const build=function(rows){
+    rows=(rows||[]).filter(function(x){return x&&x.t&&isFinite(x.v);}).sort(function(a,b){return a.t-b.t;});if(rows.length<120)return '';
+    const vals=rows.map(function(x){return x.v;}),mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),rng=(mx-mn)||.01;
+    const W=210,H=54,padL=3,padR=3,padT=5,padB=15,plotW=W-padL-padR,plotH=H-padT-padB;
+    const first=rows[0].t.getTime(),last=rows[rows.length-1].t.getTime(),span=(last-first)||1;
+    const xOf=function(t){return padL+(t.getTime()-first)/span*plotW;},yOf=function(v){return padT+plotH-(v-mn)/rng*plotH;};
+    const pts=rows.map(function(r){return xOf(r.t).toFixed(1)+','+yOf(r.v).toFixed(1);}).join(' ');let ticks='',labs='';
+    const cursor=new Date(rows[0].t.getFullYear(),rows[0].t.getMonth(),1);
+    while(cursor<=rows[rows.length-1].t){const x=xOf(cursor),quarter=cursor.getMonth()%3===0;if(x>=padL-1&&x<=W-padR+1){ticks+='<line x1="'+x.toFixed(1)+'" y1="'+padT+'" x2="'+x.toFixed(1)+'" y2="'+(padT+plotH+(quarter?3:0))+'" stroke="'+(quarter?'#cbd5da':'#e8edef')+'" stroke-width="'+(quarter?'1':'.7')+'"/>';if(quarter)labs+='<text x="'+x.toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle" font-size="7" fill="#789">'+String(cursor.getFullYear()).slice(2)+'.'+(cursor.getMonth()+1)+'</text>';}cursor.setMonth(cursor.getMonth()+1);}
+    let refs='';[['관심',parseFloat(s.att),'#f9a825'],['경계',parseFloat(s.alm),'#d32f2f']].forEach(function(r){if(isFinite(r[1])&&r[1]>=mn&&r[1]<=mx){const y=yOf(r[1]);refs+='<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="'+r[2]+'" stroke-width=".8" stroke-dasharray="3 3"/>';}});
+    const cur=vals[vals.length-1],dlt=cur-vals[0],dTxt=Math.abs(dlt)<.02?'보합':(dlt>0?'+'+dlt.toFixed(2)+'m':dlt.toFixed(2)+'m');
+    const months=Math.max(1,Math.round((last-first)/(30.4375*86400000))),period=rows[0].t.getFullYear()+'.'+(rows[0].t.getMonth()+1)+'~'+rows[rows.length-1].t.getFullYear()+'.'+(rows[rows.length-1].t.getMonth()+1);
+    return '<div style="margin-top:8px"><small style="color:#667;font-weight:700">지난 '+months+'개월 수위 추이</small><svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block;margin-top:2px;max-width:100%"><rect x="0" y="0" width="'+W+'" height="'+H+'" rx="6" fill="#f7fafb"/>'+ticks+refs+'<polyline points="'+pts+'" fill="none" stroke="#1976d2" stroke-width="1.7"/><circle cx="'+xOf(rows[rows.length-1].t).toFixed(1)+'" cy="'+yOf(cur).toFixed(1)+'" r="2.3" fill="#263238"/>'+labs+'</svg><small style="color:#889;display:block;margin-top:1px">'+period+' · 범위 '+mn.toFixed(2)+'~'+mx.toFixed(2)+'m · 변화 '+dTxt+'</small></div>';
+  };
+  const c=_wlSparkCache[cd];if(c&&Date.now()-c.ts<3600000)return Promise.resolve(build(c.rows));
+  function ymd(x){return x.getFullYear()+('0'+(x.getMonth()+1)).slice(-2)+('0'+x.getDate()).slice(-2);}function parseDay(v){v=String(v||'');return v.length>=8?new Date(+v.slice(0,4),+v.slice(4,6)-1,+v.slice(6,8)):null;}
+  function get(a,b){return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/1D/'+cd+'/'+ymd(a)+'/'+ymd(b)+'.json').then(function(r){return r.json();}).then(function(j){return (j.content||[]).map(function(x){return {t:parseDay(x.ymdhm||x.ymd),v:parseFloat(x.wl)};}).filter(function(x){return x.t&&isFinite(x.v);});});}
+  const now=new Date(),mid=new Date(now.getFullYear()-1,now.getMonth(),now.getDate()),from=new Date(now.getFullYear()-2,now.getMonth(),now.getDate()),midPrev=new Date(mid.getTime()-86400000);
+  return Promise.all([get(from,midPrev),get(mid,now)]).then(function(parts){const byDay={};parts[0].concat(parts[1]).forEach(function(r){byDay[ymd(r.t)]=r;});const rows=Object.keys(byDay).map(function(k){return byDay[k];}).sort(function(a,b){return a.t-b.t;});_wlSparkCache[cd]={rows:rows,ts:Date.now()};return build(rows);}).catch(function(){return '';});
+}
 function _wlYear(cd, cur){   // 지난 1년(1D) 일자료 분포에서 현재 수위 백분위 — 게이지 + 범위
   if(!HRFCO_KEY||!isFinite(cur)) return Promise.resolve('');
   const build=function(vals){
@@ -2288,7 +2310,7 @@ function _paldang(){
 map.on('overlayadd', function(e){ if(e&&e.layer===waterLevelLayer) _paldang(); });
 const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
   const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'wl-div',html:'<span class="wl-badge">💧</span>',iconSize:null}),pane:'wlPane'});
-  m.bindPopup('<b>💧 '+pmEsc(s.nm)+'</b><br><span class="wl-loading">수위 조회 중…</span>',{minWidth:170});
+  m.bindPopup('<b>💧 '+pmEsc(s.nm)+'</b><br><span class="wl-loading">수위 조회 중…</span>',{minWidth:220});
   m.on('click',function(){
     _wlGet(s).then(function(rec){
       let h='<b>💧 '+pmEsc(s.nm)+'</b><br>';
@@ -2299,12 +2321,12 @@ const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
         h+='<br><small style="color:#889">'+_wlTime(rec.t)+' 관측'+(rec.src&&rec.src!=='10M'?' · '+rec.src:'')+(rec.cd&&rec.cd!==s.cd?' · 대체 '+rec.cd:'')+'</small>';
         const ths=[]; if(parseFloat(s.att)) ths.push('관심 '+s.att); if(parseFloat(s.alm)) ths.push('경계 '+s.alm);
         if(ths.length) h+='<br><small style="color:#aab">기준: '+ths.join(' · ')+'m</small>';
-        h+='<div id="wlTrend_'+s.cd+'"></div><div id="wlYr_'+s.cd+'"></div>';
+        h+='<div id="wlTrend_'+s.cd+'"></div><div id="wlSpark_'+s.cd+'"></div><div id="wlYr_'+s.cd+'"></div>';
       } else h+='<span style="color:#999"><b>N/A</b> · 관측값 없음</span>';
       m.setPopupContent(h);
       const qcd=(rec&&rec.cd)||s.cd;
       _wlTrend(qcd).then(function(svg){ const el=document.getElementById('wlTrend_'+s.cd); if(el&&svg) el.innerHTML=svg; });
-      if(rec) _wlYear(qcd, parseFloat(rec.wl)).then(function(html){ const el=document.getElementById('wlYr_'+s.cd); if(el&&html) el.innerHTML=html; });
+      if(rec){_wlSpark24M(s,qcd).then(function(html){const el=document.getElementById('wlSpark_'+s.cd);if(el&&html)el.innerHTML=html;});_wlYear(qcd, parseFloat(rec.wl)).then(function(html){ const el=document.getElementById('wlYr_'+s.cd); if(el&&html) el.innerHTML=html; });}
     }).catch(function(){ m.setPopupContent('<b>💧 '+pmEsc(s.nm)+'</b><br><span style="color:#999">수위 서비스 연결 실패</span>'); });
   });
   return m;
