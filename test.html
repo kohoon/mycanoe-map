@@ -2398,6 +2398,21 @@ function _riverSearch(q){
   const names=Object.keys(groups).sort(function(a,b){const ae=a.replace(/\s/g,'').toLowerCase()===nq,be=b.replace(/\s/g,'').toLowerCase()===nq;return ae===be?a.localeCompare(b,'ko'):(ae?-1:1);}),out=[];
   names.forEach(function(n){groups[n].forEach(function(f){if(out.length>=10)return;const cs=f.geometry.coordinates,m=cs[Math.floor(cs.length/2)],region=_riverRegionLabel(m[1],m[0]);out.push({kind:'river',label:'🌊 '+n,sub:region+' · '+((f.properties||{}).kind==='river'?'강·하천':'지류 하천')+' · 전체 물줄기',lat:m[1],lng:m[0],name:n,features:[f]});});});return out;
 }
+const _riverRegionCache={};
+function _riverAdminName(addr){
+  const s=((addr&&addr.parcel)|| (addr&&addr.road)||''),matches=s.match(/[가-힣]+(?:시|군)/g)||[];
+  return matches.filter(function(x){return !/(특별시|광역시|자치시)$/.test(x);}).pop()||matches.pop()||'';
+}
+async function _enrichRiverRegions(rows){
+  await Promise.all((rows||[]).map(async function(x){
+    const f=x.features&&x.features[0],cs=f&&f.geometry&&f.geometry.coordinates;if(!cs||!cs.length)return;
+    const key=x.name+'|'+x.lat.toFixed(3)+','+x.lng.toFixed(3);if(_riverRegionCache[key]){x.region=_riverRegionCache[key];x.sub=x.region+' · '+((f.properties||{}).kind==='river'?'강·하천':'지류 하천')+' · 전체 물줄기';return;}
+    const idx=[Math.floor((cs.length-1)*.12),Math.floor((cs.length-1)*.5),Math.floor((cs.length-1)*.88)],names=[];
+    const found=await Promise.all(idx.map(function(i){const p=cs[i];return vworldReverse(p[1],p[0]).then(_riverAdminName).catch(function(){return '';});}));
+    found.forEach(function(n){if(n&&names.indexOf(n)<0)names.push(n);});
+    const region=names.join(' · ')||_riverRegionLabel(x.lat,x.lng);_riverRegionCache[key]=region;x.region=region;x.sub=region+' · '+((f.properties||{}).kind==='river'?'강·하천':'지류 하천')+' · 전체 물줄기';
+  }));return rows;
+}
 function _riverRegionLabel(lat,lng){
   if(lat>=37.50&&lat<=37.72&&lng>=126.76&&lng<=127.20)return '서울';
   if(lat>=37.30&&lat<37.50&&lng>=126.80&&lng<=127.18)return '안양/과천';
@@ -2652,7 +2667,8 @@ document.getElementById('srchForm').addEventListener('submit', async (ev)=>{
   if(!q){ closeSearchPreview(true); return; } const seq=++_searchSeq; box.textContent='검색 중…'; gaEvent('search',{q:q.slice(0,40)});
   // 1) 내 지도 결과 먼저. 관리자는 하천 인덱스를 최초 검색 시 지연 로드한다.
   if(isAdmin()&&!_riverFeatures.length){try{await _loadAdminRivers();}catch(e){}}
-  const local=_riverSearch(q).concat(_localSearch(q));   // 강·천을 검색 미리보기 최상단에 배치
+  const riverLocal=_riverSearch(q);await _enrichRiverRegions(riverLocal);
+  const local=riverLocal.concat(_localSearch(q));   // 강·천을 검색 미리보기 최상단에 배치
   // 2) 외부 지오코더 — V-World(도로명·지번·장소) 우선, 없으면 Nominatim 폴백
   let geo=[];
   if(VKEY){
