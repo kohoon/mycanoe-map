@@ -2376,7 +2376,7 @@ const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':bas
 // 관리자 전용 전국 하천 중심선(OSM named river/stream, 기본 OFF, 최초 토글 시 지연 로드)
 const _riverAdminGroup=L.layerGroup();
 const _riverSearchFocus=L.layerGroup().addTo(map);
-let _riverMain=null,_riverStream=null,_riverLoading=null,_riverControlAdded=false,_riverFeatures=[];
+let _riverMain=null,_riverStream=null,_riverLoading=null,_riverControlAdded=false,_riverFeatures=[],_riverPopup=null,_riverPopupSeq=0;
 function _riverZoomGate(){ if(!_riverStream||!map.hasLayer(_riverAdminGroup)) return; const show=map.getZoom()>=11; if(show&&!_riverAdminGroup.hasLayer(_riverStream))_riverAdminGroup.addLayer(_riverStream); else if(!show&&_riverAdminGroup.hasLayer(_riverStream))_riverAdminGroup.removeLayer(_riverStream); }
 function _loadAdminRivers(){
   if(_riverMain) return Promise.resolve(); if(_riverLoading)return _riverLoading;
@@ -2427,14 +2427,14 @@ function _riverRegionLabel(lat,lng){
   if(lat<37.2&&lng>=127.5)return '충청/경북';
   return '대한민국';
 }
-function clearRiverSearch(){_riverSearchFocus.clearLayers();map.closePopup();}
+function clearRiverSearch(){_riverPopupSeq++;_riverSearchFocus.clearLayers();if(_riverPopup){map.closePopup(_riverPopup);_riverPopup=null;}}
 function riverShareUrl(name,lat,lng){const u=new URL(location.href);u.searchParams.delete('course');u.searchParams.set('river',name);if(isFinite(lat)&&isFinite(lng))u.searchParams.set('riverAt',(+lat).toFixed(5)+','+(+lng).toFixed(5));return u.toString();}
 function shareRiver(name,lat,lng){const u=riverShareUrl(name,lat,lng);gaEvent('river_share',{name:name});if(navigator.share){navigator.share({title:'마이카누 · '+name,url:u}).catch(function(){});}else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){alert('하천 링크가 복사됐어요!\n'+u);}).catch(function(){prompt('아래 링크 복사',u);});}else prompt('아래 링크 복사',u);}
 function shareRiverEncoded(name,lat,lng){try{shareRiver(decodeURIComponent(name),lat,lng);}catch(e){}}
 function focusRiverSearch(x){
-  _riverSearchFocus.clearLayers(); const bounds=L.latLngBounds([]);
-  (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;L.polyline(ll,{color:'#001a33',weight:8,opacity:.68,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#003b73',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
-  if(bounds.isValid()){map.fitBounds(bounds.pad(.06),{maxZoom:13});const c=bounds.getCenter(),enc=encodeURIComponent(x.name);L.popup().setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>'+pmEsc(_riverRegionLabel(c.lat,c.lng))+' · 전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="shareRiverEncoded(\''+enc+'\','+c.lat+','+c.lng+')">공유</button> <button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>').openOn(map);} gaEvent('river_search',{name:x.name});
+  clearRiverSearch();const seq=++_riverPopupSeq,bounds=L.latLngBounds([]);let anchor=null;
+  (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;if(!anchor)anchor=ll[Math.floor(ll.length/2)];L.polyline(ll,{color:'#001a33',weight:8,opacity:.68,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#003b73',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
+  if(bounds.isValid()&&anchor){map.fitBounds(bounds.pad(.06),{maxZoom:13,animate:false});const c=L.latLng(anchor),enc=encodeURIComponent(x.name);_riverPopup=L.popup({minWidth:190,autoPan:true,closeButton:true}).setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>'+pmEsc(_riverRegionLabel(c.lat,c.lng))+' · 전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="shareRiverEncoded(\''+enc+'\','+c.lat+','+c.lng+')">공유</button> <button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>');setTimeout(function(){if(seq===_riverPopupSeq&&_riverPopup)_riverPopup.openOn(map);},80);}gaEvent('river_search',{name:x.name});
 }
 function focusRiverFromUrl(){
   const u=new URL(location.href),name=u.searchParams.get('river'),at=(u.searchParams.get('riverAt')||'').split(',').map(Number);if(!name)return;
