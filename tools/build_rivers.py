@@ -11,6 +11,15 @@ BASE = Path(__file__).resolve().parent.parent
 OUT = BASE / "rivers.geojson"
 BOUNDARY_URL = "https://nominatim.openstreetmap.org/search?format=jsonv2&country=South%20Korea&polygon_geojson=1&limit=1"
 OVERPASS_URL = "https://overpass.kumi.systems/api/interpreter"
+# OSM에 이름이 없지만 공식 본류 구간인 선분. 원본 way 546163695·546166922(2026-08-06 확인).
+FORCED_EXTENSIONS = [{"name": "홍천강", "kind": "river", "coordinates": [
+    [128.012857, 37.858959], [128.014867, 37.854185], [128.019874, 37.847986],
+    [128.020044, 37.846694], [128.019618, 37.84344], [128.018, 37.841046],
+    [128.017864, 37.838706], [128.016553, 37.833702], [128.012278, 37.827205],
+    [128.007697, 37.822039], [128.00429, 37.819362], [128.000731, 37.818824],
+    [127.998772, 37.817196], [127.995928, 37.809998], [127.994719, 37.807831],
+    [127.991074, 37.803633],
+]}]
 
 
 def fetch_json(url, data=None):
@@ -154,6 +163,9 @@ def main():
                 coords = simplify(run, tol)
                 if len(coords) >= 2:
                     features.append({"type": "Feature", "properties": {"name": name, "kind": kind}, "geometry": {"type": "LineString", "coordinates": coords}})
+    for extension in FORCED_EXTENSIONS:
+        features.append({"type": "Feature", "properties": {"name": extension["name"], "kind": extension["kind"]},
+                         "geometry": {"type": "LineString", "coordinates": extension["coordinates"]}})
     features = merge_named_features(features)
     fc = {"type": "FeatureCollection", "features": features}
     OUT.write_text(json.dumps(fc, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
