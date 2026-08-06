@@ -2009,11 +2009,12 @@ function _wlGetCode(cd){
   const direct = HRFCO_KEY
     ? fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/10M/'+cd+'.json')
         .then(function(r){return r.json();})
-        .then(function(j){ const rec=(j.content||[])[0]; return (rec&&isFinite(parseFloat(rec.wl)))?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm,src:'10M',cd:cd}:null; })
+        // 일부 중단 관측소는 결측을 0.00으로 반환한다. 0은 시간·일자료에서 다시 확인한 뒤 채택한다.
+        .then(function(j){ const rec=(j.content||[])[0],wl=rec&&parseFloat(rec.wl); return (rec&&isFinite(wl)&&wl!==0)?{wl:rec.wl,fw:rec.fw,t:rec.ymdhm,src:'10M',cd:cd}:null; })
     : Promise.reject('nokey');
   return direct.then(function(rec){ return rec || _wlRecent1H(cd); }).catch(function(){   // 직접 호출 실패 시 워커 폴백
       return fetch(WORKER_URL.replace(/\/+$/,'')+'/waterlevel?obs='+cd)
-        .then(function(r){return r.json();}).then(function(d){ const rec=(d&&d[cd])||null; return (rec&&isFinite(parseFloat(rec.wl)))?{wl:rec.wl,fw:rec.fw,t:rec.t,src:'10M',cd:cd}:null; });
+        .then(function(r){return r.json();}).then(function(d){ const rec=(d&&d[cd])||null,wl=rec&&parseFloat(rec.wl); return (rec&&isFinite(wl)&&wl!==0)?{wl:rec.wl,fw:rec.fw,t:rec.t,src:'10M',cd:cd}:null; });
     }).then(function(rec){ return rec || _wlRecent1H(cd); })
     .then(function(rec){ return rec || _wlRecent1D(cd); });
 }
@@ -2115,7 +2116,7 @@ const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
         const ths=[]; if(parseFloat(s.att)) ths.push('관심 '+s.att); if(parseFloat(s.alm)) ths.push('경계 '+s.alm);
         if(ths.length) h+='<br><small style="color:#aab">기준: '+ths.join(' · ')+'m</small>';
         h+='<div id="wlTrend_'+s.cd+'"></div><div id="wlYr_'+s.cd+'"></div>';
-      } else h+='<span style="color:#999">관측값 없음</span>';
+      } else h+='<span style="color:#999"><b>N/A</b> · 관측값 없음</span>';
       m.setPopupContent(h);
       const qcd=(rec&&rec.cd)||s.cd;
       _wlTrend(qcd).then(function(svg){ const el=document.getElementById('wlTrend_'+s.cd); if(el&&svg) el.innerHTML=svg; });
