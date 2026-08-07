@@ -3169,25 +3169,29 @@ async function waterRoute(p1,p2){
   const pad=Math.max(0.035, Math.abs(p1.lat-p2.lat)*0.35, Math.abs(p1.lng-p2.lng)*0.35);  // 강 굽이 포함되게 충분히
   const r3=function(x){return Math.round(x*1000)/1000;};   // bbox 100m 라운딩(캐시 적중↑)
   const s=r3(Math.min(p1.lat,p2.lat)-pad), w=r3(Math.min(p1.lng,p2.lng)-pad), n=r3(Math.max(p1.lat,p2.lat)+pad), e=r3(Math.max(p1.lng,p2.lng)+pad);
-  const q='[out:json][timeout:25];(way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+');way["natural"="water"]('+s+','+w+','+n+','+e+');relation["natural"="water"]('+s+','+w+','+n+','+e+'););out geom;';
+  const q='[out:json][timeout:25];(way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+');way["natural"="water"]('+s+','+w+','+n+','+e+');relation["natural"="water"]('+s+','+w+','+n+','+e+');way["bridge"]('+s+','+w+','+n+','+e+');way["waterway"~"weir|dam|lock_gate"]('+s+','+w+','+n+','+e+');way["man_made"="dam"]('+s+','+w+','+n+','+e+'););out geom;';
   const j=await overpassFetch(q);
   if(!j) return {err:'overpass'};
   const nodes={}, adj={}, toR=Math.PI/180;
   function key(la,ln){ const k=la.toFixed(4)+','+ln.toFixed(4); if(!(k in nodes)) nodes[k]=[la,ln]; return k; }  // 11m 병합(합류부 연결)
   function hav(a,b){ const R=6371000, dla=(b[0]-a[0])*toR, dlo=(b[1]-a[1])*toR, la1=a[0]*toR, la2=b[0]*toR;
     const h=Math.sin(dla/2)*Math.sin(dla/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dlo/2)*Math.sin(dlo/2); return 2*R*Math.asin(Math.sqrt(h)); }
-  const waterOuter=[],waterInner=[];
+  const waterOuter=[],waterInner=[],passLines=[];
   function addWater(list,pts){let s=90,w=180,n=-90,e=-180;pts.forEach(function(p){s=Math.min(s,p[0]);w=Math.min(w,p[1]);n=Math.max(n,p[0]);e=Math.max(e,p[1]);});list.push({p:pts,b:[s,w,n,e]});}
+  function addPass(pts){addWater(passLines,pts);}
   for(const el of (j.elements||[])){
     if(el.type==='way'&&el.tags&&el.tags.natural==='water'&&el.geometry&&el.geometry.length>2) addWater(waterOuter,el.geometry.map(function(p){return [p.lat,p.lon];}));
     if(el.type==='relation'&&el.tags&&el.tags.natural==='water') (el.members||[]).forEach(function(m){if(m.geometry&&m.geometry.length>2)addWater(m.role==='inner'?waterInner:waterOuter,m.geometry.map(function(p){return [p.lat,p.lon];}));});
-    if(el.type!=='way'||!el.tags||!el.tags.waterway||!el.geometry) continue; let prev=null;
+    if(el.type==='way'&&el.tags&&el.geometry&&(el.tags.bridge||/^(weir|dam|lock_gate)$/.test(el.tags.waterway||'')||el.tags.man_made==='dam')) addPass(el.geometry.map(function(p){return [p.lat,p.lon];}));
+    if(el.type!=='way'||!el.tags||!/^(river|stream|canal)$/.test(el.tags.waterway||'')||!el.geometry) continue; let prev=null;
     for(const p of el.geometry){ const k=key(p.lat,p.lon); if(prev&&prev!==k){ const d=hav(nodes[prev],nodes[k]);
       (adj[prev]=adj[prev]||[]).push([k,d]); (adj[k]=adj[k]||[]).push([prev,d]); } prev=k; } }
   function inPoly(pt,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if(((a[0]>pt[0])!==(b[0]>pt[0]))&&(pt[1]<(b[1]-a[1])*(pt[0]-a[0])/((b[0]-a[0])||1e-12)+a[1]))inside=!inside;}return inside;}
   function inWater(pt){let ok=false;for(const x of waterOuter){const b=x.b;if(pt[0]>=b[0]&&pt[0]<=b[2]&&pt[1]>=b[1]&&pt[1]<=b[3]&&inPoly(pt,x.p)){ok=true;break;}}if(!ok)return false;for(const x of waterInner){const b=x.b;if(pt[0]>=b[0]&&pt[0]<=b[2]&&pt[1]>=b[1]&&pt[1]<=b[3]&&inPoly(pt,x.p))return false;}return true;}
   function edgeDist(pt,x){const b=x.b,pad=.0022;if(pt[0]<b[0]-pad||pt[0]>b[2]+pad||pt[1]<b[1]-pad||pt[1]>b[3]+pad)return 1e18;const poly=x.p;let best=1e18,latR=pt[0]*toR,c=Math.cos(latR);for(let i=1;i<poly.length;i++){const a=poly[i-1],b2=poly[i],ax=(a[1]-pt[1])*111320*c,ay=(a[0]-pt[0])*110540,bx=(b2[1]-pt[1])*111320*c,by=(b2[0]-pt[0])*110540,dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/((dx*dx+dy*dy)||1))),px=ax+t*dx,py=ay+t*dy;best=Math.min(best,Math.sqrt(px*px+py*py));}return best;}
-  function plausibleWater(pt){if(inWater(pt))return true;let d=1e18;for(const x of waterOuter)d=Math.min(d,edgeDist(pt,x));for(const x of waterInner)d=Math.min(d,edgeDist(pt,x));return d<=180;}
+  function lineDist(pt,item){const bb=item.b,pad=.0012;if(pt[0]<bb[0]-pad||pt[0]>bb[2]+pad||pt[1]<bb[1]-pad||pt[1]>bb[3]+pad)return 1e18;const line=item.p;let best=1e18,latR=pt[0]*toR,c=Math.cos(latR);for(let i=1;i<line.length;i++){const a=line[i-1],b=line[i],ax=(a[1]-pt[1])*111320*c,ay=(a[0]-pt[0])*110540,bx=(b[1]-pt[1])*111320*c,by=(b[0]-pt[0])*110540,dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/((dx*dx+dy*dy)||1))),x=ax+t*dx,y=ay+t*dy;best=Math.min(best,Math.sqrt(x*x+y*y));}return best;}
+  function passableStructure(pt){for(const line of passLines){if(lineDist(pt,line)<=90)return true;}return false;}
+  function plausibleWater(pt){if(inWater(pt)||passableStructure(pt))return true;let d=1e18;for(const x of waterOuter)d=Math.min(d,edgeDist(pt,x));for(const x of waterInner)d=Math.min(d,edgeDist(pt,x));return d<=180;}
   function waterChord(a,b){const d=hav(a,b),steps=Math.max(2,Math.ceil(d/80));let plausible=0,dryRun=0,maxDry=0;for(let i=0;i<=steps;i++){const t=i/steps,p=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];if(plausibleWater(p)){plausible++;dryRun=0;}else{dryRun++;maxDry=Math.max(maxDry,dryRun);}}return plausible/(steps+1)>=.82&&maxDry*80<=320;}
   function shortcutWaterPath(raw){if(raw.length<3||!waterOuter.length)return raw;const out=[raw[0]];let i=0;while(i<raw.length-1){let next=i+1;for(let k=raw.length-1;k>i+1;k--){if(waterChord(raw[i],raw[k])){next=k;break;}}out.push(raw[next]);i=next;}return out;}
   function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return {key:best,dist:bd}; }
