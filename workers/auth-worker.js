@@ -655,11 +655,13 @@ export default {
           let over = {}; try { over = JSON.parse((await KV.get("course_over")) || "{}"); } catch (e) {}
           const name = String(b.name || "").slice(0, 80);
           const km = Number(b.km);
+          const color = /^#[0-9a-f]{6}$/i.test(String(b.color || "")) ? String(b.color).toLowerCase() : "";
           if (!name && !Number.isFinite(km)) delete over[cid];
           else {
             over[cid] = over[cid] || {};
             if (name) over[cid].name = name;
             if (Number.isFinite(km)) over[cid].km = km;
+            if (color) over[cid].color = color;
           }
           await KV.put("course_over", JSON.stringify(over));
           ctx.waitUntil(clearCourseCache());
@@ -676,6 +678,7 @@ export default {
           if (!adminOk && !(uid && String(it.owner || "") === uid && tokOk)) return new Response("forbidden", { status: 403, headers: cors });
           it.name = String(b.name || it.name || "코스").slice(0, 80);
           if (b.km != null) it.km = Number(b.km) || 0;
+          if (/^#[0-9a-f]{6}$/i.test(String(b.color || ""))) it.color = String(b.color).toLowerCase();
         } else if (b.action === "add" || b.action === "adduser" || !b.action) {
           const coords = Array.isArray(b.coords) ? b.coords.slice(0, 5000) : [];
           if (coords.length < 2) return new Response("bad", { status: 400, headers: cors });
@@ -686,7 +689,8 @@ export default {
             mode: String((s && s.mode) || "").slice(0, 12),
           })) : [];
           const now = Date.now();
-          savedCourse = { id: now, name: String(b.name || "코스").slice(0, 80), coords: coords, km: Number(b.km) || 0, segments: segments, t: now, owner: adminOk ? "admin" : uid, nick: String(b.nick || "").slice(0, 20) };
+          const color = /^#[0-9a-f]{6}$/i.test(String(b.color || "")) ? String(b.color).toLowerCase() : "";
+          savedCourse = { id: now, name: String(b.name || "코스").slice(0, 80), color: color, coords: coords, km: Number(b.km) || 0, segments: segments, t: now, owner: adminOk ? "admin" : uid, nick: String(b.nick || "").slice(0, 20) };
           arr.unshift(savedCourse);
           if (arr.length > 200) arr = arr.slice(0, 200);
         } else {
