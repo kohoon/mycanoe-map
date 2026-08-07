@@ -38,7 +38,8 @@
         background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
         font:12px sans-serif;transition:opacity .6s;pointer-events:none}
   .leaflet-control-zoom a{width:40px;height:40px;line-height:40px;font-size:22px}
-  .measbtn{cursor:pointer;font:600 13px sans-serif;background:#fff;color:#222;padding:8px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none;width:104px;box-sizing:border-box;text-align:center}
+  .measbtn{cursor:pointer;font:600 13px/1.25 sans-serif;background:#fff;color:#222;padding:7px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);white-space:nowrap;user-select:none;width:112px;box-sizing:border-box;text-align:center}
+  .measbtn .meas-sub{font-size:11px;font-weight:500;color:#667}
   .measbtn.on{width:auto}
   .measbtn.on{background:#ff7043;color:#fff}
   .measmode{font-size:12.5px;padding:7px 11px;display:none;width:auto}
@@ -1091,7 +1092,7 @@ function addPlaceMarker(pl){
   const lat=(o.lat!=null?o.lat:pl.lat), lng=(o.lng!=null?o.lng:pl.lng);
   const rec={id:id,name:nm,memo:(o.memo!=null?o.memo:(pl.memo||'')),lat:lat,lng:lng,cat:catv};
   const m=makeMarker([lat,lng],k);
-  m.on('click',function(){ openPlaceModal(rec); });
+  _bindPlaceClick(m,function(){return rec;},function(){return rec.name||'장소';});
   m.addTo(k==='spot'?famousLayer:canoeLayer);
   _placeMarkerById[id]={m:m,cat:k,name:nm,rec:rec}; _kvPlaces.push(rec); }
 function loadPlaces(){ if(!WORKER_URL) return;
@@ -1711,15 +1712,25 @@ function _measPickPoint(ll, label){
   measHint(label?'📍 '+label+' 선택됨 · 계속 아이콘이나 지도를 탭하세요':'');
   _runMeasQueue();
 }
+function _bindPlaceClick(m, getPlace, label){
+  m.on('click',function(e){
+    if(measureMode){
+      if(e&&e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+      _measPickPoint(m.getLatLng(), typeof label==='function'?label():(label||'장소'));
+      return;
+    }
+    openPlaceModal(getPlace());
+  });
+}
 const famousLayer = L.geoJSON(spotFeats, {
   pointToLayer:(f,ll)=>makeMarker(ll,'spot'),
-  onEachFeature:(f,l)=>{ const p=f.properties||{}; l.on('click',function(e){ if(measureMode){ L.DomEvent.stop(e); _measPickPoint(l.getLatLng(), p.name||'장소'); return; } openPlaceModal(featPlace(f)); });
+  onEachFeature:(f,l)=>{ const p=f.properties||{}; _bindPlaceClick(l,function(){return featPlace(f);},function(){return p.name||'장소';});
     const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null);
     if(p.id!=null) _placeMarkerById[p.id]={m:l,cat:'spot',name:p.name||'',f:f}; }
 }).addTo(map);
 const canoeLayer = L.geoJSON(landFeats, {
   pointToLayer:(f,ll)=>makeMarker(ll, isWreck((f.properties||{}).name)?'wreck':'canoe'),
-  onEachFeature:(f,l)=>{ const p=f.properties||{}; l.on('click',function(e){ if(measureMode){ L.DomEvent.stop(e); _measPickPoint(l.getLatLng(), p.name||'장소'); return; } openPlaceModal(featPlace(f)); });
+  onEachFeature:(f,l)=>{ const p=f.properties||{}; _bindPlaceClick(l,function(){return featPlace(f);},function(){return p.name||'장소';});
     const c=f.geometry.coordinates; _favReg(placeSlug(c[1],c[0]),l,null);
     if(p.id!=null) _placeMarkerById[p.id]={m:l,cat:'canoe',name:p.name||'',f:f}; }
 }).addTo(map);
@@ -1746,7 +1757,7 @@ function renderNewPlace(id,o){ if(_placeMarkerById[id]||o.del||o.lat==null) retu
   const k=(o.cat==='spot'||o.cat==='명소')?'spot':(o.cat==='candidate'?'candidate':'canoe');
   if(k==='candidate' && !isAdmin()) return;
   const rec={id:id,name:o.name||'',memo:o.memo||'',lat:o.lat,lng:o.lng,cat:(k==='spot'?'명소':(k==='candidate'?'런칭/랜딩 후보지':'런칭/랜딩')),_new:true};
-  const m=makeMarker([o.lat,o.lng],k); m.on('click',function(){ openPlaceModal(rec); }); m.addTo(k==='spot'?famousLayer:canoeLayer);
+  const m=makeMarker([o.lat,o.lng],k); _bindPlaceClick(m,function(){return rec;},function(){return rec.name||'장소';}); m.addTo(k==='spot'?famousLayer:canoeLayer);
   _favReg(placeSlug(o.lat,o.lng),m,null);
   _placeMarkerById[id]={m:m,cat:k,name:o.name||'',rec:rec}; _kvPlaces.push(rec); }
 function applyPlaceOver(){ Object.keys(_placeOver).forEach(function(id){ const o=_placeOver[id]; const e=_placeMarkerById[id];
@@ -2065,7 +2076,9 @@ function _wlSpark24M(s,cd){
   function ymd(x){return x.getFullYear()+('0'+(x.getMonth()+1)).slice(-2)+('0'+x.getDate()).slice(-2);}function parseDay(v){v=String(v||'');return v.length>=8?new Date(+v.slice(0,4),+v.slice(4,6)-1,+v.slice(6,8)):null;}
   function get(a,b){return fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/waterlevel/list/1D/'+cd+'/'+ymd(a)+'/'+ymd(b)+'.json').then(function(r){return r.json();}).then(function(j){return (j.content||[]).map(function(x){return {t:parseDay(x.ymdhm||x.ymd),v:parseFloat(x.wl)};}).filter(function(x){return x.t&&isFinite(x.v);});});}
   const now=new Date(),mid=new Date(now.getFullYear()-1,now.getMonth(),now.getDate()),from=new Date(now.getFullYear()-2,now.getMonth(),now.getDate()),midPrev=new Date(mid.getTime()-86400000);
-  return Promise.all([get(from,midPrev),get(mid,now)]).then(function(parts){const byDay={};parts[0].concat(parts[1]).forEach(function(r){byDay[ymd(r.t)]=r;});const rows=Object.keys(byDay).map(function(k){return byDay[k];}).sort(function(a,b){return a.t-b.t;});_wlSparkCache[cd]={rows:rows,ts:Date.now()};return build(rows);}).catch(function(){return '';});
+  return get(from,midPrev).catch(function(){return [];}).then(function(oldRows){
+    return get(mid,now).catch(function(){return [];}).then(function(newRows){return [oldRows,newRows];});
+  }).then(function(parts){const byDay={};parts[0].concat(parts[1]).forEach(function(r){byDay[ymd(r.t)]=r;});const rows=Object.keys(byDay).map(function(k){return byDay[k];}).sort(function(a,b){return a.t-b.t;});_wlSparkCache[cd]={rows:rows,ts:Date.now()};return build(rows);}).catch(function(){return '';});
 }
 function _wlYear(cd, cur){   // 지난 1년(1D) 일자료 분포에서 현재 수위 백분위 — 게이지 + 범위
   if(!HRFCO_KEY||!isFinite(cur)) return Promise.resolve('');
@@ -2139,12 +2152,12 @@ const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
         h+='<br><small style="color:#889">'+_wlTime(rec.t)+' 관측'+(rec.src&&rec.src!=='10M'?' · '+rec.src:'')+(rec.cd&&rec.cd!==s.cd?' · 대체 '+rec.cd:'')+'</small>';
         const ths=[]; if(parseFloat(s.att)) ths.push('관심 '+s.att); if(parseFloat(s.alm)) ths.push('경계 '+s.alm);
         if(ths.length) h+='<br><small style="color:#aab">기준: '+ths.join(' · ')+'m</small>';
-        h+='<div id="wlTrend_'+s.cd+'"></div><div id="wlSpark_'+s.cd+'"></div><div id="wlYr_'+s.cd+'"></div>';
+        h+='<div id="wlTrend_'+s.cd+'"></div><div id="wlSpark_'+s.cd+'"><small style="color:#889">24개월 수위 불러오는 중…</small></div><div id="wlYr_'+s.cd+'"></div>';
       } else h+='<span style="color:#999"><b>N/A</b> · 관측값 없음</span>';
       m.setPopupContent(h);
       const qcd=(rec&&rec.cd)||s.cd;
       _wlTrend(qcd).then(function(svg){ const el=document.getElementById('wlTrend_'+s.cd); if(el&&svg) el.innerHTML=svg; });
-      if(rec){_wlSpark24M(s,qcd).then(function(html){const el=document.getElementById('wlSpark_'+s.cd);if(el&&html)el.innerHTML=html;});_wlYear(qcd, parseFloat(rec.wl)).then(function(html){ const el=document.getElementById('wlYr_'+s.cd); if(el&&html) el.innerHTML=html; });}
+      if(rec){_wlSpark24M(s,qcd).then(function(html){const el=document.getElementById('wlSpark_'+s.cd);if(el)el.innerHTML=html||'<small style="color:#999">24개월 수위 자료 없음</small>';});_wlYear(qcd, parseFloat(rec.wl)).then(function(html){ const el=document.getElementById('wlYr_'+s.cd); if(el&&html) el.innerHTML=html; });}
     }).catch(function(){ m.setPopupContent('<b>💧 '+pmEsc(s.nm)+'</b><br><span style="color:#999">수위 서비스 연결 실패</span>'); });
   });
   return m;
@@ -2731,7 +2744,7 @@ const measDraft=L.layerGroup().addTo(map);   // 측정 중 임시 표시
 const measDone=L.layerGroup().addTo(map);    // 완료된 측정(영구)
 const MeasureCtl = L.Control.extend({ options:{position:'topleft'},
   onAdd:function(){
-    const d=L.DomUtil.create('div','measbtn'); d.id='measBtnBox'; d.innerHTML='📏 거리측정';
+    const d=L.DomUtil.create('div','measbtn'); d.id='measBtnBox'; d.innerHTML='📏 코스만들기<br><span class="meas-sub">(거리측정)</span>';
     L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
     L.DomEvent.on(d,'click',function(e){ L.DomEvent.preventDefault(e); measureMode?finishMeasure():startMeasure(); });
     return d;
@@ -2752,7 +2765,7 @@ function updateMeasModeBtn(d){ d=d||document.getElementById('measModeBtn'); if(!
 function updateMeasBtn(){
   const b=document.getElementById('measBtnBox'); if(!b) return;
   b.classList.toggle('on', measureMode);
-  if(!measureMode){ b.innerHTML='📏 거리측정'; return; }
+  if(!measureMode){ b.innerHTML='📏 코스만들기<br><span class="meas-sub">(거리측정)</span>'; return; }
   const km=measSegs.reduce(function(s,x){return s+x.km;},0);
   b.innerHTML = (measPts.length<1) ? '📍 출발점 클릭'
     : '🏁 완료 ('+km.toFixed(1)+'km)'
