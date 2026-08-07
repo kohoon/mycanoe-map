@@ -2808,9 +2808,16 @@ function _addSegLabel(grp, coords, text){
   const m=_segMid(coords); if(!m) return;
   L.marker(m,{icon:L.divIcon({className:'meas-seg-label',html:pmEsc(text),iconSize:null,iconAnchor:[42,12]}),interactive:false}).addTo(grp);
 }
+function _drawMeasAccess(grp, access){
+  (access||[]).forEach(function(a){
+    if(!a||a.length<2||map.distance(a[0],a[1])<12) return;
+    L.polyline(a,{color:'#607d8b',weight:2.5,opacity:.8,dashArray:'3,6',interactive:false}).addTo(grp);
+  });
+}
 function _redrawMeasDraft(){
   measDraft.clearLayers();
   measSegs.forEach(function(sg,i){
+    _drawMeasAccess(measDraft,sg.access);
     L.polyline(sg.coords,{color:'#ff7043',weight:4,opacity:.85,dashArray:sg.straight?'6,8':null}).addTo(measDraft);
     _addSegLabel(measDraft, sg.coords, '구간 '+(i+1)+' · '+sg.km.toFixed(2)+'km');
   });
@@ -2843,7 +2850,8 @@ async function _runMeasQueue(){
       try{ seg=await waterRoute(last, pt); }catch(err){ seg={err:'overpass'}; }
     }
     if(!seg || seg.err){
-      L.popup({closeButton:false}).setLatLng(pt).setContent(seg&&seg.err==='overpass'?'서버 혼잡 — 잠시 후 다시 클릭':'이 구간 물길 못 찾음<br><small>더 가까운 점/경유지를 찍어보세요</small>').openOn(map);
+      const why=seg&&seg.err==='overpass'?'서버 혼잡 — 잠시 후 다시 클릭':seg&&seg.err==='farwater'?'가까운 물길이 없습니다<br><small>강안에 더 가까운 지점을 선택하세요</small>':seg&&seg.err==='detour'?'비정상적으로 우회하는 물길입니다<br><small>경유지를 추가해 구간을 나눠주세요</small>':'이 구간 물길 못 찾음<br><small>더 가까운 점/경유지를 찍어보세요</small>';
+      L.popup({closeButton:false}).setLatLng(pt).setContent(why).openOn(map);
       _redrawMeasDraft();
       updateMeasBtn(); continue;   // 이 점은 건너뛰고 다음 점은 마지막 성공점에서 이어감
     }
@@ -2860,6 +2868,7 @@ function finishMeasure(){
   const totalPts=measPts.length;
   measSegs.forEach(function(sg,i){
     const label=_segName(i,totalPts)+' · '+sg.km.toFixed(2)+'km';
+    _drawMeasAccess(grp,sg.access);
     L.polyline(sg.coords,{color:'#ff7043',weight:5,opacity:.95,lineCap:'round',dashArray:sg.straight?'6,8':null})
       .bindTooltip(label,{sticky:true,opacity:.95}).addTo(grp);
     _addSegLabel(grp, sg.coords, label);
@@ -3137,24 +3146,21 @@ async function waterRoute(p1,p2){
   for(const el of (j.elements||[])){ if(el.type!=='way'||!el.geometry) continue; let prev=null;
     for(const p of el.geometry){ const k=key(p.lat,p.lon); if(prev&&prev!==k){ const d=hav(nodes[prev],nodes[k]);
       (adj[prev]=adj[prev]||[]).push([k,d]); (adj[k]=adj[k]||[]).push([prev,d]); } prev=k; } }
-  function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return best; }
-  // 물길을 못 찾는 경우엔 항상 두 점을 직선으로 연결(거리=직선)
-  const straight=function(){ return {coords:[[p1.lat,p1.lng],[p2.lat,p2.lng]], km: hav([p1.lat,p1.lng],[p2.lat,p2.lng])/1000, straight:true}; };
-  const s1=nearest(p1), s2=nearest(p2); if(!s1||!s2) return straight();
-  // (호수에서도 강/수로 중심선을 따라 라우팅. 경로가 정말 없을 때만 직선 폴백)
+  function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return {key:best,dist:bd}; }
+  const near1=nearest(p1),near2=nearest(p2),s1=near1.key,s2=near2.key;
+  if(!s1||!s2||near1.dist>1500||near2.dist>1500) return {err:'farwater'};
+  // 물길 모드에서는 연결 실패를 직선으로 숨기지 않는다. 직선은 사용자가 직선 모드를 고른 경우에만 사용한다.
   const dist={}, prev={}; dist[s1]=0; const heap=new MinHeap(); heap.push(0,s1);
   while(heap.size()){ const top=heap.pop(); const d=top[0], u=top[1]; if(u===s2) break; if(d>(dist[u]===undefined?1e18:dist[u])) continue;
     for(const vw of (adj[u]||[])){ const v=vw[0], nd=d+vw[1]; if(nd<(dist[v]===undefined?1e18:dist[v])){ dist[v]=nd; prev[v]=u; heap.push(nd,v); } } }
-  if(dist[s2]===undefined) return straight();
-  const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return straight(); path.push(pp); } path.reverse();
-  // 클릭한 실제 점까지 연결 + 그 거리 포함(점-to-점)
-  const d1=hav([p1.lat,p1.lng],nodes[s1]), d2=hav([p2.lat,p2.lng],nodes[s2]);
-  const routeM=dist[s2]+d1+d2;
+  if(dist[s2]===undefined) return {err:'nowaterpath'};
+  const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return {err:'nowaterpath'}; path.push(pp); } path.reverse();
+  const routeM=dist[s2];
   const directM=hav([p1.lat,p1.lng],[p2.lat,p2.lng]);
-  // 저수지의 OSM 하천 중심선이 호안을 크게 우회하거나 육지 쪽으로 벗어나는 장거리 경로를 차단한다.
-  if(directM>=10000 && routeM>directM*1.6) return straight();
-  const coords=[[p1.lat,p1.lng]].concat(path.map(k=>nodes[k])).concat([[p2.lat,p2.lng]]);
-  return {coords, km:routeM/1000};
+  if(directM>=10000 && routeM>directM*3) return {err:'detour'};
+  const coords=path.map(k=>nodes[k]);
+  const access=[[[p1.lat,p1.lng],nodes[s1]],[nodes[s2],[p2.lat,p2.lng]]];
+  return {coords:coords, km:routeM/1000, access:access, snap:[near1.dist,near2.dist]};
 }
 function MinHeap(){ this.a=[]; }
 MinHeap.prototype.size=function(){ return this.a.length; };
