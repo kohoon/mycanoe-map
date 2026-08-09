@@ -3306,6 +3306,29 @@ function overpassOne(url,q,ms){
 }
 const _opCache={};   // 세션 캐시(같은 영역 재측정 즉시)
 const _opAreaCache=[];   // 더 큰 기존 bbox가 새 요청 bbox를 포함하면 재사용
+let _routeRiverPromise=null;
+function staticWaterRoute(p1,p2){
+  if(!_routeRiverPromise)_routeRiverPromise=fetch('rivers.geojson?v='+DATAVER.rivers).then(function(r){if(!r.ok)throw 0;return r.json();}).catch(function(){return {features:[]};});
+  return _routeRiverPromise.then(function(fc){
+    const toR=Math.PI/180;
+    function hav(a,b){const R=6371000,dla=(b[0]-a[0])*toR,dlo=(b[1]-a[1])*toR,la1=a[0]*toR,la2=b[0]*toR,h=Math.sin(dla/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dlo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+    function project(pt,line){let best=null,bd=1e18;const c=Math.cos(pt[0]*toR);for(let i=1;i<line.length;i++){const a=line[i-1],b=line[i],ax=(a[1]-pt[1])*111320*c,ay=(a[0]-pt[0])*110540,bx=(b[1]-pt[1])*111320*c,by=(b[0]-pt[0])*110540,dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/((dx*dx+dy*dy)||1))),x=ax+t*dx,y=ay+t*dy,d=Math.sqrt(x*x+y*y);if(d<bd){bd=d;best={seg:i-1,t:t,p:[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],dist:d};}}return best;}
+    let chosen=null;
+    for(const f of (fc.features||[])){
+      if(!f.geometry||f.geometry.type!=='LineString')continue;
+      const line=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(line.length<2)continue;
+      const a=project([p1.lat,p1.lng],line),b=project([p2.lat,p2.lng],line);if(!a||!b||a.dist>1500||b.dist>1500)continue;
+      const score=a.dist+b.dist;if(!chosen||score<chosen.score)chosen={line:line,a:a,b:b,score:score};
+    }
+    if(!chosen)return null;
+    const x=chosen.a,y=chosen.b,line=chosen.line;let core;
+    if(x.seg<=y.seg)core=[x.p].concat(line.slice(x.seg+1,y.seg+1),[y.p]);
+    else core=[x.p].concat(line.slice(y.seg+1,x.seg+1).reverse(),[y.p]);
+    const coords=[[p1.lat,p1.lng]].concat(core,[[p2.lat,p2.lng]]);let m=0;for(let i=1;i<coords.length;i++)m+=hav(coords[i-1],coords[i]);
+    const direct=hav(coords[0],coords[coords.length-1]);if(direct>=10000&&m>direct*3)return null;
+    return {coords:coords,km:m/1000,access:[],snap:[x.dist,y.dist],source:'static-river'};
+  });
+}
 async function overpassFetch(q){
   if(_opCache[q]) return _opCache[q];
   // 미러 동시 요청 → 데이터가 있는(elements>0) 응답을 우선 채택(빈 응답이 이기지 않게)
@@ -3327,6 +3350,7 @@ async function overpassFetch(q){
   return null;
 }
 async function waterRoute(p1,p2){
+  const staticRoute=await staticWaterRoute(p1,p2);if(staticRoute)return staticRoute;
   const pad=Math.max(0.035, Math.abs(p1.lat-p2.lat)*0.35, Math.abs(p1.lng-p2.lng)*0.35);  // 강 굽이 포함되게 충분히
   const r3=function(x){return Math.round(x*1000)/1000;};   // bbox 100m 라운딩(캐시 적중↑)
   const s=r3(Math.min(p1.lat,p2.lat)-pad), w=r3(Math.min(p1.lng,p2.lng)-pad), n=r3(Math.max(p1.lat,p2.lat)+pad), e=r3(Math.max(p1.lng,p2.lng)+pad);
@@ -3364,8 +3388,20 @@ async function waterRoute(p1,p2){
   function plausibleWater(pt){const mk=pt[0].toFixed(4)+','+pt[1].toFixed(4);if(mk in wetMemo)return wetMemo[mk];if(inWater(pt)||passableStructure(pt))return wetMemo[mk]=true;let d=1e18;for(const x of waterOuter)d=Math.min(d,edgeDist(pt,x));for(const x of waterInner)d=Math.min(d,edgeDist(pt,x));return wetMemo[mk]=d<=180;}
   function waterChord(a,b){const d=hav(a,b),steps=Math.max(2,Math.ceil(d/100));let plausible=0,dryRun=0,maxDry=0;for(let i=0;i<=steps;i++){const t=i/steps,p=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];if(plausibleWater(p)){plausible++;dryRun=0;}else{dryRun++;maxDry=Math.max(maxDry,dryRun);}}return plausible/(steps+1)>=.82&&maxDry*100<=320;}
   function shortcutWaterPath(raw){if(raw.length<3||!waterOuter.length)return raw;const out=[raw[0]];let i=0;while(i<raw.length-1){let good=i+1,bad=raw.length,step=2;while(i+step<raw.length){if(waterChord(raw[i],raw[i+step])){good=i+step;step*=2;}else{bad=i+step;break;}}if(bad===raw.length&&good<raw.length-1&&waterChord(raw[i],raw[raw.length-1]))good=raw.length-1;else{let lo=good+1,hi=Math.min(bad-1,raw.length-1);while(lo<=hi){const mid=(lo+hi)>>1;if(waterChord(raw[i],raw[mid])){good=mid;lo=mid+1;}else hi=mid-1;}}out.push(raw[good]);i=good;}return out;}
-  function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return {key:best,dist:bd}; }
-  const near1=nearest(p1),near2=nearest(p2),s1=near1.key,s2=near2.key;
+  function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return {key:best,dist:bd,wet:false}; }
+  function nearestWet(pt){
+    const origin=[pt.lat,pt.lng], candidates=[];
+    for(const k in nodes)candidates.push({key:k,dist:hav(nodes[k],origin)});
+    candidates.sort(function(a,b){return a.dist-b.dist;});
+    const nearest=candidates[0]||{key:null,dist:1e18};
+    // 호수의 가장 가까운 중심선이 반도 너머에 있을 수 있으므로 수면으로 직접 연결되는 후보를 고른다.
+    const limit=Math.min(candidates.length,160), maxDist=Math.max(2500,nearest.dist+2500);
+    for(let i=0;i<limit&&candidates[i].dist<=maxDist;i++){
+      const c=candidates[i]; if(waterChord(origin,nodes[c.key]))return {key:c.key,dist:c.dist,wet:true};
+    }
+    return {key:nearest.key,dist:nearest.dist,wet:false};
+  }
+  const near1=nearestWet(p1),near2=nearestWet(p2),s1=near1.key,s2=near2.key;
   if(!s1||!s2||near1.dist>1500||near2.dist>1500) return {err:'farwater'};
   // 물길 모드에서는 연결 실패를 직선으로 숨기지 않는다. 직선은 사용자가 직선 모드를 고른 경우에만 사용한다.
   const dist={}, prev={}; dist[s1]=0; const heap=new MinHeap(); heap.push(0,s1);
@@ -3376,9 +3412,14 @@ async function waterRoute(p1,p2){
   const routeM=dist[s2];
   const directM=hav([p1.lat,p1.lng],[p2.lat,p2.lng]);
   if(directM>=10000 && routeM>directM*3) return {err:'detour'};
-  const coords=shortcutWaterPath(path.map(k=>nodes[k]));
+  let raw=path.map(k=>nodes[k]);
+  if(near1.wet)raw.unshift([p1.lat,p1.lng]);
+  if(near2.wet)raw.push([p2.lat,p2.lng]);
+  const coords=shortcutWaterPath(raw);
   let waterM=0;for(let i=1;i<coords.length;i++)waterM+=hav(coords[i-1],coords[i]);
-  const access=[[[p1.lat,p1.lng],nodes[s1]],[nodes[s2],[p2.lat,p2.lng]]];
+  const access=[];
+  if(!near1.wet)access.push([[p1.lat,p1.lng],nodes[s1]]);
+  if(!near2.wet)access.push([nodes[s2],[p2.lat,p2.lng]]);
   return {coords:coords, km:waterM/1000, access:access, snap:[near1.dist,near2.dist]};
 }
 function MinHeap(){ this.a=[]; }
