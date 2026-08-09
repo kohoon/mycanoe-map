@@ -3042,6 +3042,12 @@ async function _runMeasQueue(){
   }
   _measRunning=false;
 }
+let _lastMeasureShare=null;
+function _encMeasure(coords){let out='',la=0,ln=0;function one(v){v=v<0?~(v<<1):(v<<1);while(v>=32){out+=String.fromCharCode((32|(v&31))+63);v>>=5;}out+=String.fromCharCode(v+63);}coords.forEach(function(p){const a=Math.round(+p[0]*1e5),b=Math.round(+p[1]*1e5);one(a-la);one(b-ln);la=a;ln=b;});return out;}
+function _decMeasure(s){let i=0,la=0,ln=0,out=[];function one(){let r=0,sh=0,c;do{if(i>=s.length)throw 0;c=s.charCodeAt(i++)-63;r|=(c&31)<<sh;sh+=5;}while(c>=32);return (r&1)?~(r>>1):(r>>1);}try{while(i<s.length&&out.length<6000){la+=one();ln+=one();out.push([la/1e5,ln/1e5]);}}catch(e){return [];}return out;}
+function measureShareUrl(data){const u=new URL(location.origin+location.pathname);u.searchParams.set('measure',_encMeasure(data.coords));u.searchParams.set('km',Number(data.km||0).toFixed(2));return u.toString();}
+function shareMeasureResult(){if(!_lastMeasureShare)return;const u=measureShareUrl(_lastMeasureShare);gaEvent('measure_share',{km:Math.round(_lastMeasureShare.km*10)/10});if(navigator.share){navigator.share({title:'마이카누 거리측정 '+_lastMeasureShare.km.toFixed(2)+'km',url:u}).catch(function(){});}else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){alert('거리측정 링크가 복사됐어요!');}).catch(function(){prompt('아래 링크 복사',u);});}else prompt('아래 링크 복사',u);}
+function showSharedMeasure(){const q=new URLSearchParams(location.search),s=q.get('measure');if(!s)return;const coords=_decMeasure(s),km=parseFloat(q.get('km'));if(coords.length<2)return;const grp=L.layerGroup().addTo(measDone),line=L.polyline(coords,{color:'#ff7043',weight:5,opacity:.95,lineCap:'round'}).addTo(grp);L.circleMarker(coords[0],{radius:5,color:'#fff',weight:2,fillColor:'#2e7d32',fillOpacity:1}).addTo(grp);L.circleMarker(coords[coords.length-1],{radius:5,color:'#fff',weight:2,fillColor:'#c62828',fillOpacity:1}).addTo(grp);try{map.fitBounds(line.getBounds().pad(.15));}catch(e){}L.popup({closeButton:true}).setLatLng(coords[Math.floor(coords.length/2)]).setContent('<b>공유된 거리측정</b>'+(isFinite(km)?'<br>'+km.toFixed(2)+'km':'')).openOn(map);gaEvent('measure_share_open');}
 function finishMeasure(){
   if(measPts.length<2){ cancelMeasure(); return; }
   const km=measSegs.reduce(function(s,x){return s+x.km;},0);
@@ -3061,14 +3067,19 @@ function finishMeasure(){
   pill.on('click', function(){ measDone.removeLayer(grp); });
   pill.bindTooltip('클릭하면 이 측정 삭제',{direction:'top'});
   gaEvent('measure_done',{km:Math.round(km*10)/10, points:measPts.length});
+  let cc=[]; measSegs.forEach(function(sg,i){ cc=cc.concat(i?sg.coords.slice(1):sg.coords); });
+  cc=cc.map(function(p){return [+(+p[0]).toFixed(6),+(+p[1]).toFixed(6)];});
+  _lastMeasureShare={coords:cc,km:Math.round(km*100)/100};
+  let resultBtns='<button class="addplace-btn" onclick="shareMeasureResult()">🔗 거리 공유</button>';
   if(isAdmin() || _curUid()){   // 로그인 사용자도 이 경로를 자기 코스로 등록
-    let cc=[]; measSegs.forEach(function(sg,i){ cc=cc.concat(i?sg.coords.slice(1):sg.coords); });
-    _lastCourse={coords:cc.map(function(p){return [+(+p[0]).toFixed(6),+(+p[1]).toFixed(6)];}), km:Math.round(km*100)/100,
+    _lastCourse={coords:cc, km:Math.round(km*100)/100,
       segments:measSegs.map(function(sg,i){ return {name:_segName(i,totalPts), km:Math.round(sg.km*100)/100, mode:sg.straight?'straight':'water'}; })};
-    L.popup({closeButton:true}).setLatLng(end).setContent('<b>측정 '+km.toFixed(2)+'km</b><br><button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록</button>').openOn(map);
+    resultBtns+=' <button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록</button>';
   }
+  L.popup({closeButton:true}).setLatLng(end).setContent('<b>측정 '+km.toFixed(2)+'km</b><br>'+resultBtns).openOn(map);
   measureMode=false; measPts=[]; measSegs=[]; map.getContainer().style.cursor=''; updateMeasBtn(); _showMeasMode(false); measHint(false);
 }
+setTimeout(showSharedMeasure,0);
 let _lastCourse=null, _cmMode='add', _cmCourse=null;
 let _courseAnalysisSeq=0;
 const COURSE_CATS=['초심자코스','엑스페디션','기타'];
@@ -3294,6 +3305,7 @@ function overpassOne(url,q,ms){
   });
 }
 const _opCache={};   // 세션 캐시(같은 영역 재측정 즉시)
+const _opAreaCache=[];   // 더 큰 기존 bbox가 새 요청 bbox를 포함하면 재사용
 async function overpassFetch(q){
   if(_opCache[q]) return _opCache[q];
   // 미러 동시 요청 → 데이터가 있는(elements>0) 응답을 우선 채택(빈 응답이 이기지 않게)
@@ -3318,9 +3330,11 @@ async function waterRoute(p1,p2){
   const pad=Math.max(0.035, Math.abs(p1.lat-p2.lat)*0.35, Math.abs(p1.lng-p2.lng)*0.35);  // 강 굽이 포함되게 충분히
   const r3=function(x){return Math.round(x*1000)/1000;};   // bbox 100m 라운딩(캐시 적중↑)
   const s=r3(Math.min(p1.lat,p2.lat)-pad), w=r3(Math.min(p1.lng,p2.lng)-pad), n=r3(Math.max(p1.lat,p2.lat)+pad), e=r3(Math.max(p1.lng,p2.lng)+pad);
-  const q='[out:json][timeout:25];(way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+');way["natural"="water"]('+s+','+w+','+n+','+e+');relation["natural"="water"]('+s+','+w+','+n+','+e+');way["bridge"]('+s+','+w+','+n+','+e+');way["waterway"~"weir|dam|lock_gate"]('+s+','+w+','+n+','+e+');way["man_made"="dam"]('+s+','+w+','+n+','+e+'););out geom;';
-  const j=await overpassFetch(q);
+  const cached=_opAreaCache.find(function(x){return x.s<=s&&x.w<=w&&x.n>=n&&x.e>=e;});
+  const q='[out:json][timeout:25];way["waterway"~"river|stream|canal"]('+s+','+w+','+n+','+e+')->.ww;( .ww;way["natural"="water"]('+s+','+w+','+n+','+e+');relation["natural"="water"]('+s+','+w+','+n+','+e+');way["waterway"~"weir|dam|lock_gate"]('+s+','+w+','+n+','+e+');way["man_made"="dam"]('+s+','+w+','+n+','+e+'););out geom;';
+  const j=cached?cached.j:await overpassFetch(q);
   if(!j) return {err:'overpass'};
+  if(!cached){_opAreaCache.push({s:s,w:w,n:n,e:e,j:j});if(_opAreaCache.length>8)_opAreaCache.shift();}
   const nodes={}, adj={}, toR=Math.PI/180;
   function key(la,ln){ const k=la.toFixed(4)+','+ln.toFixed(4); if(!(k in nodes)) nodes[k]=[la,ln]; return k; }  // 11m 병합(합류부 연결)
   function hav(a,b){ const R=6371000, dla=(b[0]-a[0])*toR, dlo=(b[1]-a[1])*toR, la1=a[0]*toR, la2=b[0]*toR;
@@ -3346,9 +3360,10 @@ async function waterRoute(p1,p2){
   function edgeDist(pt,x){const b=x.b,pad=.0022;if(pt[0]<b[0]-pad||pt[0]>b[2]+pad||pt[1]<b[1]-pad||pt[1]>b[3]+pad)return 1e18;const poly=x.p;let best=1e18,latR=pt[0]*toR,c=Math.cos(latR);for(let i=1;i<poly.length;i++){const a=poly[i-1],b2=poly[i],ax=(a[1]-pt[1])*111320*c,ay=(a[0]-pt[0])*110540,bx=(b2[1]-pt[1])*111320*c,by=(b2[0]-pt[0])*110540,dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/((dx*dx+dy*dy)||1))),px=ax+t*dx,py=ay+t*dy;best=Math.min(best,Math.sqrt(px*px+py*py));}return best;}
   function lineDist(pt,item){const bb=item.b,pad=.0012;if(pt[0]<bb[0]-pad||pt[0]>bb[2]+pad||pt[1]<bb[1]-pad||pt[1]>bb[3]+pad)return 1e18;const line=item.p;let best=1e18,latR=pt[0]*toR,c=Math.cos(latR);for(let i=1;i<line.length;i++){const a=line[i-1],b=line[i],ax=(a[1]-pt[1])*111320*c,ay=(a[0]-pt[0])*110540,bx=(b[1]-pt[1])*111320*c,by=(b[0]-pt[0])*110540,dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/((dx*dx+dy*dy)||1))),x=ax+t*dx,y=ay+t*dy;best=Math.min(best,Math.sqrt(x*x+y*y));}return best;}
   function passableStructure(pt){for(const line of passLines){if(lineDist(pt,line)<=90)return true;}return false;}
-  function plausibleWater(pt){if(inWater(pt)||passableStructure(pt))return true;let d=1e18;for(const x of waterOuter)d=Math.min(d,edgeDist(pt,x));for(const x of waterInner)d=Math.min(d,edgeDist(pt,x));return d<=180;}
-  function waterChord(a,b){const d=hav(a,b),steps=Math.max(2,Math.ceil(d/80));let plausible=0,dryRun=0,maxDry=0;for(let i=0;i<=steps;i++){const t=i/steps,p=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];if(plausibleWater(p)){plausible++;dryRun=0;}else{dryRun++;maxDry=Math.max(maxDry,dryRun);}}return plausible/(steps+1)>=.82&&maxDry*80<=320;}
-  function shortcutWaterPath(raw){if(raw.length<3||!waterOuter.length)return raw;const out=[raw[0]];let i=0;while(i<raw.length-1){let next=i+1;for(let k=raw.length-1;k>i+1;k--){if(waterChord(raw[i],raw[k])){next=k;break;}}out.push(raw[next]);i=next;}return out;}
+  const wetMemo={};
+  function plausibleWater(pt){const mk=pt[0].toFixed(4)+','+pt[1].toFixed(4);if(mk in wetMemo)return wetMemo[mk];if(inWater(pt)||passableStructure(pt))return wetMemo[mk]=true;let d=1e18;for(const x of waterOuter)d=Math.min(d,edgeDist(pt,x));for(const x of waterInner)d=Math.min(d,edgeDist(pt,x));return wetMemo[mk]=d<=180;}
+  function waterChord(a,b){const d=hav(a,b),steps=Math.max(2,Math.ceil(d/100));let plausible=0,dryRun=0,maxDry=0;for(let i=0;i<=steps;i++){const t=i/steps,p=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];if(plausibleWater(p)){plausible++;dryRun=0;}else{dryRun++;maxDry=Math.max(maxDry,dryRun);}}return plausible/(steps+1)>=.82&&maxDry*100<=320;}
+  function shortcutWaterPath(raw){if(raw.length<3||!waterOuter.length)return raw;const out=[raw[0]];let i=0;while(i<raw.length-1){let good=i+1,bad=raw.length,step=2;while(i+step<raw.length){if(waterChord(raw[i],raw[i+step])){good=i+step;step*=2;}else{bad=i+step;break;}}if(bad===raw.length&&good<raw.length-1&&waterChord(raw[i],raw[raw.length-1]))good=raw.length-1;else{let lo=good+1,hi=Math.min(bad-1,raw.length-1);while(lo<=hi){const mid=(lo+hi)>>1;if(waterChord(raw[i],raw[mid])){good=mid;lo=mid+1;}else hi=mid-1;}}out.push(raw[good]);i=good;}return out;}
   function nearest(pt){ let best=null,bd=1e18; for(const k in nodes){ const d=hav(nodes[k],[pt.lat,pt.lng]); if(d<bd){bd=d;best=k;} } return {key:best,dist:bd}; }
   const near1=nearest(p1),near2=nearest(p2),s1=near1.key,s2=near2.key;
   if(!s1||!s2||near1.dist>1500||near2.dist>1500) return {err:'farwater'};
