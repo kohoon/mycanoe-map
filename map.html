@@ -3146,9 +3146,15 @@ async function waterRoute(p1,p2){
   const waterOuter=[],waterInner=[],passLines=[];
   function addWater(list,pts){let s=90,w=180,n=-90,e=-180;pts.forEach(function(p){s=Math.min(s,p[0]);w=Math.min(w,p[1]);n=Math.max(n,p[0]);e=Math.max(e,p[1]);});list.push({p:pts,b:[s,w,n,e]});}
   function addPass(pts){addWater(passLines,pts);}
+  function samePt(a,b){return a&&b&&Math.abs(a[0]-b[0])<1e-6&&Math.abs(a[1]-b[1])<1e-6;}
+  function addClosed(list,pts){if(pts.length>3&&samePt(pts[0],pts[pts.length-1]))addWater(list,pts);}
+  function addRelationRings(el,role,list){
+    const pieces=(el.members||[]).filter(function(m){return (m.role||'outer')===role&&m.geometry&&m.geometry.length>1;}).map(function(m){return m.geometry.map(function(p){return [p.lat,p.lon];});});
+    while(pieces.length){let ring=pieces.pop(),joined=true;while(joined&&!samePt(ring[0],ring[ring.length-1])){joined=false;for(let i=pieces.length-1;i>=0;i--){let p=pieces[i];if(samePt(ring[ring.length-1],p[0]))ring=ring.concat(p.slice(1));else if(samePt(ring[ring.length-1],p[p.length-1]))ring=ring.concat(p.slice(0,-1).reverse());else if(samePt(ring[0],p[p.length-1]))ring=p.slice(0,-1).concat(ring);else if(samePt(ring[0],p[0]))ring=p.slice(1).reverse().concat(ring);else continue;pieces.splice(i,1);joined=true;break;}}addClosed(list,ring);}
+  }
   for(const el of (j.elements||[])){
-    if(el.type==='way'&&el.tags&&el.tags.natural==='water'&&el.geometry&&el.geometry.length>2) addWater(waterOuter,el.geometry.map(function(p){return [p.lat,p.lon];}));
-    if(el.type==='relation'&&el.tags&&el.tags.natural==='water') (el.members||[]).forEach(function(m){if(m.geometry&&m.geometry.length>2)addWater(m.role==='inner'?waterInner:waterOuter,m.geometry.map(function(p){return [p.lat,p.lon];}));});
+    if(el.type==='way'&&el.tags&&el.tags.natural==='water'&&el.geometry&&el.geometry.length>2) addClosed(waterOuter,el.geometry.map(function(p){return [p.lat,p.lon];}));
+    if(el.type==='relation'&&el.tags&&el.tags.natural==='water'){addRelationRings(el,'outer',waterOuter);addRelationRings(el,'inner',waterInner);}
     if(el.type==='way'&&el.tags&&el.geometry&&(el.tags.bridge||/^(weir|dam|lock_gate)$/.test(el.tags.waterway||'')||el.tags.man_made==='dam')) addPass(el.geometry.map(function(p){return [p.lat,p.lon];}));
     if(el.type!=='way'||!el.tags||!/^(river|stream|canal)$/.test(el.tags.waterway||'')||!el.geometry) continue; let prev=null;
     for(const p of el.geometry){ const k=key(p.lat,p.lon); if(prev&&prev!==k){ const d=hav(nodes[prev],nodes[k]);
