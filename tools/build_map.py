@@ -597,10 +597,10 @@ __GTAG__
     .leaflet-popup-content{font-size:12px;line-height:1.5}
     .authbox button{padding:7px 11px;font-size:12.5px}
     .authbox .who{font-size:12.5px;padding:6px 9px}
-    .cafecard{width:138px;padding:6px 10px 6px 6px}
+    .cafe-actions{justify-content:flex-end}
+    .cafecard,.admin-sheet-card{width:40px;height:40px;padding:6px;justify-content:center;gap:0}
     .cafecard .cf-badge{width:27px;height:27px}
-    .cafecard .cf-t,.admin-sheet-card .cf-t{font-size:12px}
-    .admin-sheet-card{width:104px;padding:6px 9px 6px 6px}
+    .cafecard .cf-t,.admin-sheet-card .cf-t{display:none}
     .admin-sheet-card .sheet-badge{width:27px;height:27px;font-size:17px}
     .legend-c{width:138px;font-size:12px}
     .pmodal{padding:16px 14px 20px}
@@ -909,9 +909,9 @@ let measureMode = false;   // 물길 거리측정 모드
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;   // 모바일/터치 여부
 L.control.zoom({position:'bottomleft'}).addTo(map);
 map.addControl(new AuthCtl());   // 카카오 로그인 박스(우상단)
-const CafeCtl=L.Control.extend({ options:{position:'bottomright'},
+const CafeCtl=L.Control.extend({ options:{position:'topright'},
   onAdd:function(){ const d=L.DomUtil.create('div','cafe-actions');
-    const cafe=L.DomUtil.create('a','cafecard',d); cafe.href='https://cafe.naver.com/mytalon'; cafe.target='_blank'; cafe.rel='noopener';
+    const cafe=L.DomUtil.create('a','cafecard',d); cafe.href='https://cafe.naver.com/mytalon'; cafe.target='_blank'; cafe.rel='noopener'; cafe.title='마이카누 카페'; cafe.setAttribute('aria-label','마이카누 카페');
     cafe.innerHTML='<span class="cf-badge">'+CANOE_SVG+'</span><span class="cf-t">마이카누 카페</span>';
     const sheet=L.DomUtil.create('a','admin-sheet-card',d); sheet.id='adminSheetLink'; sheet.target='_blank'; sheet.rel='noopener'; sheet.title='로그인 및 접속기록 스프레드시트';
     sheet.innerHTML='<span class="sheet-badge">▦</span><span class="cf-t">접속기록</span>';
@@ -3632,7 +3632,7 @@ async function deleteReply(nid, rt){ if(!isAdmin()) return; if(!confirm('이 답
     if(r.ok){ gaEvent('notice_reply_del'); openNotices(); } else alert('실패(권한 확인)'); }catch(e){ alert('오류'); } }
 
 // ---- 범례는 레이어 패널에 통합됨(위 _layerControl) ----
-map.addControl(new CafeCtl());   // 카페 카드: 우하단
+map.addControl(new CafeCtl());   // 카페·접속기록: 마이페이지 아래 우상단 스택
 </script>
 </body>
 </html>
