@@ -1718,6 +1718,7 @@ function makeMarker(ll,kind){ const dot=map.getZoom()<Z_ICON; const m=L.marker(l
 const _placeMarkerById={};   // id -> {m, cat:'spot'|'canoe', name}
 function _measPickPoint(ll, label){
   const pt=L.latLng(+ll.lat, +ll.lng);
+  pt._measLabel=(label||'').trim();
   _measQueue.push({pt:pt, mode:measMode});
   L.circleMarker(pt,{radius:5,color:'#bf360c',fillColor:'#ff7043',fillOpacity:1}).addTo(measDraft);
   measHint(label?'📍 '+label+' 선택됨 · 계속 아이콘이나 지도를 탭하세요':'');
@@ -2890,7 +2891,11 @@ function finishMeasure(){
   _lastMeasureShare={coords:cc,km:Math.round(km*100)/100};
   let resultBtns='<button class="addplace-btn" onclick="shareMeasureResult()">🔗 거리 공유</button>';
   if(isAdmin() || _curUid()){   // 로그인 사용자도 이 경로를 자기 코스로 등록
-    _lastCourse={coords:cc, km:Math.round(km*100)/100,
+    const riverCounts={};measSegs.forEach(function(sg){if(sg.riverName)riverCounts[sg.riverName]=(riverCounts[sg.riverName]||0)+1;});
+    const riverName=Object.keys(riverCounts).sort(function(a,b){return riverCounts[b]-riverCounts[a];})[0]||'';
+    const first=measPts[0],lastPt=measPts[measPts.length-1];
+    _lastCourse={coords:cc, km:Math.round(km*100)/100, riverName:riverName,
+      start:{lat:first.lat,lng:first.lng,label:first._measLabel||''},end:{lat:lastPt.lat,lng:lastPt.lng,label:lastPt._measLabel||''},
       segments:measSegs.map(function(sg,i){ return {name:_segName(i,totalPts), km:Math.round(sg.km*100)/100, mode:sg.straight?'straight':'water'}; })};
     resultBtns+=' <button class="addplace-btn" onclick="saveCoursePrompt()">💾 코스로 등록</button>';
   }
@@ -2899,6 +2904,7 @@ function finishMeasure(){
 }
 setTimeout(showSharedMeasure,0);
 let _lastCourse=null, _cmMode='add', _cmCourse=null;
+let _cmNameTouched=false;
 let _courseAnalysisSeq=0;
 const COURSE_CATS=['초심자코스','엑스페디션','기타'];
 function _deg2rad(n){ return n*Math.PI/180; }
@@ -3046,6 +3052,27 @@ function cmPickColor(el){ document.querySelectorAll('#cmPalette .cm-color').forE
 function _cmUpdateNoRow(){ const row=document.getElementById('cmNoRow'); if(row) row.style.display=(_cmCat()==='기타'?'none':'block'); }
 function cmPickCat(el){ const bs=document.querySelectorAll('#cmBody .seg-b'); for(let i=0;i<bs.length;i++) bs[i].classList.remove('on'); el.classList.add('on'); _cmUpdateNoRow(); cmPreview(); }
 function cmPreview(){ const p=document.getElementById('cmPrev'); if(!p) return; p.textContent=_joinCourse(_cmCat(),_cmNo(),(document.getElementById('cmName').value||''))||'—'; }
+function _shortCoursePlace(label,addr){
+  label=(label||'').trim();
+  if(label){const halves=label.split(/\s+-\s+/),region=(halves[0]||'').replace(/\([^)]*\)/g,'').trim(),place=(halves.length>1?halves.slice(1).join(' - '):label).replace(/^(춘천|양구|곡성|구례|연천|홍천|인제|화천)\s*[()]/,'').trim();return (region&&place.indexOf(region)!==0?region+' ':'')+place;}
+  const parts=(addr||'').trim().split(/\s+/).filter(Boolean);let region='',place='';
+  for(const p of parts){if(!region&&/[시군구]$/.test(p)&&!/특별시$|광역시$/.test(p))region=p.replace(/[시군구]$/,'');if(/[리가동읍면]$/.test(p))place=p;}
+  return [region,place].filter(Boolean).join(' ')||parts.slice(-2).join(' ');
+}
+async function _coursePointName(x){
+  if(!x)return '';
+  if(x.label)return _shortCoursePlace(x.label,'');
+  let r=null;try{r=await vworldReverse(x.lat,x.lng);}catch(e){}
+  let addr=(r&&(r.parcel||r.road))||'';if(!addr)try{addr=await nominatimReverse(x.lat,x.lng);}catch(e){}
+  return _shortCoursePlace('',addr);
+}
+async function _suggestCourseName(){
+  const c=_lastCourse;if(!c||!c.start||!c.end)return;
+  const names=await Promise.all([_coursePointName(c.start),_coursePointName(c.end)]);if(_cmMode!=='add'||_lastCourse!==c||_cmNameTouched)return;
+  const input=document.getElementById('cmName');if(!input||input.value.trim())return;
+  const ends=[names[0]||'출발지',names[1]||'도착지'].join(' ~ '),suggested=(c.riverName?c.riverName+' - ':'')+ends;
+  input.value=suggested;cmPreview();
+}
 function openCourseModal(mode, course){
   const canAdd=!!_curUid();
   if(mode==='add' && !canAdd && !isAdmin()) return;
@@ -3068,14 +3095,16 @@ function openCourseModal(mode, course){
     +'<div id="cmNoRow" style="display:'+(cat==='기타'?'none':'block')+'"><div class="sg-label"># 번호</div>'
     +'<input id="cmNo" placeholder="예: 2" maxlength="12" oninput="cmPreview()"></div>'
     +'<div class="sg-label">코스 설명/이름</div>'
-    +'<input id="cmName" placeholder="예: 장자늪→복여울교 (남한강)" maxlength="80" oninput="cmPreview()">'
+    +'<input id="cmName" placeholder="예: 섬진강 - 곡성 두가리 ~ 구례 죽마리" maxlength="80" oninput="_cmNameTouched=true;cmPreview()">'
     +'<div class="cm-note">최종 이름: <b id="cmPrev">—</b></div>'
     +'<button class="sg-submit" id="cmSave">'+((mode==='edit'||mode==='editstatic')?'수정 완료':'코스 등록')+'</button><div id="cmMsg"></div>';
   const noEl=document.getElementById('cmNo'); if(noEl) noEl.value=no;
+  _cmNameTouched=false;
   document.getElementById('cmName').value=desc;
   document.getElementById('courseModal').classList.add('open');
   document.getElementById('cmSave').onclick=doSaveCourse;
   cmPreview();
+  if(mode==='add')_suggestCourseName();
   setTimeout(function(){ const i=document.getElementById('cmName'); if(i) i.focus(); }, 60);
 }
 function saveCoursePrompt(){ openCourseModal('add'); }
@@ -3136,7 +3165,7 @@ function staticWaterRoute(p1,p2){
       if(!f.geometry||f.geometry.type!=='LineString')continue;
       const line=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(line.length<2)continue;
       const a=project([p1.lat,p1.lng],line),b=project([p2.lat,p2.lng],line);if(!a||!b||a.dist>1500||b.dist>1500)continue;
-      const score=a.dist+b.dist;if(!chosen||score<chosen.score)chosen={line:line,a:a,b:b,score:score};
+      const score=a.dist+b.dist;if(!chosen||score<chosen.score)chosen={line:line,a:a,b:b,score:score,name:String((f.properties||{}).name||'')};
     }
     if(!chosen)return null;
     const x=chosen.a,y=chosen.b,line=chosen.line;let core;
@@ -3144,7 +3173,7 @@ function staticWaterRoute(p1,p2){
     else core=[x.p].concat(line.slice(y.seg+1,x.seg+1).reverse(),[y.p]);
     const coords=[[p1.lat,p1.lng]].concat(core,[[p2.lat,p2.lng]]);let m=0;for(let i=1;i<coords.length;i++)m+=hav(coords[i-1],coords[i]);
     const direct=hav(coords[0],coords[coords.length-1]);if(direct>=10000&&m>direct*3)return null;
-    return {coords:coords,km:m/1000,access:[],snap:[x.dist,y.dist],source:'static-river'};
+    return {coords:coords,km:m/1000,access:[],snap:[x.dist,y.dist],source:'static-river',riverName:chosen.name};
   });
 }
 async function overpassFetch(q){
@@ -3177,7 +3206,7 @@ async function waterRoute(p1,p2){
   const j=cached?cached.j:await overpassFetch(q);
   if(!j) return {err:'overpass'};
   if(!cached){_opAreaCache.push({s:s,w:w,n:n,e:e,j:j});if(_opAreaCache.length>8)_opAreaCache.shift();}
-  const nodes={}, adj={}, toR=Math.PI/180;
+  const nodes={}, adj={}, nodeNames={}, toR=Math.PI/180;
   function key(la,ln){ const k=la.toFixed(4)+','+ln.toFixed(4); if(!(k in nodes)) nodes[k]=[la,ln]; return k; }  // 11m 병합(합류부 연결)
   function hav(a,b){ const R=6371000, dla=(b[0]-a[0])*toR, dlo=(b[1]-a[1])*toR, la1=a[0]*toR, la2=b[0]*toR;
     const h=Math.sin(dla/2)*Math.sin(dla/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dlo/2)*Math.sin(dlo/2); return 2*R*Math.asin(Math.sqrt(h)); }
@@ -3194,8 +3223,8 @@ async function waterRoute(p1,p2){
     if(el.type==='way'&&el.tags&&el.tags.natural==='water'&&el.geometry&&el.geometry.length>2) addClosed(waterOuter,el.geometry.map(function(p){return [p.lat,p.lon];}));
     if(el.type==='relation'&&el.tags&&el.tags.natural==='water'){addRelationRings(el,'outer',waterOuter);addRelationRings(el,'inner',waterInner);}
     if(el.type==='way'&&el.tags&&el.geometry&&(el.tags.bridge||/^(weir|dam|lock_gate)$/.test(el.tags.waterway||'')||el.tags.man_made==='dam')) addPass(el.geometry.map(function(p){return [p.lat,p.lon];}));
-    if(el.type!=='way'||!el.tags||!/^(river|stream|canal)$/.test(el.tags.waterway||'')||!el.geometry) continue; let prev=null;
-    for(const p of el.geometry){ const k=key(p.lat,p.lon); if(prev&&prev!==k){ const d=hav(nodes[prev],nodes[k]);
+    if(el.type!=='way'||!el.tags||!/^(river|stream|canal)$/.test(el.tags.waterway||'')||!el.geometry) continue; let prev=null;const wayName=String(el.tags.name||'');
+    for(const p of el.geometry){ const k=key(p.lat,p.lon); if(wayName)(nodeNames[k]||(nodeNames[k]={}))[wayName]=((nodeNames[k]||{})[wayName]||0)+1;if(prev&&prev!==k){ const d=hav(nodes[prev],nodes[k]);
       (adj[prev]=adj[prev]||[]).push([k,d]); (adj[k]=adj[k]||[]).push([prev,d]); } prev=k; } }
   function inPoly(pt,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if(((a[0]>pt[0])!==(b[0]>pt[0]))&&(pt[1]<(b[1]-a[1])*(pt[0]-a[0])/((b[0]-a[0])||1e-12)+a[1]))inside=!inside;}return inside;}
   function inWater(pt){let ok=false;for(const x of waterOuter){const b=x.b;if(pt[0]>=b[0]&&pt[0]<=b[2]&&pt[1]>=b[1]&&pt[1]<=b[3]&&inPoly(pt,x.p)){ok=true;break;}}if(!ok)return false;for(const x of waterInner){const b=x.b;if(pt[0]>=b[0]&&pt[0]<=b[2]&&pt[1]>=b[1]&&pt[1]<=b[3]&&inPoly(pt,x.p))return false;}return true;}
@@ -3227,6 +3256,8 @@ async function waterRoute(p1,p2){
     for(const vw of (adj[u]||[])){ const v=vw[0], nd=d+vw[1]; if(nd<(dist[v]===undefined?1e18:dist[v])){ dist[v]=nd; prev[v]=u; heap.push(nd,v); } } }
   if(dist[s2]===undefined) return {err:'nowaterpath'};
   const path=[s2]; while(path[path.length-1]!==s1){ const pp=prev[path[path.length-1]]; if(pp===undefined) return {err:'nowaterpath'}; path.push(pp); } path.reverse();
+  const routeNames={};path.forEach(function(k){const ns=nodeNames[k]||{};for(const nm in ns)routeNames[nm]=(routeNames[nm]||0)+ns[nm];});
+  const riverName=Object.keys(routeNames).sort(function(a,b){return routeNames[b]-routeNames[a];})[0]||'';
   const routeM=dist[s2];
   const directM=hav([p1.lat,p1.lng],[p2.lat,p2.lng]);
   if(directM>=10000 && routeM>directM*3) return {err:'detour'};
@@ -3238,7 +3269,7 @@ async function waterRoute(p1,p2){
   const access=[];
   if(!near1.wet)access.push([[p1.lat,p1.lng],nodes[s1]]);
   if(!near2.wet)access.push([nodes[s2],[p2.lat,p2.lng]]);
-  return {coords:coords, km:waterM/1000, access:access, snap:[near1.dist,near2.dist]};
+  return {coords:coords, km:waterM/1000, access:access, snap:[near1.dist,near2.dist], riverName:riverName};
 }
 function MinHeap(){ this.a=[]; }
 MinHeap.prototype.size=function(){ return this.a.length; };
