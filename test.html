@@ -454,6 +454,11 @@
     .cafecard .cf-t,.admin-sheet-card .cf-t{display:none}
     .admin-sheet-card .sheet-badge{width:27px;height:27px;font-size:17px}
     .legend-c{width:138px;font-size:12px}
+    .leaflet-control-layers:not(.lc-collapsed){box-sizing:border-box;max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+    .leaflet-control-layers:not(.lc-collapsed) .lc-title{position:sticky;top:0;z-index:3;background:#fff;padding:2px 0 5px}
+    .leaflet-control-layers:not(.lc-collapsed)::-webkit-scrollbar{width:5px}
+    .leaflet-control-layers:not(.lc-collapsed)::-webkit-scrollbar-thumb{background:#b8c5cb;border-radius:5px}
+    .leaflet-control-layers.lc-collapsed{overflow:hidden}
     .pmodal{padding:16px 14px 20px}
   }
 </style>
@@ -2543,7 +2548,7 @@ _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시
 // 패널에 제목 + 토글불가 항목(코스 종류·지형지물) 색상 키를 함께 표시 = 범례 통합
 // 모바일은 기본 닫힘 + 제목 탭으로 열고 닫기(화면 점유 최소화)
 (function(){ const c=_layerControl.getContainer(); if(!c) return;
-  const h=L.DomUtil.create('div','lc-title'); h.innerHTML='<span>🗺️ 레이어 · 범례</span><span class="lc-arrow">▾</span>'; c.insertBefore(h, c.firstChild);
+  const h=L.DomUtil.create('div','lc-title'); h.innerHTML='<span>🗺️ 레이어 · 범례</span><span class="lc-arrow">▾</span>';h.setAttribute('role','button');h.setAttribute('tabindex','0');h.setAttribute('aria-expanded','true');c.insertBefore(h, c.firstChild);
   function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
   const k=L.DomUtil.create('div','lc-key');
   k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
@@ -2551,9 +2556,10 @@ _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시
     +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
     +'<div id="pdChip" class="pd-chip"></div>';
-  c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(k);
-  L.DomEvent.on(h,'click',function(e){ L.DomEvent.stop(e); c.classList.toggle('lc-collapsed'); });
-  if(isTouch) c.classList.add('lc-collapsed');   // 모바일: 기본 닫힘
+  c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(c);
+  function toggleLegend(e){L.DomEvent.stop(e);const closed=c.classList.toggle('lc-collapsed');h.setAttribute('aria-expanded',closed?'false':'true');if(!closed)c.scrollTop=0;}
+  L.DomEvent.on(h,'click',toggleLegend);L.DomEvent.on(h,'keydown',function(e){if(e.key==='Enter'||e.key===' '){L.DomEvent.preventDefault(e);toggleLegend(e);}});
+  if(isTouch){c.classList.add('lc-collapsed');h.setAttribute('aria-expanded','false');}   // 모바일: 기본 닫힘
   _paldang();   // 수위 레이어 토글 여부와 무관하게 범례 칩은 항상 표시
 })();
 // ---- 위성 출처 서브토글(안 B): 위성지도 활성 시에만 Esri↔VWorld 노출 ----
