@@ -50,14 +50,16 @@ function _allowedOrigin(req, env) {
   try { const oh = new URL(o).host; return oh === new URL(site).host || oh === "localhost" || oh.startsWith("localhost:") || oh === "127.0.0.1"; }
   catch (e) { return false; }
 }
-// 단순 속도 제한(KV 카운터, 분 단위) — true면 차단
+// 단순 속도 제한(Worker isolate 메모리, 분 단위) — KV 쓰기 한도를 소모하지 않는다.
+// isolate별 제한이라 절대적 방어선은 아니며, 인증·bbox·응답 상한과 함께 대량 수집 비용을 높이는 용도다.
+const _rateBuckets = new Map();
 async function _rateLimited(env, bucket, ip, max) {
-  const KV = env.PLACES; if (!KV) return false;
   const minute = Math.floor(Date.now() / 60000);
   const k = "rl_" + bucket + "_" + ip + "_" + minute;
-  let n = 0; try { n = parseInt((await KV.get(k)) || "0", 10) || 0; } catch (e) {}
+  const n = _rateBuckets.get(k) || 0;
   if (n >= max) return true;
-  await KV.put(k, String(n + 1), { expirationTtl: 120 });
+  _rateBuckets.set(k, n + 1);
+  if (_rateBuckets.size > 2000) for (const key of _rateBuckets.keys()) if (!key.endsWith("_" + minute)) _rateBuckets.delete(key);
   return false;
 }
 async function _cacheJson(ctx, key, build, ttl = 60) {
@@ -68,6 +70,45 @@ async function _cacheJson(ctx, key, build, ttl = 60) {
   const resp = await build();
   if (resp && resp.status === 200) ctx.waitUntil(cache.put(ck, resp.clone()));
   return resp;
+}
+
+function _launchCat(v, name) {
+  if (v === "spot" || v === "명소") return "spot";
+  if (v === "candidate" || v === "런칭/랜딩 후보지") return "candidate";
+  return "canoe";
+}
+async function _launchAll(KV, includeCandidates) {
+  let base = [], over = {}, cats = {}, legacy = [];
+  try { base = JSON.parse((await KV.get("launch_sites_v1")) || "[]"); } catch (e) {}
+  try { over = JSON.parse((await KV.get("placeover")) || "{}"); } catch (e) {}
+  try { cats = JSON.parse((await KV.get("placecat")) || "{}"); } catch (e) {}
+  try { legacy = JSON.parse((await KV.get("places")) || "[]"); } catch (e) {}
+  const out = [], seen = new Set();
+  for (const raw of Array.isArray(base) ? base : []) {
+    const id = String(raw.id || "").slice(0, 30), o = over[id] || {};
+    if (!id || o.del) continue;
+    const lat = Number(o.lat != null ? o.lat : raw.lat), lng = Number(o.lng != null ? o.lng : raw.lng);
+    const name = String(o.name != null ? o.name : raw.name || "").slice(0, 100);
+    const cat = _launchCat(o.cat || cats[id] || raw.cat, name);
+    if (!isFinite(lat) || !isFinite(lng) || (!includeCandidates && cat === "candidate")) continue;
+    out.push({ id, name, memo: String(o.memo != null ? o.memo : raw.memo || "").slice(0, 800), lat, lng, cat,
+      rv: !!raw.rv, rvline: Array.isArray(raw.rvline) ? raw.rvline.slice(0, 400) : null });
+    seen.add(id);
+  }
+  for (const [id0, o] of Object.entries(over)) {
+    const id = String(id0).slice(0, 30); if (seen.has(id) || !o || !o.new || o.del) continue;
+    const lat = Number(o.lat), lng = Number(o.lng), cat = _launchCat(o.cat, o.name);
+    if (!isFinite(lat) || !isFinite(lng) || (!includeCandidates && cat === "candidate")) continue;
+    out.push({ id, name: String(o.name || "").slice(0, 100), memo: String(o.memo || "").slice(0, 800), lat, lng, cat, rv: false, rvline: null });
+    seen.add(id);
+  }
+  for (let i = 0; i < (Array.isArray(legacy) ? legacy : []).length; i++) {
+    const x = legacy[i] || {}, id = "legacy" + i; if (seen.has(id)) continue;
+    const lat = Number(x.lat), lng = Number(x.lng), cat = _launchCat(x.cat, x.name);
+    if (!isFinite(lat) || !isFinite(lng) || (!includeCandidates && cat === "candidate")) continue;
+    out.push({ id, name: String(x.name || "").slice(0, 100), memo: String(x.memo || "").slice(0, 800), lat, lng, cat, rv: false, rvline: null });
+  }
+  return out;
 }
 
 export default {
@@ -210,6 +251,65 @@ export default {
       return J({ ok: false, error: "method" }, 405);
     }
 
+    // 0-1e) 런칭·랜딩 보호 API — 로그인 + bbox/검색 제한 + no-store
+    if (url.pathname.endsWith("/launch-sites")) {
+      const origin = req.headers.get("Origin") || "";
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-User-Id, X-Auth-Token, X-Admin-Key" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (req.method !== "GET") return new Response("method", { status: 405, headers: cors });
+      if (!origin || !_allowedOrigin(req, env)) return new Response("forbidden-origin", { status: 403, headers: cors });
+      const uid = String(req.headers.get("X-User-Id") || "").slice(0, 40), tok = req.headers.get("X-Auth-Token") || "";
+      if (!uid || !(await _tokOk(env, uid, tok))) return new Response(JSON.stringify({ error: "relogin" }), { status: 401, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+      const ip = req.headers.get("CF-Connecting-IP") || "0";
+      if (await _rateLimited(env, "launch_" + (await _uidHash(env, uid)), ip, 30))
+        return new Response(JSON.stringify({ error: "rate-limit" }), { status: 429, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store", "Retry-After": "60" } });
+      const KV = env.PLACES; if (!KV) return new Response("no-store", { status: 500, headers: cors });
+      const includeCandidates = !!env.ADMIN_KEY && String(req.headers.get("X-Admin-Key") || "") === String(env.ADMIN_KEY);
+      let list = await _launchAll(KV, includeCandidates);
+      const wantedId = String(url.searchParams.get("id") || "").slice(0, 30);
+      if (wantedId) {
+        list = list.filter((x) => x.id === wantedId).slice(0, 1);
+        return new Response(JSON.stringify({ items: list, truncated: false }), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "private, no-store" } });
+      }
+      const q = String(url.searchParams.get("q") || "").trim().toLocaleLowerCase("ko-KR").replace(/\s+/g, "").slice(0, 40);
+      if (q) {
+        if (q.length < 2) list = [];
+        else list = list.filter((x) => x.name.toLocaleLowerCase("ko-KR").replace(/\s+/g, "").includes(q)).slice(0, 10);
+        return new Response(JSON.stringify({ items: list, truncated: false }), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "private, no-store" } });
+      }
+      const vals = String(url.searchParams.get("bbox") || "").split(",").map(Number);
+      if (vals.length !== 4 || vals.some((x) => !isFinite(x))) return new Response(JSON.stringify({ error: "bbox" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      let [w, s, e, n] = vals; if (w > e) [w, e] = [e, w]; if (s > n) [s, n] = [n, s];
+      if (e - w > 7 || n - s > 7 || w < 123 || e > 132 || s < 32 || n > 40) return new Response(JSON.stringify({ error: "bbox-range" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      const cy = (s + n) / 2, cx = (w + e) / 2;
+      list = list.filter((x) => x.lng >= w && x.lng <= e && x.lat >= s && x.lat <= n)
+        .sort((a, b) => ((a.lat - cy) ** 2 + (a.lng - cx) ** 2) - ((b.lat - cy) ** 2 + (b.lng - cx) ** 2));
+      const truncated = list.length > 80; list = list.slice(0, 80);
+      return new Response(JSON.stringify({ items: list, truncated }), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "private, no-store" } });
+    }
+
+    // 0-1f) 런칭 원본 동기화/복원 — 일일 수집·관리자 전용
+    if (url.pathname.endsWith("/launch-sites-admin")) {
+      const origin = req.headers.get("Origin") || "*", cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+      if (req.method !== "POST") return new Response("method", { status: 405, headers: cors });
+      let b = {}; try { b = await req.json(); } catch (e) {}
+      if (!env.ADMIN_KEY || String(b.adminKey || "") !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
+      const KV = env.PLACES; if (!KV) return new Response("no-store", { status: 500, headers: cors });
+      if (b.action === "get") {
+        const source = await KV.get("launch_source_v1");
+        return new Response(source || '{"version":2,"items":{}}', { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+      }
+      if (b.action === "sync") {
+        const records = Array.isArray(b.records) ? b.records.slice(0, 1000) : null;
+        const source = b.source && typeof b.source === "object" ? b.source : null;
+        if (!records || !source || records.some((x) => !x || !x.id || !isFinite(Number(x.lat)) || !isFinite(Number(x.lng)))) return new Response("bad", { status: 400, headers: cors });
+        await KV.put("launch_sites_v1", JSON.stringify(records)); await KV.put("launch_source_v1", JSON.stringify(source));
+        return new Response(JSON.stringify({ ok: true, count: records.length }), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+      }
+      return new Response("bad-action", { status: 400, headers: cors });
+    }
+
     // 0-2) 등록 장소 저장/조회 (Cloudflare KV: env.PLACES, 어드민: env.ADMIN_KEY)
     if (url.pathname.endsWith("/places")) {
       const origin = req.headers.get("Origin") || "*";
@@ -220,12 +320,7 @@ export default {
       };
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
-      if (req.method === "GET") {
-        return _cacheJson(ctx, url.toString(), async () => {
-          const data = KV ? await KV.get("places") : null;
-          return new Response(data || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
-        }, 60);
-      }
+      if (req.method === "GET") return new Response("use-launch-sites", { status: 410, headers: { ...cors, "Cache-Control": "no-store" } });
       if (req.method === "POST") {
         let b = {};
         try { b = await req.json(); } catch (e) {}
@@ -385,10 +480,7 @@ export default {
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
-      if (req.method === "GET") { return _cacheJson(ctx, url.toString(), async () => {
-        const d = KV ? await KV.get("placecat") : null;
-        return new Response(d || "{}", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
-      }, 60); }
+      if (req.method === "GET") return new Response("use-launch-sites", { status: 410, headers: { ...cors, "Cache-Control": "no-store" } });
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });
@@ -412,10 +504,7 @@ export default {
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
-      if (req.method === "GET") { return _cacheJson(ctx, url.toString(), async () => {
-        const d = KV ? await KV.get("placeover") : null;
-        return new Response(d || "{}", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
-      }, 60); }
+      if (req.method === "GET") return new Response("use-launch-sites", { status: 410, headers: { ...cors, "Cache-Control": "no-store" } });
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY)) return new Response("forbidden", { status: 403, headers: cors });

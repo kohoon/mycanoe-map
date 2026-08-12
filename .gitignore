@@ -13,6 +13,7 @@ collect_log.txt
 kakao_add_state.json
 protect_geom.json
 synced_seqs.backup.json
+data/synced_seqs.json
 __pycache__/
 *.log
 *.output

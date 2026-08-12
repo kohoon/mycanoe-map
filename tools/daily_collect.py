@@ -54,7 +54,15 @@ def main():
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     lines = [f"[{now}] 마이카누 일일 수집"]
 
-    # 1) 수집(헤드리스)
+    # 1) Git에 두지 않는 장소 원본을 보호 KV에서 복원
+    rc, out = run([PY, str(TOOLS / "sync_launch_sites.py"), "pull"])
+    if rc != 0:
+        body = "\n".join(lines + ["❌ 장소 원본 복원 실패", out[-600:]])
+        print(body)
+        sheet_report("원본 복원 실패", 0, body.replace("\n", " / "))
+        raise SystemExit(1)
+
+    # 2) 수집(헤드리스)
     rc, out = run([PY, str(TOOLS / "collect_kakao.py"), "--folderid", FOLDERS, "--headless"])
     new = 0
     for ln in out.splitlines():
@@ -74,12 +82,16 @@ def main():
     else:
         lines.append(f"✅ 신규 {new}곳 수집")
         for nm in names[:30]: lines.append("  + " + nm)
-        # 2) 빌드
+        # 3) 보호 KV 갱신 후 정적 지도 빌드
+        src, sout = run([PY, str(TOOLS / "sync_launch_sites.py"), "push"])
+        if src != 0:
+            lines.append("❌ 보호 KV 동기화 실패: " + sout[-400:]); status = "KV 동기화 실패"
+            body = "\n".join(lines); print(body); sheet_report(status, new, body.replace("\n", " / ")); raise SystemExit(1)
         run([PY, str(TOOLS / "build_map.py")]); run([PY, str(TOOLS / "build_map.py"), "test"])
-        # 3) 변경 있으면 커밋+푸시
+        # 4) 공개 산출물만 변경 있으면 커밋+푸시
         _, st = run(["git", "status", "--porcelain"])
         if st.strip():
-            run(["git", "add", "data/synced_seqs.json", "data/place_ids.json", "map.html", "index.html", "test.html",
+            run(["git", "add", "data/place_ids.json", "map.html", "index.html", "test.html",
                  "wlz.geojson", "protect_polygons.geojson"])
             run(["git", "commit", "-m", f"카카오 즐겨찾기 신규 {new}곳 자동 수집 ({now})"])
             prc, pout = run(["git", "push"])
