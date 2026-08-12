@@ -160,11 +160,6 @@
   .wxd-t{font-weight:700}
   .wxd-w{font-size:10.5px}
   .wxd-p{font-size:10px;color:#1565c0;min-height:13px}
-  .pd-chip{font-size:11px;color:#445;line-height:1.5;margin-top:6px;padding-top:5px;border-top:1px solid #eee}
-  .pd-chip:empty{display:none}
-  .pd-chip-btn{display:block;width:100%;box-sizing:border-box;text-align:left;background:#fff7f7;border:1px solid #ffcdd2;border-radius:6px;color:#37474f;padding:6px 7px;line-height:1.45;cursor:pointer;font:inherit}
-  .pd-chip-btn:hover{background:#ffebee;border-color:#ef9a9a}
-  .pd-chip-act{display:inline-block;margin-top:2px;color:#1565c0;font-weight:700}
   .rv-pmodal{max-width:560px}
   #rvView{width:100%;height:58vh;max-height:440px;min-height:240px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
   #rvDate{font-size:12px;color:#778;margin-top:7px;min-height:15px;text-align:right}
@@ -2194,38 +2189,6 @@ function _wlYear(cd, cur){   // 지난 1년(1D) 일자료 분포에서 현재 �
       _wlYrCache[cd]={vals:vals,ts:Date.now()}; return build(vals); })
     .catch(function(){ return ''; });
 }
-// 팔당댐 방류량 + 한강(서울) 무동력 운항 기준(1,500/3,000 m³/s — 서울시 운항규칙)
-const PALDANG_POS={lat:37.525,lng:127.284722,name:'팔당댐'};
-function _goPaldang(q, stText){
-  const p=PALDANG_POS, hasQ=isFinite(q);
-  map.setView([p.lat,p.lng],13);
-  L.popup({maxWidth:260}).setLatLng([p.lat,p.lng]).setContent(
-    '<b>팔당댐 방류 기준 위치</b><br>'
-    +(hasQ?'현재 방류 '+Math.round(q).toLocaleString()+'㎥/s<br>':'')
-    +(stText?'한강(서울) '+pmEsc(stText)+'<br>':'')
-    +extLinks(p.lat,p.lng,p.name)
-  ).openOn(map);
-}
-function _paldang(){
-  if(!HRFCO_KEY) return;
-  const el=document.getElementById('pdChip'); if(!el||el._loaded) return; el._loaded=true;
-  el.innerHTML='<span style="color:#889">팔당댐 방류 조회 중…</span>';
-  fetch('https://api.hrfco.go.kr/'+HRFCO_KEY+'/dam/list/10M/1017310.json')
-    .then(function(r){return r.json();})
-    .then(function(j){ const rec=(j.content||[])[0]; if(!rec){ el._loaded=false; el.innerHTML=''; return; }
-      const q=parseFloat(rec.tototf); if(!isFinite(q)){ el._loaded=false; el.innerHTML=''; return; }
-      const st= q>=3000?'<span style="color:#b71c1c;font-weight:700">전면 통제</span>'
-              : q>=1500?'<span style="color:#e53935;font-weight:700">무동력 통제</span>'
-              :'<span style="color:#2e7d32;font-weight:700">운항 가능</span>';
-      const plain=q>=3000?'전면 통제':q>=1500?'무동력 통제':'운항 가능';
-      el.innerHTML='<button type="button" class="pd-chip-btn" title="팔당댐 위치 보기">'
-        +'팔당댐 방류 '+Math.round(q).toLocaleString()+'㎥/s<br>한강(서울) '+st
-        +'<br><span class="pd-chip-act">위치보기</span></button>';
-      const b=el.querySelector('button');
-      if(b) b.onclick=function(ev){ if(ev) ev.stopPropagation(); _goPaldang(q, plain); };
-    }).catch(function(){ el._loaded=false; });
-}
-map.on('overlayadd', function(e){ if(e&&e.layer===waterLevelLayer) _paldang(); });
 const waterLevelLayer=L.layerGroup(WLSTN.map(function(s){
   const m=L.marker([s.lat,s.lng],{icon:L.divIcon({className:'wl-div',html:'<span class="wl-badge">💧</span>',iconSize:null}),pane:'wlPane'});
   m.bindPopup('<b>💧 '+pmEsc(s.nm)+'</b><br><span class="wl-loading">수위 조회 중…</span>',{minWidth:220});
@@ -2591,13 +2554,11 @@ _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시
   k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
     +'<div class="lg-sub">⛔ 수상레저금지 <span class="lg-note">해수면·내수면</span></div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
-    +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
-    +'<div id="pdChip" class="pd-chip"></div>';
+    +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(c);
   function toggleLegend(e){L.DomEvent.stop(e);const closed=c.classList.toggle('lc-collapsed');h.setAttribute('aria-expanded',closed?'false':'true');if(!closed)c.scrollTop=0;}
   L.DomEvent.on(h,'click',toggleLegend);L.DomEvent.on(h,'keydown',function(e){if(e.key==='Enter'||e.key===' '){L.DomEvent.preventDefault(e);toggleLegend(e);}});
   if(isTouch){c.classList.add('lc-collapsed');h.setAttribute('aria-expanded','false');}   // 모바일: 기본 닫힘
-  _paldang();   // 수위 레이어 토글 여부와 무관하게 범례 칩은 항상 표시
 })();
 // ---- 위성 출처 서브토글(안 B): 위성지도 활성 시에만 Esri↔VWorld 노출 ----
 function _syncSatToggle(){
