@@ -280,7 +280,7 @@ export default {
       const vals = String(url.searchParams.get("bbox") || "").split(",").map(Number);
       if (vals.length !== 4 || vals.some((x) => !isFinite(x))) return new Response(JSON.stringify({ error: "bbox" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       let [w, s, e, n] = vals; if (w > e) [w, e] = [e, w]; if (s > n) [s, n] = [n, s];
-      if (e - w > 7 || n - s > 7 || w < 123 || e > 132 || s < 32 || n > 40) return new Response(JSON.stringify({ error: "bbox-range" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      if (e - w > 9 || n - s > 8 || w < 123 || e > 132 || s < 32 || n > 40) return new Response(JSON.stringify({ error: "bbox-range" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
       const cy = (s + n) / 2, cx = (w + e) / 2;
       list = list.filter((x) => x.lng >= w && x.lng <= e && x.lat >= s && x.lat <= n)
         .sort((a, b) => ((a.lat - cy) ** 2 + (a.lng - cx) ** 2) - ((b.lat - cy) ** 2 + (b.lng - cx) ** 2));

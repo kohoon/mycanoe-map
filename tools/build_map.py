@@ -2206,7 +2206,7 @@ async function _loadSharedPlace(){
 }
 async function _loadSecureBounds(force){
   const u=getUser(); if(!u||!u.uid||!u.tok) return;
-  const b=map.getBounds(), q=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return (+v).toFixed(3);}).join(',');
+  const b=map.getBounds(), q=[Math.max(123,b.getWest()),Math.max(32,b.getSouth()),Math.min(132,b.getEast()),Math.min(40,b.getNorth())].map(function(v){return (+v).toFixed(3);}).join(',');
   const key=(isAdmin()?'a:':'u:')+q; if(!force&&_secureBboxSeen[key]) return; _secureBboxSeen[key]=1;
   const seq=++_secureReqSeq;
   try{ const list=await _fetchLaunchSites({bbox:q}); if(seq>_secureReqSeq-3) list.forEach(_upsertSecurePlace); focusPlaceFromUrl(); applyZoomIcons(); if(_favOnly)applyFavFilter(); }
