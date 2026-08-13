@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "description": "행안부 물놀이관리지역 objt_id별 안전관리요원 배치 보강자료. 지정기간과 구분한다.",
+  "rules": [
+    {
+      "name": "2026년 영월군 위험구역 안전관리요원",
+      "ids": [1144, 1145, 1146],
+      "staff": {
+        "startDate": "2026-06-06",
+        "endDate": "2026-09-06",
+        "hours": "09:00~18:00",
+        "deploymentType": "고정배치",
+        "confidence": "confirmed",
+        "confidenceLabel": "2026년 공식 장소별 배치표 확인",
+        "sourceUrl": "https://www.yw.go.kr/jobs/basic/userJobInfoView.do?jobDiv=G&jobNo=1362&n=602",
+        "verifiedAt": "2026-08-13"
+      }
+    },
+    {
+      "name": "2026년 영월군 일반 관리지역 안전관리요원",
+      "ids": [261, 263, 264, 265, 266, 267, 268, 269, 271, 275, 277, 280, 281, 282, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 295, 297, 299, 300, 301, 302, 303, 305],
+      "staff": {
+        "startDate": "2026-06-13",
+        "endDate": "2026-09-06",
+        "hours": "09:00~18:00",
+        "deploymentType": "고정 또는 현장배치",
+        "confidence": "confirmed",
+        "confidenceLabel": "2026년 공식 장소별 배치표 확인",
+        "sourceUrl": "https://www.yw.go.kr/jobs/basic/userJobInfoView.do?jobDiv=G&jobNo=1362&n=602",
+        "verifiedAt": "2026-08-13"
+      }
+    }
+  ],
+  "places": {}
+}

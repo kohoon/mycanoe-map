@@ -26,6 +26,13 @@
 | `workers/auth-worker.js` | Cloudflare Worker 백엔드 |
 
 ## 🔄 데이터 갱신
+
+물놀이 관리지역은 생활안전지도 API 키를 로컬 `safemap_credentials.txt`에 둔 뒤 갱신합니다.
+
+```bash
+python3 tools/build_waterplay.py
+python3 tools/build_map.py
+```
 ```bash
 # V-World 키 준비 (둘 중 하나)
 set VWORLD_KEY=발급키          # 또는 vworld_key.txt 에 키 저장

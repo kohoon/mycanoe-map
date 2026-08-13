@@ -136,6 +136,7 @@ PROTECT_VER = _datahash("protect_polygons.geojson")
 WLZ_VER = _datahash("wlz.geojson")
 RIVERS_VER = _datahash("rivers.geojson")
 ROADS_VER = _datahash("roads.geojson")
+WATERPLAY_VER = _datahash("waterplay.geojson")
 _cf = DATA / "courses.geojson"
 courses = json.loads(_cf.read_text(encoding="utf-8")) if _cf.exists() else {"type": "FeatureCollection", "features": []}
 # 코스에도 ID 부여(코스명 기준 고정)
@@ -719,10 +720,10 @@ __GTAG__
 // 런칭·랜딩 좌표는 정적 HTML에 넣지 않는다. 로그인 후 현재 화면 범위만 보호 API에서 조회한다.
 const POINTS = {type:'FeatureCollection',features:[]};
 // 상수원보호·수상레저금지 면은 임베드하지 않고 줌인(≥11) 시 외부 .geojson 을 fetch(아래 줌게이트).
-const DATAVER = {protect:"__PROTECT_VER__", wlz:"__WLZ_VER__", rivers:"__RIVERS_VER__", roads:"__ROADS_VER__"};   // 콘텐츠 해시 캐시버스팅
-let protectLayer = null, wlzLayer = null;          // 첫 줌인 때 생성
-let _protectLoading = null, _wlzLoading = null;    // in-flight fetch(중복 방지)
-let _protectWanted = true, _wlzWanted = true;      // 기본 ON 의도(토글이 뒤집음)
+const DATAVER = {protect:"__PROTECT_VER__", wlz:"__WLZ_VER__", rivers:"__RIVERS_VER__", roads:"__ROADS_VER__", waterplay:"__WATERPLAY_VER__"};   // 콘텐츠 해시 캐시버스팅
+let protectLayer = null, wlzLayer = null, waterplayLayer = null;          // 첫 줌인 때 생성
+let _protectLoading = null, _wlzLoading = null, _waterplayLoading = null; // in-flight fetch(중복 방지)
+let _protectWanted = true, _wlzWanted = true, _waterplayWanted = false;
 const WLSTN = __WLSTN__;   // 수위관측소(HRFCO, 카누 장소 근처 선별)
 const CCTVS = __CCTVS__;   // 수위관측 CCTV 지점(홍수정보시스템, 영상은 공식 팝업)
 const WEIRS = __WEIRS__;   // 전국 보 위치(해수부 어도 현황 기반, 근처 선별)
@@ -1379,6 +1380,41 @@ function _lazyLoadWlz(){
     })
     .catch(function(e){ _wlzLoading=null; throw e; });
   return _wlzLoading;
+}
+
+// ---- 물놀이 관리지역(행안부 생활안전지도 + 지자체 안전요원 배치 보강) ----
+function _wpStaffHtml(s){
+  if(!s) return '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #e5e9ec"><b>안전관리요원</b><br><span style="color:#778">배치정보 미확인</span></div>';
+  const now=new Date(), start=s.startDate?new Date(s.startDate+'T00:00:00'):null, end=s.endDate?new Date(s.endDate+'T23:59:59'):null;
+  const active=(!start||now>=start)&&(!end||now<=end), status=active?'현재 배치기간':'배치기간 외';
+  return '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #e5e9ec"><b>안전관리요원</b> '
+    +'<span style="font-weight:700;color:'+(active?'#e65100':'#607d8b')+'">'+status+'</span>'
+    +(s.startDate&&s.endDate?'<br>기간: '+pmEsc(s.startDate)+'~'+pmEsc(s.endDate):'')
+    +(s.hours?'<br>시간: '+pmEsc(s.hours):'')+(s.deploymentType?'<br>방식: '+pmEsc(s.deploymentType):'')
+    +(s.staffCount?'<br>인원: '+pmEsc(String(s.staffCount))+'명':'')
+    +'<br><small style="color:#778">'+pmEsc(s.confidenceLabel||'공식 장소별 배치표 확인')
+    +(s.sourceUrl?' · <a href="'+pmEsc(s.sourceUrl)+'" target="_blank" rel="noopener">출처</a>':'')+'</small></div>';
+}
+function _wpPopup(p){
+  const risk=p.management==='위험지역', eq=p.equipment||{};
+  let h='<b>'+(risk?'⚠️':'🛟')+' '+pmEsc(p.name||p.detail||'물놀이 관리지역')+'</b>'
+    +'<br><b style="color:'+(risk?'#c62828':'#1565c0')+'">'+pmEsc(p.management||'관리유형 미확인')+'</b>'
+    +(p.placeType?' · '+pmEsc(p.placeType):'')+(p.address?'<br>'+pmEsc(p.address):'')
+    +(p.depthAvg?'<br>평균 수심 '+pmEsc(p.depthAvg)+'m':'')+(p.depthMax?' · 깊은 곳 '+pmEsc(p.depthMax)+'m':'')
+    +(p.sectionM?'<br>관리구간 '+pmEsc(p.sectionM)+'m':'')+(p.riskSectionM?' · 위험구간 '+pmEsc(p.riskSectionM)+'m':'')
+    +(p.safetyAction?'<br><b>안전조치:</b> '+pmEsc(p.safetyAction):'')
+    +_wpStaffHtml(p.staff)
+    +'<div style="margin-top:7px;color:#778;font-size:11px">행정안전부 생활안전지도 · '+pmEsc(String(p.sourceYear||2025))+'년 자료<br>배치기간 외라도 위험·행위제한이 해제되는 것은 아닙니다.</div>';
+  return h;
+}
+function _lazyLoadWaterplay(){
+  if(waterplayLayer) return Promise.resolve(waterplayLayer);
+  if(_waterplayLoading) return _waterplayLoading;
+  _waterplayLoading=fetch('./waterplay.geojson?v='+DATAVER.waterplay).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();}).then(function(fc){
+    waterplayLayer=L.geoJSON(fc,{pointToLayer:function(f,ll){const risk=(f.properties||{}).management==='위험지역';return L.circleMarker(ll,{radius:risk?7:6,color:risk?'#fff':'#fff',weight:2,fillColor:risk?'#d32f2f':'#1976d2',fillOpacity:.92,pane:'markerPane'});},onEachFeature:function(f,l){l.bindPopup(_wpPopup(f.properties||{}),{minWidth:230,maxWidth:310});}});
+    return waterplayLayer;
+  }).catch(function(e){_waterplayLoading=null;throw e;});
+  return _waterplayLoading;
 }
 
 // ---- 카누잉코스 (물길 따라, 에메랄드 단일색 + 외곽선) ----
@@ -2562,9 +2598,10 @@ map.on('overlayadd', function(e){ if(e&&e.layer===cctvLayer) loadCctv(); });
 function _sw(c){ return '<span class="sw" style="background:'+c+'"></span>'; }
 const _ov = {};
 // 상수원보호·수상레저금지: 외부 fetch 지연 로드 → 컨트롤엔 빈 placeholder 등록(체크박스용). 실제 면은 줌게이트가 add/remove.
-const _protectPH = L.layerGroup(), _wlzPH = L.layerGroup();
+const _protectPH = L.layerGroup(), _wlzPH = L.layerGroup(), _waterplayPH = L.layerGroup();
 _ov[_sw('rgba(229,57,53,.45)')+'상수원보호'] = _protectPH;
 _ov[_sw('rgba(255,152,0,.5)')+'수상레저금지'] = _wlzPH;
+_ov['<span class="rv-sw">🛟</span>물놀이 관리지역'] = _waterplayPH;
 _ov['<span class="sw sw-course"></span>🛶 카누잉 코스'] = allCoursesGroup;   // 코스 전체 단일 토글
 _ov[_sw('#ec407a')+'카누명소'] = famousLayer;
 _ov[_sw('#2196f3')+'런칭/랜딩'] = canoeLayer;
@@ -2673,7 +2710,7 @@ function focusRoadSearch(x){
   if(bounds.isValid()){map.fitBounds(bounds.pad(.04),{maxZoom:13});L.popup().setLatLng(bounds.getCenter()).setContent('<b>🛣️ '+pmEsc(x.name)+'</b><br><small>전체 노선 강조 표시</small><br><button class="addplace-btn" onclick="clearRoadSearch()">강조 해제</button>').openOn(map);}gaEvent('road_search',{name:x.name});
 }
 // ---- 상수원보호·수상레저금지 줌게이트(줌≥11에서만 외부 fetch+표시) ----
-_protectPH.addTo(map); _wlzPH.addTo(map);   // 기본 ON(체크). 실제 면은 줌게이트가 제어. obstacle/수위와 동일 거동.
+_protectPH.addTo(map); _wlzPH.addTo(map);   // 기본 ON. 물놀이 관리지역은 기본 OFF.
 const Z_HEAVY = 11;
 function _heavyZoomGate(){
   const show = map.getZoom() >= Z_HEAVY;
@@ -2683,15 +2720,20 @@ function _heavyZoomGate(){
   if(show && _wlzWanted){
     _lazyLoadWlz().then(function(l){ if(_wlzWanted && map.getZoom()>=Z_HEAVY && !map.hasLayer(l)) l.addTo(map); }).catch(function(){});
   } else if(wlzLayer && map.hasLayer(wlzLayer)){ map.removeLayer(wlzLayer); }
+  if(show && _waterplayWanted){
+    _lazyLoadWaterplay().then(function(l){if(_waterplayWanted&&map.getZoom()>=Z_HEAVY&&!map.hasLayer(l)){l.addTo(map);map.attributionControl.addAttribution('물놀이 관리지역 &copy; 행정안전부 생활안전지도');}}).catch(function(){});
+  } else if(waterplayLayer && map.hasLayer(waterplayLayer)){map.removeLayer(waterplayLayer);map.attributionControl.removeAttribution('물놀이 관리지역 &copy; 행정안전부 생활안전지도');}
 }
 map.on('zoomend', _heavyZoomGate);
 map.on('overlayadd', function(e){
   if(e.layer===_protectPH){ _protectWanted=true; _heavyZoomGate(); }
   else if(e.layer===_wlzPH){ _wlzWanted=true; _heavyZoomGate(); }
+  else if(e.layer===_waterplayPH){ _waterplayWanted=true; _heavyZoomGate(); }
 });
 map.on('overlayremove', function(e){
   if(e.layer===_protectPH){ _protectWanted=false; if(protectLayer && map.hasLayer(protectLayer)) map.removeLayer(protectLayer); }
   else if(e.layer===_wlzPH){ _wlzWanted=false; if(wlzLayer && map.hasLayer(wlzLayer)) map.removeLayer(wlzLayer); }
+  else if(e.layer===_waterplayPH){ _waterplayWanted=false; if(waterplayLayer && map.hasLayer(waterplayLayer)) map.removeLayer(waterplayLayer); map.attributionControl.removeAttribution('물놀이 관리지역 &copy; 행정안전부 생활안전지도'); }
 });
 _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시 로드)
 // 패널에 제목 + 토글불가 항목(코스 종류·지형지물) 색상 키를 함께 표시 = 범례 통합
@@ -2703,7 +2745,10 @@ _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시
   k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
     +'<div class="lg-sub">⛔ 수상레저금지 <span class="lg-note">해수면·내수면</span></div>'
     +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
-    +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>';
+    +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
+    +'<div class="lg-sub">🛟 물놀이 관리지역</div>'
+    +'<div class="lg-row"><span class="sw" style="background:#1976d2;border-radius:50%"></span>일반지역</div>'
+    +'<div class="lg-row"><span class="sw" style="background:#d32f2f;border-radius:50%"></span>위험지역</div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(c);
   function toggleLegend(e){L.DomEvent.stop(e);const closed=c.classList.toggle('lc-collapsed');h.setAttribute('aria-expanded',closed?'false':'true');if(!closed)c.scrollTop=0;}
   L.DomEvent.on(h,'click',toggleLegend);L.DomEvent.on(h,'keydown',function(e){if(e.key==='Enter'||e.key===' '){L.DomEvent.preventDefault(e);toggleLegend(e);}});
@@ -3679,6 +3724,7 @@ html = (HTML
         .replace("__WLZ_VER__", WLZ_VER)
         .replace("__RIVERS_VER__", RIVERS_VER)
         .replace("__ROADS_VER__", ROADS_VER)
+        .replace("__WATERPLAY_VER__", WATERPLAY_VER)
         .replace("__WLSTN__", json.dumps(wlstn, ensure_ascii=False, separators=(",", ":")))
         .replace("__CCTVS__", json.dumps(cctvs, ensure_ascii=False, separators=(",", ":")))
         .replace("__WEIRS__", json.dumps(weirs, ensure_ascii=False, separators=(",", ":")))
