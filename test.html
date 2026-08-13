@@ -573,7 +573,7 @@
 // 런칭·랜딩 좌표는 정적 HTML에 넣지 않는다. 로그인 후 현재 화면 범위만 보호 API에서 조회한다.
 const POINTS = {type:'FeatureCollection',features:[]};
 // 상수원보호·수상레저금지 면은 임베드하지 않고 줌인(≥11) 시 외부 .geojson 을 fetch(아래 줌게이트).
-const DATAVER = {protect:"d87f5782", wlz:"2ccbe1b1", rivers:"a07de4b2", roads:"793584ec", waterplay:"e609b7c8"};   // 콘텐츠 해시 캐시버스팅
+const DATAVER = {protect:"d87f5782", wlz:"2ccbe1b1", rivers:"a07de4b2", roads:"793584ec", waterplay:"ec6b448f"};   // 콘텐츠 해시 캐시버스팅
 let protectLayer = null, wlzLayer = null, waterplayLayer = null;          // 첫 줌인 때 생성
 let _protectLoading = null, _wlzLoading = null, _waterplayLoading = null; // in-flight fetch(중복 방지)
 let _protectWanted = true, _wlzWanted = true, _waterplayWanted = false;

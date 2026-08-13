@@ -69,10 +69,16 @@ def main():
     for rule in staff_data.get("rules", []):
         for oid in rule.get("ids", []):
             staff.setdefault(str(oid), rule.get("staff"))
+    coord_path = DATA / "waterplay_coord_overrides.json"
+    coord_overrides = json.loads(coord_path.read_text(encoding="utf-8")) if coord_path.exists() else {}
     features = []
     for item in rows:
-        lng, lat = mercator_to_wgs84(float(item["x"]), float(item["y"]))
         oid = str(item["objt_id"])
+        if oid in coord_overrides:
+            lat = float(coord_overrides[oid]["lat"])
+            lng = float(coord_overrides[oid]["lng"])
+        else:
+            lng, lat = mercator_to_wgs84(float(item["x"]), float(item["y"]))
         props = {
             "id": int(item["objt_id"]),
             "name": clean(item.get("plc_nm")),
@@ -98,6 +104,7 @@ def main():
                 "pole": item.get("rescubng")
             },
             "staff": staff.get(oid),
+            "coordinateCorrected": oid in coord_overrides,
             "sourceYear": 2025
         }
         features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lng, lat]}, "properties": props})
