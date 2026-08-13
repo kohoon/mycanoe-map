@@ -204,6 +204,9 @@ __GTAG__
   .obs-spot{background:#2e9e5b}
   .obs-wind{background:#7e57c2}
   .obs-dragons{background:#455a64}
+  .leaflet-div-icon.wp-div{background:transparent;border:0}
+  .wp-ring{display:block;width:18px;height:18px;box-sizing:border-box;border:5px solid #1976d2;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.9)}
+  .wp-ring.risk{width:20px;height:20px;border-color:#d32f2f;box-shadow:0 1px 5px rgba(0,0,0,.55),0 0 0 2px #fff}
   #obName{width:100%;box-sizing:border-box;padding:9px;border:1px solid #ccd;border-radius:9px;font-size:13.5px}
   .leaflet-div-icon.obs-div{background:transparent;border:0;width:auto!important;height:auto!important}
   .obs-div .obs-ic{position:absolute;transform:translate(-50%,-50%)}
@@ -1411,7 +1414,7 @@ function _lazyLoadWaterplay(){
   if(waterplayLayer) return Promise.resolve(waterplayLayer);
   if(_waterplayLoading) return _waterplayLoading;
   _waterplayLoading=fetch('./waterplay.geojson?v='+DATAVER.waterplay).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();}).then(function(fc){
-    waterplayLayer=L.geoJSON(fc,{pointToLayer:function(f,ll){const risk=(f.properties||{}).management==='위험지역';return L.circleMarker(ll,{radius:risk?7:6,color:risk?'#fff':'#fff',weight:2,fillColor:risk?'#d32f2f':'#1976d2',fillOpacity:.92,pane:'markerPane'});},onEachFeature:function(f,l){l.bindPopup(_wpPopup(f.properties||{}),{minWidth:230,maxWidth:310});}});
+    waterplayLayer=L.geoJSON(fc,{pointToLayer:function(f,ll){const risk=(f.properties||{}).management==='위험지역',size=risk?20:18;return L.marker(ll,{icon:L.divIcon({className:'wp-div',html:'<span class="wp-ring'+(risk?' risk':'')+'"></span>',iconSize:[size,size],iconAnchor:[size/2,size/2]}),pane:'markerPane'});},onEachFeature:function(f,l){l.bindPopup(_wpPopup(f.properties||{}),{minWidth:230,maxWidth:310});}});
     return waterplayLayer;
   }).catch(function(e){_waterplayLoading=null;throw e;});
   return _waterplayLoading;
