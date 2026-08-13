@@ -2553,17 +2553,12 @@ map.on('overlayremove', function(e){
   else if(e.layer===_waterplayPH){ _waterplayWanted=false; if(waterplayLayer && map.hasLayer(waterplayLayer)) map.removeLayer(waterplayLayer); map.attributionControl.removeAttribution('물놀이 관리지역 &copy; 행정안전부 생활안전지도'); }
 });
 _heavyZoomGate();   // 초기 1회(줌7→no-op, 딥링크 줌≥11이면 즉시 로드)
-// 패널에 제목 + 토글불가 항목(코스 종류·지형지물) 색상 키를 함께 표시 = 범례 통합
+// 패널에 제목과 물놀이 관리지역 색상 키를 함께 표시
 // 모바일은 기본 닫힘 + 제목 탭으로 열고 닫기(화면 점유 최소화)
 (function(){ const c=_layerControl.getContainer(); if(!c) return;
   const h=L.DomUtil.create('div','lc-title'); h.innerHTML='<span>🗺️ 레이어 · 범례</span><span class="lc-arrow">▾</span>';h.setAttribute('role','button');h.setAttribute('tabindex','0');h.setAttribute('aria-expanded','true');c.insertBefore(h, c.firstChild);
-  function ln(sc){ return '<div class="lg-row"><span class="ln" style="background:'+subcatColor(sc)+'"></span>'+sc+'</div>'; }
   const k=L.DomUtil.create('div','lc-key');
-  k.innerHTML='<div class="lg-sub">코스 종류</div>'+ln('엑스페디션')+ln('초심자코스')+ln('기타')
-    +'<div class="lg-sub">⛔ 수상레저금지 <span class="lg-note">해수면·내수면</span></div>'
-    +'<div class="lg-row"><span class="sw" style="background:rgba(255,152,0,.6)"></span>카누 포함 금지</div>'
-    +'<div class="lg-row"><span class="sw" style="background:rgba(144,164,174,.55)"></span>동력만(카누 가능)</div>'
-    +'<div class="lg-sub">🛟 물놀이 관리지역</div>'
+  k.innerHTML='<div class="lg-sub">🛟 물놀이 관리지역</div>'
     +'<div class="lg-row"><span class="sw" style="background:#1976d2;border-radius:50%"></span>일반지역</div>'
     +'<div class="lg-row"><span class="sw" style="background:#d32f2f;border-radius:50%"></span>위험지역</div>';
   c.appendChild(k); L.DomEvent.disableClickPropagation(k); L.DomEvent.disableScrollPropagation(c);
