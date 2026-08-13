@@ -31,5 +31,13 @@
       }
     }
   ],
-  "places": {}
+  "places": {
+    "378": {
+      "deploymentType": "파서탕교 아래 현장배치",
+      "confidence": "field-observed",
+      "confidenceLabel": "사용자 현장 배치 확인 · 기간·시간 미확인",
+      "observedAt": "2026-08-13",
+      "verifiedAt": "2026-08-13"
+    }
+  }
 }
