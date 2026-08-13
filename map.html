@@ -1203,8 +1203,13 @@ function _lazyLoadWlz(){
 }
 
 // ---- 물놀이 관리지역(행안부 생활안전지도 + 지자체 안전요원 배치 보강) ----
-function _wpStaffHtml(s){
-  if(!s) return '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #e5e9ec"><b>안전관리요원</b><br><span style="color:#778">배치정보 미확인</span></div>';
+function _wpStaffHtml(s,p){
+  if(!s){
+    const noted=String((p&&p.safetyAction)||'').indexOf('안전관리요원')>=0;
+    return '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #e5e9ec"><b>안전관리요원</b><br>'
+      +(noted?'<span style="font-weight:700;color:#e65100">배치 대상 기록 있음</span><br><span style="color:#778">'+pmEsc(String((p&&p.sourceYear)||2025))+'년 행안부 자료 · 현재 배치 기간·시간 미확인</span>'
+              :'<span style="color:#778">배치 여부·기간 미확인</span>')+'</div>';
+  }
   const now=new Date(), start=s.startDate?new Date(s.startDate+'T00:00:00'):null, end=s.endDate?new Date(s.endDate+'T23:59:59'):null;
   const active=(!start||now>=start)&&(!end||now<=end), status=active?'현재 배치기간':'배치기간 외';
   return '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #e5e9ec"><b>안전관리요원</b> '
@@ -1223,7 +1228,7 @@ function _wpPopup(p){
     +(p.depthAvg?'<br>평균 수심 '+pmEsc(p.depthAvg)+'m':'')+(p.depthMax?' · 깊은 곳 '+pmEsc(p.depthMax)+'m':'')
     +(p.sectionM?'<br>관리구간 '+pmEsc(p.sectionM)+'m':'')+(p.riskSectionM?' · 위험구간 '+pmEsc(p.riskSectionM)+'m':'')
     +(p.safetyAction?'<br><b>안전조치:</b> '+pmEsc(p.safetyAction):'')
-    +_wpStaffHtml(p.staff)
+    +_wpStaffHtml(p.staff,p)
     +'<div style="margin-top:7px;color:#778;font-size:11px">행정안전부 생활안전지도 · '+pmEsc(String(p.sourceYear||2025))+'년 자료<br>배치기간 외라도 위험·행위제한이 해제되는 것은 아닙니다.</div>';
   return h;
 }
