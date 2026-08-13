@@ -24,7 +24,6 @@
 | `tools/kakao_naver_sync.py` | 카카오맵 즐겨찾기 → 네이버맵 동기화 |
 | `tools/kakao_add_favorites.py` | 카카오 폴더에 상수원보호구역 마커 일괄 추가 |
 | `workers/auth-worker.js` | Cloudflare Worker 백엔드 |
-| `.github/workflows/daily-collect.yml` | GitHub Actions 일일 수집 자동화 |
 
 ## 🔄 데이터 갱신
 ```bash

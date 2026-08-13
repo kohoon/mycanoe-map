@@ -28,7 +28,7 @@ git add … && git commit && git push   # GitHub Pages 자동 반영, Worker 1~2
 - 코스: `tools/trace_course.py`(OSM 물길추적) → `data/courses.geojson`
 - 수위관측소: `tools/build_hrfco.py`(HRFCO 키) · 보: 빌드시 자동(원천만 `tools/build_weirs.py`)
 - 내수면 금지구역: `tools/build_wlz_inland.py` · 로드뷰: `tools/build_roadview.py`(카카오 JS 키)
-- 카카오 즐겨찾기: GitHub Actions `.github/workflows/daily-collect.yml`(매일 09:00 KST) 자동
+- 카카오 즐겨찾기: 정기 자동 수집 없음. 필요 시 `tools/collect_kakao.py`를 관리자가 수동 실행
 
 ## 보안 (절대 준수)
 - `ADMIN_KEY`·`LOG_WEBHOOK`(Apps Script URL)·Kakao Client Secret → **Cloudflare Secret만**. 코드/레포 금지.
