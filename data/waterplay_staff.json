@@ -29,6 +29,34 @@
         "sourceUrl": "https://www.yw.go.kr/jobs/basic/userJobInfoView.do?jobDiv=G&jobNo=1362&n=602",
         "verifiedAt": "2026-08-13"
       }
+    },
+    {
+      "name": "2026년 인제군 물놀이 관리지역 안전관리요원 운영",
+      "ids": [390, 391, 392, 393, 394, 395, 396, 397, 399, 400, 402, 404, 405, 406, 407, 408, 409, 410, 411, 413, 414, 415, 416, 417, 418, 419],
+      "staff": {
+        "startDate": "2026-06-15",
+        "endDate": "2026-08-31",
+        "hours": "10:00~19:00 (지역 여건에 따라 조정 가능)",
+        "deploymentType": "시군 관리지역 운영",
+        "confidence": "jurisdiction-program",
+        "confidenceLabel": "2026년 공식 지정고시·채용공고 확인 · 개별 지점 실제 배치 여부는 미공개",
+        "sourceUrl": "https://www.inje.go.kr/egf/bp/board/article/download?fileSeq=124749",
+        "verifiedAt": "2026-08-19"
+      }
+    },
+    {
+      "name": "2026년 홍천군 내촌면 물놀이 안전관리요원 운영",
+      "ids": [168, 169, 170, 171, 172],
+      "staff": {
+        "startDate": "2026-06-01",
+        "endDate": "2026-08-31",
+        "hours": "10:00~19:00",
+        "deploymentType": "내촌면 안전관리요원 8명 운영",
+        "confidence": "jurisdiction-program",
+        "confidenceLabel": "2026년 내촌면 공식 채용공고 확인 · 개별 지점 실제 배치 여부는 미공개",
+        "sourceUrl": "https://www.hongcheon.go.kr/www/selectEminwonView.do?key=278&not_ancmt_mgt_no=54117",
+        "verifiedAt": "2026-08-19"
+      }
     }
   ],
   "places": {

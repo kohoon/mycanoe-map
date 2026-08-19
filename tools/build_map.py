@@ -1394,13 +1394,15 @@ function _wpStaffHtml(s,p){
               :'<span style="color:#778">배치 여부·기간 미확인</span>')+'</div>';
   }
   const now=new Date(), start=s.startDate?new Date(s.startDate+'T00:00:00'):null, end=s.endDate?new Date(s.endDate+'T23:59:59'):null;
-  const dated=!!(start||end), active=dated&&(!start||now>=start)&&(!end||now<=end), status=dated?(active?'현재 배치기간':'배치기간 외'):'현장 배치 확인';
+  const dated=!!(start||end), active=dated&&(!start||now>=start)&&(!end||now<=end), regional=s.confidence==='jurisdiction-program';
+  const status=regional?(dated?(active?'시군 운영기간 중':'시군 운영기간 외'):'시군 운영 확인'):(dated?(active?'현재 배치기간':'배치기간 외'):'현장 배치 확인');
   return '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #e5e9ec"><b>안전관리요원</b> '
     +'<span style="font-weight:700;color:'+(active?'#e65100':'#607d8b')+'">'+status+'</span>'
     +(s.startDate&&s.endDate?'<br>기간: '+pmEsc(s.startDate)+'~'+pmEsc(s.endDate):'')
     +(s.hours?'<br>시간: '+pmEsc(s.hours):'')+(s.deploymentType?'<br>방식: '+pmEsc(s.deploymentType):'')
     +(s.staffCount?'<br>인원: '+pmEsc(String(s.staffCount))+'명':'')
     +(s.observedAt?'<br>현장 확인: '+pmEsc(s.observedAt):'')
+    +(regional?'<br><span style="color:#8d5200;font-weight:700">이 지점의 실제 배치 여부는 현장에서 확인 필요</span>':'')
     +'<br><small style="color:#778">'+pmEsc(s.confidenceLabel||'공식 장소별 배치표 확인')
     +(s.sourceUrl?' · <a href="'+pmEsc(s.sourceUrl)+'" target="_blank" rel="noopener">출처</a>':'')+'</small></div>';
 }
