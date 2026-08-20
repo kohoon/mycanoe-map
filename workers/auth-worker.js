@@ -708,10 +708,10 @@ export default {
           const adminOk = !!env.ADMIN_KEY && String(req.headers.get("X-Admin-Key") || "") === String(env.ADMIN_KEY);
           const uid = (url.searchParams.get("uid") || "").slice(0, 40);
           const userOk = !!uid && await _tokOk(env, uid, url.searchParams.get("tok"));
-          if (!adminOk && !userOk) return J("[]");
+          if (!userOk) return J("[]");
           arr = arr.filter((x) => {
             const owner = String(x.owner || "");
-            return (adminOk && owner === "admin") || (userOk && owner === uid);
+            return owner === uid || (adminOk && owner === "admin");
           });
           return new Response(JSON.stringify(arr), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "private, no-store" } });
         }

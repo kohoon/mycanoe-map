@@ -2834,8 +2834,8 @@ function renderKVCourse(c){
 function _clearKVCourses(){Object.keys(_kvCourseLayers).forEach(function(id){const e=_kvCourseLayers[id];if(e)e.ls.forEach(function(l){e.grp.removeLayer(l);});delete _kvCourseLayers[id];delete _kvCourses[id];});}
 function _ownedCourseRequest(){
   const u=getUser();
-  if(isAdmin()){const q=(u&&u.uid)?'&uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''):'';return fetch(courseReadUrl('/courses?mine=1'+q),{headers:{'X-Admin-Key':adminKey()}});}
   if(!u||!u.uid) return Promise.resolve(null);
+  if(isAdmin())return fetch(courseReadUrl('/courses?mine=1&uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||'')),{headers:{'X-Admin-Key':adminKey()}});
   return fetch(courseReadUrl('/courses?mine=1&uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||'')));
 }
 function reloadCoursesForViewer(){
