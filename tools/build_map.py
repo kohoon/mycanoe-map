@@ -754,7 +754,7 @@ async function _updateAdminSheetLink(on){
     const d=await r.json(); if(r.ok&&d&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.url||'')){ a.href=d.url; a.style.display='flex'; }
   }catch(e){}
 }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);_syncAdminRoadLayer(on);reloadSecurePlaces();reloadCoursesForViewer();}catch(e){} if(on)try{focusPlaceFromUrl();}catch(e){} }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);_syncAdminRoadLayer(on);reloadSecurePlaces();}catch(e){} try{reloadCoursesForViewer();}catch(e){} if(on)try{focusPlaceFromUrl();}catch(e){} }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -2838,7 +2838,7 @@ function _clearKVCourses(){Object.keys(_kvCourseLayers).forEach(function(id){con
 function _ownedCourseRequest(){
   const u=getUser();
   if(!u||!u.uid) return Promise.resolve(null);
-  if(isAdmin())return fetch(courseReadUrl('/courses?mine=1&uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||'')),{headers:{'X-Admin-Key':adminKey()}});
+  if(isAdmin())return fetch(fapi('/course'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'listmine',adminKey:adminKey(),id:u.uid,tok:u.tok||''})});
   return fetch(courseReadUrl('/courses?mine=1&uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||'')));
 }
 function reloadCoursesForViewer(){

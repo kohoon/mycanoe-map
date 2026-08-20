@@ -766,7 +766,15 @@ export default {
         }
         let arr = []; try { arr = JSON.parse((await KV.get("courses")) || "[]"); } catch (e) {}
         let savedCourse = null;
-        if (b.action === "delete" || b.action === "deleteuser") {
+        if (b.action === "listmine") {
+          if (!adminOk) return new Response("forbidden", { status: 403, headers: cors });
+          const userOk = !!uid && tokOk;
+          arr = arr.filter((x) => {
+            const owner = String(x.owner || "");
+            return owner === "admin" || (userOk && owner === uid);
+          });
+          return new Response(JSON.stringify(arr), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "private, no-store" } });
+        } else if (b.action === "delete" || b.action === "deleteuser") {
           if (!adminOk && !(await ownerEditOk(b.courseId))) return new Response("forbidden", { status: 403, headers: cors });
           arr = arr.filter((x) => String(x.id) !== String(b.courseId));
         } else if (b.action === "edit" || b.action === "edituser") {
