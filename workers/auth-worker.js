@@ -216,7 +216,7 @@ export default {
     // 0-1d) 앱 전용 닉네임 — 최초 1회 설정, 카카오 프로필명과 분리
     if (url.pathname.endsWith("/profile")) {
       const origin = req.headers.get("Origin") || "*";
-      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key" };
       const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
       if (req.method === "OPTIONS") return new Response(null, { headers: cors });
       const KV = env.PLACES; if (!KV) return J({ ok: false, error: "no-store" }, 500);
@@ -695,19 +695,24 @@ export default {
       const KV = env.PLACES;
       const J = (s) => new Response(s, { headers: { ...cors, "Content-Type": "application/json" } });
       if (req.method === "GET") {
-        return _cacheJson(ctx, url.toString(), async () => {
-          if (url.searchParams.get("mine")) {
-            const uid = (url.searchParams.get("uid") || "").slice(0, 40);
-            if (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok")))) return J("[]");
-            const d = KV ? await KV.get("courses") : null;
-            let arr = []; try { arr = JSON.parse(d || "[]"); } catch (e) {}
-            arr = arr.filter((x) => String(x.owner || "") === String(uid));
-            return new Response(JSON.stringify(arr), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
-          }
-          if (url.searchParams.get("hidden")) { const h = KV ? await KV.get("course_hidden") : null; return new Response(h || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } }); }   // 정적 코스 숨김 cid 목록
-          if (url.searchParams.get("over")) { const o = KV ? await KV.get("course_over") : null; return new Response(o || "{}", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } }); }   // 정적 코스 이름/분류/거리 오버라이드
-          const d = KV ? await KV.get("courses") : null; return new Response(d || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } });
-        }, 60);
+        if (url.searchParams.get("hidden")) { const h = KV ? await KV.get("course_hidden") : null; return new Response(h || "[]", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } }); }   // 정적 코스 숨김 cid 목록
+        if (url.searchParams.get("over")) { const o = KV ? await KV.get("course_over") : null; return new Response(o || "{}", { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" } }); }   // 정적 코스 이름/분류/거리 오버라이드
+        const d = KV ? await KV.get("courses") : null;
+        let arr = []; try { arr = JSON.parse(d || "[]"); } catch (e) {}
+        const sharedId = String(url.searchParams.get("shared") || "").replace(/^k/, "").slice(0, 24);
+        if (sharedId) {
+          const shared = arr.find((x) => String(x.id) === sharedId);
+          return new Response(JSON.stringify(shared ? [shared] : []), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "public, max-age=60" } });
+        }
+        if (url.searchParams.get("mine")) {
+          const adminOk = !!env.ADMIN_KEY && String(req.headers.get("X-Admin-Key") || "") === String(env.ADMIN_KEY);
+          const uid = (url.searchParams.get("uid") || "").slice(0, 40);
+          if (!adminOk && (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok"))))) return J("[]");
+          const owner = adminOk ? "admin" : uid;
+          arr = arr.filter((x) => String(x.owner || "") === owner);
+          return new Response(JSON.stringify(arr), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "private, no-store" } });
+        }
+        return new Response("[]", { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "public, max-age=60" } });
       }
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}

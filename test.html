@@ -604,7 +604,7 @@ async function _updateAdminSheetLink(on){
     const d=await r.json(); if(r.ok&&d&&/^https:\/\/docs\.google\.com\/spreadsheets\//.test(d.url||'')){ a.href=d.url; a.style.display='flex'; }
   }catch(e){}
 }
-function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);_syncAdminRoadLayer(on);reloadSecurePlaces();}catch(e){} if(on)try{focusPlaceFromUrl();}catch(e){} }
+function _setAdmin(on){ _adminOk=on; _adminBadge(on); _updateAdminSheetLink(on); const ob=document.getElementById('obsBtnBox'); if(ob) ob.style.display=on?'block':'none'; try{ _refreshObsPopups(); }catch(e){} applyPlaceOver(); _applyCourseFocus(); _maybeSyncAdminCourseFavs(); try{_syncAdminRiverLayer(on);_syncAdminRoadLayer(on);reloadSecurePlaces();reloadCoursesForViewer();}catch(e){} if(on)try{focusPlaceFromUrl();}catch(e){} }
 async function exportComments(){
   if(!isAdmin()) return;
   if(!confirm('기존 코멘트를 전부 시트(comments 탭)로 내보낼까요?')) return;
@@ -2681,7 +2681,18 @@ function renderKVCourse(c){
   _applyCourseFocus();
   _maybeSyncAdminCourseFavs();
 }
-function loadCourses(){ fetch(courseReadUrl('/courses')).then(function(r){return r.json();}).then(function(list){ (list||[]).forEach(renderKVCourse); _courseKvReady=true; _applyCourseFocus(); _maybeSyncAdminCourseFavs(); }).catch(function(){ _courseKvReady=true; _applyCourseFocus(); _maybeSyncAdminCourseFavs(); }); }
+function _clearKVCourses(){Object.keys(_kvCourseLayers).forEach(function(id){const e=_kvCourseLayers[id];if(e)e.ls.forEach(function(l){e.grp.removeLayer(l);});delete _kvCourseLayers[id];delete _kvCourses[id];});}
+function _ownedCourseRequest(){
+  if(isAdmin()) return fetch(courseReadUrl('/courses?mine=1'),{headers:{'X-Admin-Key':adminKey()}});
+  const u=getUser(); if(!u||!u.uid) return Promise.resolve(null);
+  return fetch(courseReadUrl('/courses?mine=1&uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||'')));
+}
+function reloadCoursesForViewer(){
+  if(_courseFocusId)return;
+  _clearKVCourses();
+  _ownedCourseRequest().then(function(r){return r?r.json():[];}).then(function(list){(list||[]).forEach(renderKVCourse);_courseKvReady=true;_applyCourseFocus();_maybeSyncAdminCourseFavs();}).catch(function(){_courseKvReady=true;_applyCourseFocus();});
+}
+function loadCourses(){if(_courseFocusId){_courseKvReady=true;return;}reloadCoursesForViewer();}
 // 정적 코스 숨김(관리자 삭제분) 적용
 fetch(courseReadUrl('/course?hidden=1')).then(function(r){return r.json();}).then(function(a){ (a||[]).forEach(function(cid){ _hiddenStaticCids.add(String(cid)); _hideStaticCourse(cid); }); }).catch(function(){});
 loadCourses();
@@ -2705,7 +2716,7 @@ function focusCourseFromUrl(){
   _courseFocusId=id;
   _applyCourseFocus();
   if(id.charAt(0)==='k'){ const kid=id.slice(1);   // KV 코스: 별도 조회
-    fetch(courseReadUrl('/courses')).then(function(r){return r.json();}).then(function(list){ const c=_findSharedKvCourse(list,kid); if(c){
+    fetch(courseReadUrl('/courses?shared='+encodeURIComponent(kid))).then(function(r){return r.json();}).then(function(list){ const c=_findSharedKvCourse(list,kid); if(c){
       _courseFocusId='k'+c.id; _courseFocusFound=true; _applyCourseFocus(); _fitAndPop(c.coords, c.name, c.km);
       if(String(c.id)!==String(kid)){ const u=new URL(location.href); u.searchParams.set('course','k'+c.id); history.replaceState(null,'',u.pathname+u.search+u.hash); }
     } }).catch(function(){});
