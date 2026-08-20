@@ -707,9 +707,12 @@ export default {
         if (url.searchParams.get("mine")) {
           const adminOk = !!env.ADMIN_KEY && String(req.headers.get("X-Admin-Key") || "") === String(env.ADMIN_KEY);
           const uid = (url.searchParams.get("uid") || "").slice(0, 40);
-          if (!adminOk && (!uid || !(await _tokOk(env, uid, url.searchParams.get("tok"))))) return J("[]");
-          const owner = adminOk ? "admin" : uid;
-          arr = arr.filter((x) => String(x.owner || "") === owner);
+          const userOk = !!uid && await _tokOk(env, uid, url.searchParams.get("tok"));
+          if (!adminOk && !userOk) return J("[]");
+          arr = arr.filter((x) => {
+            const owner = String(x.owner || "");
+            return (adminOk && owner === "admin") || (userOk && owner === uid);
+          });
           return new Response(JSON.stringify(arr), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "private, no-store" } });
         }
         return new Response("[]", { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "public, max-age=60" } });
