@@ -1303,6 +1303,7 @@ const _staticCidLayers={};   // 정적 코스 cid -> [{grp,l}] (삭제/숨김용
 const _hiddenStaticCids=new Set();
 const allCoursesGroup=L.layerGroup().addTo(map);   // 코스 전체 토글(단일 레이어 항목)
 const _favLayerIdx={};   // 즐겨찾기 필터용: target -> [{l,parent}]
+const _ownedCourseTargets=new Set();
 function _favReg(target,l,parent){ (_favLayerIdx[target]=_favLayerIdx[target]||[]).push({l:l,parent:parent}); }
 let _favList=[], _favSet=new Set(), _favLoaded=false;
 let _favOnly=false; try{ _favOnly=localStorage.getItem('mc_favonly')==='1'; }catch(e){}
@@ -1325,15 +1326,16 @@ function _applyCourseFocus(){
   const isFocused=!!focusId;
   const focusStatic = isFocused && focusId.charAt(0)!=='k' ? focusId : '';
   const focusKv = isFocused && focusId.charAt(0)==='k' ? focusId.slice(1) : '';
-  const showAll = !isFocused && isAdmin();
+  const showStaticAll = !isFocused && isAdmin();
+  const showOwnedKv = !isFocused;
   Object.keys(_staticCidLayers).forEach(function(cid){
     const arr=_staticCidLayers[cid]; if(!arr) return;
-    const keep=showAll || (focusStatic && String(cid)===focusStatic);
+    const keep=showStaticAll || (focusStatic && String(cid)===focusStatic);
     arr.forEach(function(e){ if(keep) e.grp.addLayer(e.l); else e.grp.removeLayer(e.l); });
   });
   Object.keys(_kvCourseLayers).forEach(function(cid){
     const e=_kvCourseLayers[cid]; if(!e) return;
-    const keep=showAll || (focusKv && String(cid)===focusKv);
+    const keep=showOwnedKv || (focusKv && String(cid)===focusKv);
     e.ls.forEach(function(l){ if(keep) e.grp.addLayer(l); else e.grp.removeLayer(l); });
   });
 }
@@ -1905,7 +1907,7 @@ function loadFavs(){ const u=getUser(); if(!u||!u.uid){ _favLoaded=true; return 
 }
 function applyFavFilter(){
   Object.keys(_favLayerIdx).forEach(function(t){
-    const keep=!_favOnly || _favSet.has(t);
+    const keep=!_favOnly || _favSet.has(t) || _ownedCourseTargets.has(t);
     _favLayerIdx[t].forEach(function(e){ if(!e.parent) return;
       if(keep){ if(!e.parent.hasLayer(e.l)) e.parent.addLayer(e.l); }
       else { if(e.parent.hasLayer(e.l)) e.parent.removeLayer(e.l); } });
@@ -2667,6 +2669,7 @@ function renderKVCourse(c){
   const focusId=String(_courseFocusId||'').trim();
   if(focusId && focusId === ('k'+c.id)) _courseFocusFound=true;
   _kvCourses[c.id]=c;
+  if(_isCourseOwner(c)||(isAdmin()&&String(c.owner||'')==='admin'))_ownedCourseTargets.add('course_k'+c.id);
   const sc=courseSubcat(c.name), col=subcatColor(sc), coords=c.coords;
   const lineCol=validCourseColor(c.color)||courseLineColor(sc, c.id);
   const casing=L.polyline(coords,{color:'#2a0a4a',weight:8,opacity:.55,interactive:false});
@@ -2681,7 +2684,7 @@ function renderKVCourse(c){
   _applyCourseFocus();
   _maybeSyncAdminCourseFavs();
 }
-function _clearKVCourses(){Object.keys(_kvCourseLayers).forEach(function(id){const e=_kvCourseLayers[id];if(e)e.ls.forEach(function(l){e.grp.removeLayer(l);});delete _kvCourseLayers[id];delete _kvCourses[id];});}
+function _clearKVCourses(){Object.keys(_kvCourseLayers).forEach(function(id){const e=_kvCourseLayers[id];if(e)e.ls.forEach(function(l){e.grp.removeLayer(l);});_ownedCourseTargets.delete('course_k'+id);delete _kvCourseLayers[id];delete _kvCourses[id];});}
 function _ownedCourseRequest(){
   const u=getUser();
   if(!u||!u.uid) return Promise.resolve(null);
