@@ -29,6 +29,6 @@ if r.returncode != 0:
     print("  변경 없음(커밋 생략)")
 push = subprocess.run(["git", "push"], cwd=str(BASE))
 if push.returncode == 0:
-    print("\n[done] 완료! 1~2분 후 https://crowdbase.kr/ 반영.")
+    print("\n[done] 완료! 1~2분 후 https://canoe.crowdbase.kr/ 반영.")
 else:
     print("\n[!] git push 실패 — 수동으로 'git push' 해보세요.")

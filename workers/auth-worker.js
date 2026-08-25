@@ -11,7 +11,7 @@
  * Settings → Variables and Secrets 에 추가:
  *   - Secret  KAKAO_REST_KEY      (카카오 앱 REST API 키)
  *   - Secret  KAKAO_CLIENT_SECRET (카카오 로그인 보안 client_secret; 안 쓰면 생략)
- *   - Variable SITE_URL           (예: https://crowdbase.kr/)
+ *   - Variable SITE_URL           (예: https://canoe.crowdbase.kr/)
  * 카카오 개발자센터 Redirect URI 에 "이 Worker 의 URL" 을 등록.
  */
 function _hav(a, b) {
@@ -46,7 +46,7 @@ async function _uidHash(env, uid) {    // 공개 응답용 가명(원 uid 비노
 function _allowedOrigin(req, env) {
   const o = req.headers.get("Origin") || "";
   if (!o) return true;   // 동일 출처/비-CORS(이미지 src 등) 허용
-  const site = (env.SITE_URL || "https://crowdbase.kr/").replace(/\/$/, "");
+  const site = (env.SITE_URL || "https://canoe.crowdbase.kr/").replace(/\/$/, "");
   try { const oh = new URL(o).host; return oh === new URL(site).host || oh === "localhost" || oh.startsWith("localhost:") || oh === "127.0.0.1"; }
   catch (e) { return false; }
 }
@@ -120,8 +120,8 @@ export default {
       const raw = url.searchParams.get("back") || url.searchParams.get("state") || "";
       if (!raw) return "";
       try {
-        const u = new URL(raw, env.SITE_URL || "https://crowdbase.kr/");
-        const site = new URL(env.SITE_URL || "https://crowdbase.kr/");
+        const u = new URL(raw, env.SITE_URL || "https://canoe.crowdbase.kr/");
+        const site = new URL(env.SITE_URL || "https://canoe.crowdbase.kr/");
         const isLocal = (u.protocol === "http:" || u.protocol === "https:") && (u.hostname === "localhost" || u.hostname === "127.0.0.1");
         if (isLocal) return u.origin + u.pathname + u.search;
         if (u.origin !== site.origin) return "";
@@ -1281,7 +1281,7 @@ export default {
       );
     }
 
-    const site = env.SITE_URL || "https://crowdbase.kr/";
+    const site = env.SITE_URL || "https://canoe.crowdbase.kr/";
     const dest = back ? (/^https?:\/\//.test(back) ? back : site.replace(/\/$/, "") + back) : site;
     const idTok = await _tokFor(env, String(id));
     const backUrl = dest + "#login=" + encodeURIComponent(id) + "&nick=" + encodeURIComponent(nick) + "&tok=" + encodeURIComponent(idTok);
