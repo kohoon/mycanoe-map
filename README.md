@@ -3,7 +3,8 @@
 카누 타고 내릴 수 있는 즐겨찾기 지점과 **상수원보호구역**(진입 금지)을 한 지도에서 보는 프로젝트.
 
 ## 🗺️ 지도 보기
-- 공개 지도: **https://kohoon.github.io/mycanoe-map/** (GitHub Pages 활성화 후)
+- 공개 지도: **https://crowdbase.kr/** (GitHub Pages 사용자 도메인)
+- 기존 주소: `https://kohoon.github.io/mycanoe-map/` (사용자 도메인으로 연결되는 호환 진입점)
 - 로컬: `map.html` 더블클릭 (자체포함, 서버·키 불필요)
 
 지도 구성

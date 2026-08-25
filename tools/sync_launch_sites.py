@@ -27,7 +27,7 @@ def call(body):
     req = urllib.request.Request(
         WORKER,
         data=json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Origin": "https://kohoon.github.io"},
+        headers={"Content-Type": "application/json", "Origin": "https://crowdbase.kr"},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=45) as r:

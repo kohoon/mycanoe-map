@@ -6,7 +6,7 @@
 ## 정체성
 카누 런칭/랜딩·코스·상수원보호구역(진입금지)·장애물을 한 지도에 보여주는 한국형 카누 정적 웹앱.
 정적 HTML(Leaflet, 데이터 빌드시 임베드) + Cloudflare Worker(`workers/auth-worker.js`, KV·Kakao OAuth·Google Sheets).
-공개: https://kohoon.github.io/mycanoe-map/
+공개: https://crowdbase.kr/ (`https://kohoon.github.io/mycanoe-map/`는 호환 진입점)
 
 ## 구조 — 5단 아님
 이 레포는 전역 규약의 `ingest/parse/store/analyze/serve` 5단을 **따르지 않는다**.
