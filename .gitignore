@@ -21,3 +21,7 @@ __pycache__/
 _kakao_profile/
 admin_key.txt
 .wrangler/
+
+# 빌드 산출물·스크래치 (추적 금지)
+output/
+tmp/
