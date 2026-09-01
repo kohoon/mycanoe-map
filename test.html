@@ -2700,6 +2700,7 @@ function focusCourseFromUrl(){
   if(id.charAt(0)==='k'){ const kid=id.slice(1);   // KV 코스: 별도 조회
     fetch(courseReadUrl('/courses?shared='+encodeURIComponent(kid))).then(function(r){return r.json();}).then(function(list){ const c=_findSharedKvCourse(list,kid); if(c){
       renderKVCourse(c);   // 공유 조회는 일반 코스 로드를 건너뛰므로 응답 코스를 직접 그린다.
+      hideGate();   // 공개 단건 조회에서 현재 존재하는 코스로 확인된 공유 화면은 로그인 없이 열람한다.
       _courseFocusId='k'+c.id; _courseFocusFound=true; _applyCourseFocus(); _fitAndPop(c.coords, c.name, c.km);
       if(String(c.id)!==String(kid)){ const u=new URL(location.href); u.searchParams.set('course','k'+c.id); history.replaceState(null,'',u.pathname+u.search+u.hash); }
     } }).catch(function(){});
