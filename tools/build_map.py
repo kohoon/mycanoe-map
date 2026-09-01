@@ -189,6 +189,11 @@ __GTAG__
   .river-focus-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .river-focus-x{display:flex;align-items:center;justify-content:center;flex:none;width:25px;height:25px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font:700 18px/1 sans-serif;cursor:pointer}
   .river-focus-x:hover,.river-focus-x:focus{background:rgba(255,255,255,.32);outline:none}
+  .course-focus-bar{display:none;align-items:center;gap:8px;max-width:min(360px,82vw);box-sizing:border-box;background:#5e2b97;color:#fff;padding:7px 8px 7px 11px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.38);font:700 13px/1.2 sans-serif}
+  .course-focus-bar.on{display:flex}
+  .course-focus-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .course-focus-off{flex:none;padding:6px 9px;border:0;border-radius:5px;background:rgba(255,255,255,.2);color:#fff;font:700 12px/1 sans-serif;cursor:pointer}
+  .course-focus-off:hover,.course-focus-off:focus{background:rgba(255,255,255,.34);outline:none}
   #hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:1000;
         background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
         font:12px sans-serif;transition:opacity .6s;pointer-events:none}
@@ -2834,6 +2839,20 @@ function shareCourse(idStr){ const u=courseShareUrl(idStr); gaEvent('course_shar
   if(navigator.share){ navigator.share({title:'마이카누 코스',url:u}).catch(function(){}); }
   else if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(u).then(function(){ alert('코스 링크가 복사됐어요!\n'+u); }).catch(function(){ prompt('아래 링크 복사', u); }); }
   else prompt('아래 링크 복사', u); }
+let _courseFocusCtl=null;
+function _showCourseFocusBar(name){
+  if(!_courseFocusCtl){
+    const C=L.Control.extend({options:{position:'topleft'},onAdd:function(){const d=L.DomUtil.create('div','course-focus-bar');d.id='courseFocusBar';d.innerHTML='<span aria-hidden="true">🛶</span><span class="course-focus-name"></span><button class="course-focus-off" type="button">코스보기 OFF</button>';L.DomEvent.disableClickPropagation(d);L.DomEvent.disableScrollPropagation(d);d.querySelector('button').onclick=clearCourseFocus;return d;}});_courseFocusCtl=new C();map.addControl(_courseFocusCtl);
+  }
+  const d=document.getElementById('courseFocusBar');if(!d)return;d.querySelector('.course-focus-name').textContent=name||'공유 코스';d.classList.add('on');
+}
+function clearCourseFocus(){
+  _courseFocusId='';_courseFocusFound=false;map.closePopup();const d=document.getElementById('courseFocusBar');if(d)d.classList.remove('on');
+  const u=new URL(location.href);u.searchParams.delete('course');history.replaceState(null,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash);
+  _clearKVCourses();_applyCourseFocus();
+  const viewer=getUser();if(viewer&&viewer.uid){hideGate();reloadCoursesForViewer();}else showGate();
+  gaEvent('course_share_off');
+}
 function _fitAndPop(ll, name, km){ if(!ll||ll.length<2) return; try{ map.fitBounds(L.latLngBounds(ll).pad(0.2)); }catch(e){ return; }
   L.popup().setLatLng(ll[Math.floor(ll.length/2)]).setContent('<b>'+pmEsc(name||'코스')+'</b>'+(km?'<br>약 '+km+'km':'')).openOn(map); }
 function _findSharedKvCourse(list,kid){
@@ -2851,12 +2870,12 @@ function focusCourseFromUrl(){
     fetch(courseReadUrl('/courses?shared='+encodeURIComponent(kid))).then(function(r){return r.json();}).then(function(list){ const c=_findSharedKvCourse(list,kid); if(c){
       renderKVCourse(c);   // 공유 조회는 일반 코스 로드를 건너뛰므로 응답 코스를 직접 그린다.
       hideGate();   // 공개 단건 조회에서 현재 존재하는 코스로 확인된 공유 화면은 로그인 없이 열람한다.
-      _courseFocusId='k'+c.id; _courseFocusFound=true; _applyCourseFocus(); _fitAndPop(c.coords, c.name, c.km);
+      _showCourseFocusBar(c.name); _courseFocusId='k'+c.id; _courseFocusFound=true; _applyCourseFocus(); _fitAndPop(c.coords, c.name, c.km);
       if(String(c.id)!==String(kid)){ const u=new URL(location.href); u.searchParams.set('course','k'+c.id); history.replaceState(null,'',u.pathname+u.search+u.hash); }
     } }).catch(function(){});
     return; }
   const f=COURSES.features.find(function(x){ return String((x.properties||{}).cid)===String(id); });
-  if(f){ _courseFocusFound=true; _applyCourseFocus(); _fitAndPop(f.geometry.coordinates.map(function(c){return [c[1],c[0]];}), f.properties.name, f.properties.km); } }
+  if(f&&!_hiddenStaticCids.has(String(id))){ hideGate();_showCourseFocusBar(f.properties.name);_courseFocusFound=true; _applyCourseFocus(); _fitAndPop(f.geometry.coordinates.map(function(c){return [c[1],c[0]];}), f.properties.name, f.properties.km); } }
 setTimeout(focusCourseFromUrl, 1200);
 async function deleteCourse(id){ const c=_kvCourses[id]; if(!c && !isAdmin()) return; if(!confirm('이 등록 코스를 삭제할까요?')) return;
   try{ const body=isAdmin()
