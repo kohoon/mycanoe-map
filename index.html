@@ -42,7 +42,7 @@
   .course-focus-bar{display:none;align-items:center;gap:8px;max-width:min(360px,82vw);box-sizing:border-box;background:#5e2b97;color:#fff;padding:7px 8px 7px 11px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.38);font:700 13px/1.2 sans-serif}
   .course-focus-bar.on{display:flex}
   .course-focus-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .course-focus-off{flex:none;padding:6px 9px;border:0;border-radius:5px;background:rgba(255,255,255,.2);color:#fff;font:700 12px/1 sans-serif;cursor:pointer}
+  .course-focus-off{flex:none;padding:6px 7px;border:0;border-radius:5px;background:rgba(255,255,255,.2);color:#fff;font:700 12px/1 sans-serif;cursor:pointer}
   .course-focus-off:hover,.course-focus-off:focus{background:rgba(255,255,255,.34);outline:none}
   #hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:1000;
         background:rgba(0,0,0,.62);color:#fff;padding:5px 12px;border-radius:14px;
@@ -2659,7 +2659,7 @@ function shareCourse(idStr){ const u=courseShareUrl(idStr); gaEvent('course_shar
 let _courseFocusCtl=null;
 function _showCourseFocusBar(name){
   if(!_courseFocusCtl){
-    const C=L.Control.extend({options:{position:'topleft'},onAdd:function(){const d=L.DomUtil.create('div','course-focus-bar');d.id='courseFocusBar';d.innerHTML='<span aria-hidden="true">🛶</span><span class="course-focus-name"></span><button class="course-focus-off" type="button">코스보기 OFF</button>';L.DomEvent.disableClickPropagation(d);L.DomEvent.disableScrollPropagation(d);d.querySelector('button').onclick=clearCourseFocus;return d;}});_courseFocusCtl=new C();map.addControl(_courseFocusCtl);
+    const C=L.Control.extend({options:{position:'topleft'},onAdd:function(){const d=L.DomUtil.create('div','course-focus-bar');d.id='courseFocusBar';d.innerHTML='<span aria-hidden="true">🛶</span><span class="course-focus-name"></span><button class="course-focus-off" type="button" title="공유 코스 보기 종료" aria-label="공유 코스 보기 종료">코스 OFF</button>';L.DomEvent.disableClickPropagation(d);L.DomEvent.disableScrollPropagation(d);d.querySelector('button').onclick=clearCourseFocus;return d;}});_courseFocusCtl=new C();map.addControl(_courseFocusCtl);
   }
   const d=document.getElementById('courseFocusBar');if(!d)return;d.querySelector('.course-focus-name').textContent=name||'공유 코스';d.classList.add('on');
 }
