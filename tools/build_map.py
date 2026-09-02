@@ -323,8 +323,8 @@ __GTAG__
   .wxd-t{font-weight:700}
   .wxd-w{font-size:10.5px}
   .wxd-p{font-size:10px;color:#1565c0;min-height:13px}
-  .rv-pmodal{max-width:560px}
-  #rvView{width:100%;height:58vh;max-height:440px;min-height:240px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
+  #rvModal .rv-pmodal{box-sizing:border-box;width:min(900px,calc(100% - 32px));max-width:900px;max-height:90vh}
+  #rvView{width:100%;height:70vh;max-height:640px;min-height:300px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
   #rvDate{font-size:12px;color:#778;margin-top:7px;min-height:15px;text-align:right}
   #rvMsg{display:none;text-align:center;color:#667;padding:26px 10px;font-size:14px}
   .lg-sub{font-weight:700;font-size:11.5px;color:#2a3b34;margin:6px 0 2px;padding-top:5px;border-top:1px solid #eee}
@@ -606,6 +606,8 @@ __GTAG__
     .leaflet-control-layers:not(.lc-collapsed)::-webkit-scrollbar-thumb{background:#b8c5cb;border-radius:5px}
     .leaflet-control-layers.lc-collapsed{overflow:hidden}
     .pmodal{padding:16px 14px 20px}
+    #rvModal .rv-pmodal{width:100%;max-width:none;max-height:92vh}
+    #rvView{height:68vh;max-height:none;min-height:320px}
   }
 </style>
 </head>
@@ -2150,7 +2152,7 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
     h+=list.length?list.map(function(c){return '<div class="my-list-row"><span class="my-kind">〰️</span><div class="my-list-main" data-cgo="'+c.id+'"><b>'+pmEsc(c.name||'코스')+'</b><small>'+(c.km?(+c.km).toFixed(1)+'km · ':'')+dateText(c.t)+'</small></div><div class="my-actions"><button class="my-icon-btn" data-cshare="'+c.id+'" title="공유 링크 복사">↗ <span class="label">공유</span></button><button class="my-icon-btn" data-cedit="'+c.id+'" title="수정">✎</button><button class="my-icon-btn del" data-cdel="'+c.id+'" title="삭제">✕</button></div></div>';}).join(''):'<div class="my-empty"><b>만든 코스가 없습니다</b>거리측정 후 코스로 등록하면 이곳에서 관리할 수 있습니다.</div>';
     shell(h); document.getElementById('mySearch').oninput=function(){const pos=this.selectionStart;state.q=this.value;renderCourses();const n=document.getElementById('mySearch');n.focus();n.setSelectionRange(pos,pos);};
     body.querySelectorAll('[data-cgo]').forEach(function(a){a.onclick=function(){const c=state.mine.find(function(x){return String(x.id)===a.getAttribute('data-cgo');});if(c)focusCourseCourse(c);};});
-    body.querySelectorAll('[data-cshare]').forEach(function(a){a.onclick=function(){shareCourse('k'+a.getAttribute('data-cshare'));};});
+    body.querySelectorAll('[data-cshare]').forEach(function(a){a.onclick=function(){const id=a.getAttribute('data-cshare'),c=state.mine.find(function(x){return String(x.id)===id;});if(c)shareCourse('k'+id,c.name,c.km);};});
     body.querySelectorAll('[data-cedit]').forEach(function(a){a.onclick=function(){const id=a.getAttribute('data-cedit'),c=state.mine.find(function(x){return String(x.id)===id;});if(c){_kvCourses[c.id]=c;closeMyPage();editCourse(c.id);}};});
     body.querySelectorAll('[data-cdel]').forEach(function(a){a.onclick=function(){const id=a.getAttribute('data-cdel'),c=state.mine.find(function(x){return String(x.id)===id;});if(!c||!confirm('이 코스를 삭제할까요?'))return;const req=isAdmin()?{action:'delete',adminKey:adminKey(),courseId:c.id}:{action:'deleteuser',id:u.uid,tok:u.tok||'',courseId:c.id};fetch(fapi('/course'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)}).then(function(r){if(r.ok){state.mine=state.mine.filter(function(x){return String(x.id)!==id;});renderCourses();}else alert('삭제 실패');});};});
   }
@@ -2835,10 +2837,15 @@ fetch(courseReadUrl('/course?hidden=1')).then(function(r){return r.json();}).the
 loadCourses();
 // ---- 코스 URL 공유 ----
 function courseShareUrl(idStr){ return location.origin+location.pathname+'?course='+encodeURIComponent(idStr); }
-function shareCourse(idStr){ const u=courseShareUrl(idStr); gaEvent('course_share');
-  if(navigator.share){ navigator.share({title:'마이카누 코스',url:u}).catch(function(){}); }
-  else if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(u).then(function(){ alert('코스 링크가 복사됐어요!\n'+u); }).catch(function(){ prompt('아래 링크 복사', u); }); }
-  else prompt('아래 링크 복사', u); }
+function _courseShareInfo(idStr,name,km){
+  const key=String(idStr||''),saved=key.charAt(0)==='k'?_kvCourses[key.slice(1)]:_courseByCid[key],c=saved||_courseInfoCourse||{};
+  const n=Number(km!=null?km:c.km),dist=isFinite(n)&&n>0?String(Math.round(n*100)/100):'';
+  return {name:String(name||c.name||'마이카누 코스').trim()||'마이카누 코스',dist:dist};
+}
+function shareCourse(idStr,name,km){ const u=courseShareUrl(idStr),info=_courseShareInfo(idStr,name,km),lines=['코스: '+info.name];if(info.dist)lines.push('거리: 약 '+info.dist+'km');const text=lines.join('\n'),full=text+'\n'+u;gaEvent('course_share');
+  if(navigator.share){ navigator.share({title:info.name+' | 마이카누',text:text,url:u}).catch(function(){}); }
+  else if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(full).then(function(){ alert('코스 정보와 링크가 복사됐어요!\n\n'+full); }).catch(function(){ prompt('아래 내용을 복사하세요', full); }); }
+  else prompt('아래 내용을 복사하세요', full); }
 let _courseFocusCtl=null;
 function _showCourseFocusBar(name){
   if(!_courseFocusCtl){
