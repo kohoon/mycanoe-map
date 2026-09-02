@@ -2659,8 +2659,8 @@ function _courseShareInfo(idStr,name,km){
   const n=Number(km!=null?km:c.km),dist=isFinite(n)&&n>0?String(Math.round(n*100)/100):'';
   return {name:String(name||c.name||'마이카누 코스').trim()||'마이카누 코스',dist:dist};
 }
-function shareCourse(idStr,name,km){ const u=courseShareUrl(idStr),info=_courseShareInfo(idStr,name,km),lines=['코스: '+info.name];if(info.dist)lines.push('거리: 약 '+info.dist+'km');const text=lines.join('\n'),full=text+'\n'+u;gaEvent('course_share');
-  if(navigator.share){ navigator.share({title:info.name+' | 마이카누',text:text,url:u}).catch(function(){}); }
+function shareCourse(idStr,name,km){ const u=courseShareUrl(idStr),info=_courseShareInfo(idStr,name,km),lines=['🛶 코스명: '+info.name];if(info.dist)lines.push('📏 거리: 약 '+info.dist+'km');lines.push('🔗 '+u);const full=lines.join('\n');gaEvent('course_share');
+  if(navigator.share){ navigator.share({title:info.name+' | 마이카누',text:full}).catch(function(){}); }
   else if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(full).then(function(){ alert('코스 정보와 링크가 복사됐어요!\n\n'+full); }).catch(function(){ prompt('아래 내용을 복사하세요', full); }); }
   else prompt('아래 내용을 복사하세요', full); }
 let _courseFocusCtl=null;
