@@ -508,6 +508,9 @@ __GTAG__
   #tripbar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;z-index:1200;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(440px,calc(100vw - 24px))}
   .trip-live{display:none;width:100%;box-sizing:border-box;background:rgba(20,32,38,.92);color:#fff;border-radius:14px;padding:10px 12px;grid-template-columns:repeat(4,1fr);gap:6px;box-shadow:0 4px 16px rgba(0,0,0,.32);backdrop-filter:blur(5px)}
   #tripbar.rec .trip-live{display:grid}
+  .trip-pick-guide{display:none;align-items:center;gap:9px;max-width:calc(100vw - 24px);box-sizing:border-box;background:rgba(12,48,67,.95);color:#fff;border-radius:24px;padding:9px 10px 9px 15px;box-shadow:0 4px 16px rgba(0,0,0,.32);font:700 13px/1.3 sans-serif;backdrop-filter:blur(5px)}
+  #tripbar.picking .trip-pick-guide{display:flex}#tripbar.picking .trip-actions{display:none}
+  .trip-pick-guide span{min-width:0}.trip-pick-guide button{flex:none;border:0;border-radius:16px;background:rgba(255,255,255,.18);color:#fff;padding:7px 10px;font:700 12px sans-serif;cursor:pointer}
   .trip-live>div{text-align:center;min-width:0}.trip-live b{display:block;font:800 15px/1.2 sans-serif;white-space:nowrap}.trip-live small{display:block;margin-top:3px;color:#cfd8dc;font:10.5px/1.2 sans-serif;white-space:nowrap}
   .trip-live .trip-course-title{grid-column:1/-1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 12px/1.25 sans-serif;color:#b3e5fc;padding-bottom:3px;border-bottom:1px solid rgba(255,255,255,.15)}
   .trip-actions{display:flex;align-items:center;justify-content:center;gap:7px}
@@ -541,6 +544,7 @@ __GTAG__
   .tm-empty{color:#999;font-size:13px;padding:14px 0;text-align:center}
   .tm-start-course{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccd;border-radius:9px;background:#fff;font-size:14px;margin:8px 0}
   .tm-note{font-size:12.5px;line-height:1.5;color:#60747c;background:#eef6f8;border-radius:9px;padding:9px 10px;margin:8px 0}
+  .tm-choice{width:100%;border:0;border-radius:10px;padding:13px 12px;font:800 14px sans-serif;cursor:pointer}.tm-choice.pick{background:#1565c0;color:#fff}.tm-choice.free{margin-top:8px;background:#edf2f4;color:#43545c}
   /* /TRIPCSS */
   .authbox{font:600 13px sans-serif}
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
@@ -724,6 +728,7 @@ __GTAG__
 <a id="tourLaunch" href="https://tour.crowdbase.kr/">▶ 투어 시작</a>
 <!-- TRIPHTML -->
 <div id="tripbar">
+  <div id="tourPickGuide" class="trip-pick-guide"><span id="tourPickText">📍 출발지를 지도에서 찍으세요</span><button type="button" onclick="cancelTourPick()">취소</button></div>
   <div class="trip-live"><div id="tripCourseName" class="trip-course-title">자유 투어</div><div><b id="tripTime">0:00</b><small>투어시간</small></div><div><b id="tripDist">0.00km</b><small>이동거리</small></div><div><b id="tripSpeed">0.0km/h</b><small>평균속도</small></div><div><b id="tripProgress">자유</b><small>코스진행률</small></div></div>
   <div class="trip-actions"><button id="tripStart" class="tb-start">▶ 투어 시작</button><button id="tripPause" class="tb-pause">⏸ 휴식</button><button id="tripRefresh" class="tb-refresh">⌖ 진도 갱신</button><button id="tripLog" class="tb-log">📋 기록</button></div>
 </div>
@@ -3622,14 +3627,7 @@ function toastMsg(m){ const h=document.getElementById('hint'); if(!h) return; h.
 function fmtDur(s){ s=Math.floor(s); const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(ss).padStart(2,'0'); }
 function trkMeters(t,breaks){ const skip=new Set((breaks||[]).map(Number));let d=0;for(let i=1;i<t.length;i++)if(!skip.has(i))d+=map.distance([t[i-1][0],t[i-1][1]],[t[i][0],t[i][1]]);return d; }
 function shortPlace(a){ if(!a) return ''; return a.trim().split(/\s+/).slice(-2).join(' '); }
-let _trk=null, _viewLine=null, _pendTrip=null, _tourPreviewLine=null, _tourEstimateSeq=0;
-function _tourCourseList(){
-  const out=[],seen=new Set();
-  (COURSES.features||[]).forEach(function(f){const p=f.properties||{},id='c'+p.cid;if(p.cid==null||_hiddenStaticCids.has(String(p.cid))||seen.has(id))return;seen.add(id);const saved=_courseByCid[String(p.cid)]||{};out.push({id:id,name:saved.name||p.name||'코스',km:Number(saved.km!=null?saved.km:p.km)||0,coords:saved.coords||(f.geometry.coordinates||[]).map(function(c){return [c[1],c[0]];})});});
-  Object.keys(_kvCourses).forEach(function(k){const c=_kvCourses[k];if(!c||!c.coords||c.coords.length<2)return;const id='k'+k;if(seen.has(id))return;seen.add(id);out.push({id:id,name:c.name||'코스',km:Number(c.km)||0,coords:c.coords});});
-  return out;
-}
-function _tourCourseById(id){return _tourCourseList().find(function(c){return c.id===id;})||null;}
+let _trk=null, _viewLine=null, _pendTrip=null, _tourPick=null, _tourPickSeq=0, _tourEstimateSeq=0;
 function _tourProjection(coords,p){
   if(!coords||coords.length<2||!p)return null;const lat=p[0],lng=p[1],cos=Math.cos(lat*Math.PI/180),segLen=[];let total=0;
   for(let i=1;i<coords.length;i++){const m=map.distance(coords[i-1],coords[i]);segLen.push(m);total+=m;}
@@ -3648,11 +3646,41 @@ function tripBackup(){ try{ if(_trk)localStorage.setItem('mc_trk',JSON.stringify
 function tripBackupClear(){ try{ localStorage.removeItem('mc_trk'); }catch(e){} }
 function openTripStart(){
   const u=getUser();if(!u||!u.uid){toastMsg('로그인 후 이용하세요');return;}
-  const courses=_tourCourseList(),requested=new URL(location.href).searchParams.get('course')||'',opts=['<option value="">코스 없이 자유 투어</option>'].concat(courses.map(function(c){return '<option value="'+c.id+'"'+(c.id===requested?' selected':'')+'>'+pmEsc(c.name)+(c.km?' · '+c.km.toFixed(1)+'km':'')+'</option>';}));
-  document.getElementById('tmBody').innerHTML='<h3>🛶 투어 시작</h3><div class="tm-note">코스를 선택하면 현재 위치 기준 진행률을 보여줍니다. 코스 없이 시작해도 종료할 때 이동 경로를 새 코스로 저장할 수 있습니다.</div><select id="tmCourse" class="tm-start-course">'+opts.join('')+'</select><div class="tm-note">웹에서는 화면이 꺼지면 GPS가 누락될 수 있습니다. 화면 복귀 시 물길 기준으로 진도와 거리를 추정하며, 시작 이후 경과시간은 계속 계산합니다.</div><div class="tm-row"><button class="tm-save" id="tmGo">위치 권한 확인 후 시작</button><button class="tm-btn" onclick="closeTModal()">취소</button></div>';openTModalRaw();
-  const sel=document.getElementById('tmCourse');function preview(){if(_tourPreviewLine){map.removeLayer(_tourPreviewLine);_tourPreviewLine=null;}const c=_tourCourseById(sel.value);if(c){_tourPreviewLine=L.polyline(c.coords,{color:'#1565c0',weight:6,opacity:.7,dashArray:'10 8'}).addTo(map);try{map.fitBounds(_tourPreviewLine.getBounds().pad(.15));}catch(e){}}}sel.onchange=preview;preview();
-  document.getElementById('tmGo').onclick=function(){const c=_tourCourseById(sel.value);if(_tourPreviewLine){map.removeLayer(_tourPreviewLine);_tourPreviewLine=null;}closeTModal();startTrip(null,c);};
+  cancelTourPick();
+  document.getElementById('tmBody').innerHTML='<h3>🛶 투어 시작</h3><div class="tm-note"><b>코스 지정:</b> 지도에서 출발지를 먼저 찍고, 이어서 도착지를 찍으면 물길을 따라 예정 코스를 계산합니다.</div><button class="tm-choice pick" id="tmPick">📍 출발지·도착지 찍기</button><button class="tm-choice free" id="tmFree">코스 없이 자유 투어</button><div class="tm-note">웹에서는 화면이 꺼지면 GPS가 누락될 수 있습니다. 화면 복귀 시 물길 기준으로 진도와 거리를 추정합니다.</div><div class="tm-row"><button class="tm-btn" onclick="closeTModal()">취소</button></div>';openTModalRaw();
+  document.getElementById('tmPick').onclick=beginTourPick;
+  document.getElementById('tmFree').onclick=function(){closeTModal();startTrip(null,null);};
 }
+function _tourPickText(s){const el=document.getElementById('tourPickText');if(el)el.textContent=s;}
+function cancelTourPick(){
+  _tourPickSeq++;const p=_tourPick;_tourPick=null;document.getElementById('tripbar').classList.remove('picking');map.getContainer().style.cursor='';
+  if(p)[p.startMarker,p.endMarker,p.line].forEach(function(l){if(l)map.removeLayer(l);});
+}
+function beginTourPick(){
+  cancelTourPick();try{if(measureMode)cancelMeasure();}catch(e){}try{if(typeof obsPlaceMode!=='undefined'&&obsPlaceMode)toggleObsPlace();}catch(e){}
+  document.getElementById('tmodal').classList.remove('open');const seq=++_tourPickSeq;_tourPick={seq:seq,points:[],startMarker:null,endMarker:null,line:null,busy:false,stage:'start'};
+  document.getElementById('tripbar').classList.add('picking');map.getContainer().style.cursor='crosshair';_tourPickText('📍 출발지를 지도에서 찍으세요');toastMsg('지도에서 출발지를 먼저 찍으세요');
+}
+function _tourPickFailure(err){
+  const msg=err==='overpass'?'물길 서버가 혼잡합니다. 도착지를 다시 찍어 주세요':err==='farwater'?'출발지와 도착지를 물길 가까이에 찍어 주세요':err==='detour'?'우회가 너무 큽니다. 더 가까운 도착지를 찍어 주세요':'두 지점을 잇는 물길을 찾지 못했습니다';
+  const p=_tourPick;if(!p)return;if(p.endMarker)map.removeLayer(p.endMarker);p.endMarker=null;p.points=p.points.slice(0,1);p.busy=false;p.stage='end';_tourPickText('🏁 '+msg);toastMsg(msg);
+}
+function _showTourPickConfirm(p,r){
+  if(!p||_tourPick!==p)return;p.busy=false;p.stage='confirm';document.getElementById('tripbar').classList.remove('picking');map.getContainer().style.cursor='';
+  const name=(r.riverName?r.riverName+' · ':'')+'지정 코스';p.course={id:'route-'+Date.now(),name:name,km:Number(r.km)||0,coords:r.coords,directionFixed:true};
+  document.getElementById('tmBody').innerHTML='<h3>🛶 예정 코스 확인</h3><div class="tm-stat"><div><b>'+p.course.km.toFixed(2)+'</b><span>예정 km</span></div><div><b>'+p.course.coords.length+'</b><span>경로 점</span></div></div><div class="tm-note">초록색이 출발지, 빨간색이 도착지입니다. 파란 점선 코스를 확인하고 투어를 시작하세요.</div><button class="tm-choice pick" id="tmPickedGo">이 코스로 투어 시작</button><button class="tm-choice free" id="tmRepick">출발지·도착지 다시 찍기</button><div class="tm-row"><button class="tm-btn" onclick="closeTModal()">취소</button></div>';openTModalRaw();
+  document.getElementById('tmPickedGo').onclick=function(){const c=p.course;_tourPick=null;[p.startMarker,p.endMarker,p.line].forEach(function(l){if(l)map.removeLayer(l);});closeTModal();startTrip(null,c);};
+  document.getElementById('tmRepick').onclick=beginTourPick;
+}
+map.on('click',async function(e){
+  const p=_tourPick;if(!p||p.busy||p.stage==='confirm'||!e.latlng)return;
+  const pt={lat:+e.latlng.lat,lng:+e.latlng.lng};
+  if(!p.points.length){p.points.push(pt);p.stage='end';p.startMarker=L.circleMarker([pt.lat,pt.lng],{radius:8,color:'#fff',weight:3,fillColor:'#2e7d32',fillOpacity:1}).addTo(map).bindTooltip('출발',{permanent:true,direction:'top'});_tourPickText('🏁 도착지를 지도에서 찍으세요');toastMsg('이제 도착지를 찍으세요');return;}
+  p.points.push(pt);p.busy=true;p.stage='routing';p.endMarker=L.circleMarker([pt.lat,pt.lng],{radius:8,color:'#fff',weight:3,fillColor:'#c62828',fillOpacity:1}).addTo(map).bindTooltip('도착',{permanent:true,direction:'top'});_tourPickText('⏳ 물길 코스를 계산하고 있어요…');
+  const seq=p.seq;let r=null;try{r=await waterRoute(p.points[0],p.points[1]);}catch(err){r={err:'overpass'};}if(!_tourPick||_tourPick!==p||p.seq!==seq)return;
+  if(!r||r.err||!r.coords||r.coords.length<2){_tourPickFailure(r&&r.err);return;}
+  p.line=L.polyline(r.coords,{color:'#1565c0',weight:7,opacity:.7,dashArray:'12 8'}).addTo(map);try{map.fitBounds(p.line.getBounds().pad(.15));}catch(e2){}_showTourPickConfirm(p,r);
+});
 function _tourStartWatch(){if(!_trk||_trk.watchId!=null||(_trk.paused&&_trk.pauseType==='manual'))return;_trk.watchId=navigator.geolocation.watchPosition(onTripPos,function(){},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});}
 function _tourStopWatch(t){if(!t||t.watchId==null)return;try{navigator.geolocation.clearWatch(t.watchId);}catch(e){}t.watchId=null;}
 async function _tourWake(t){try{if(t&&'wakeLock'in navigator)t.wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
@@ -3660,7 +3688,7 @@ async function startTrip(resume,course){
   if(_trk) return; const u=getUser(); if(!u||!u.uid){ toastMsg('로그인 후 이용하세요'); return; }
   if(!navigator.geolocation){ toastMsg('이 기기는 위치를 지원하지 않습니다'); return; }
   const track=(resume&&resume.track)||[],breaks=(resume&&resume.breaks)||[],selected=(resume&&resume.course)||course||null;
-  _trk={track:track,breaks:breaks,startMs:(resume&&resume.startMs)||Date.now(),pausedMs:Number(resume&&resume.pausedMs)||0,paused:!!(resume&&resume.paused),pauseType:(resume&&resume.pauseType)||'',pauseStarted:Number(resume&&resume.pauseStarted)||0,watchId:null,wakeLock:null,timer:null,course:selected,courseStartAlong:resume&&resume.courseStartAlong!=null?resume.courseStartAlong:null,courseDirection:Number(resume&&resume.courseDirection)||0,courseCurrent:null,progress:Number(resume&&resume.progress)||0,estimatedCoords:(resume&&resume.estimatedCoords)||[],estimated:!!(resume&&resume.estimated),breakPending:false,motion:[],stationarySince:0,moveHits:0,
+  _trk={track:track,breaks:breaks,startMs:(resume&&resume.startMs)||Date.now(),pausedMs:Number(resume&&resume.pausedMs)||0,paused:!!(resume&&resume.paused),pauseType:(resume&&resume.pauseType)||'',pauseStarted:Number(resume&&resume.pauseStarted)||0,watchId:null,wakeLock:null,timer:null,course:selected,courseStartAlong:resume&&resume.courseStartAlong!=null?resume.courseStartAlong:(selected&&selected.directionFixed?0:null),courseDirection:Number(resume&&resume.courseDirection)||(selected&&selected.directionFixed?1:0),courseCurrent:null,progress:Number(resume&&resume.progress)||0,estimatedCoords:(resume&&resume.estimatedCoords)||[],estimated:!!(resume&&resume.estimated),breakPending:false,motion:[],stationarySince:0,moveHits:0,
     line:L.polyline(_tourLineParts(track,breaks),{color:'#ff3d00',weight:5,opacity:.92}).addTo(map),estimateLine:L.polyline((resume&&resume.estimatedCoords)||[],{color:'#ff9800',weight:5,opacity:.82,dashArray:'8 7'}).addTo(map),planLine:selected?L.polyline(selected.coords,{color:'#1565c0',weight:7,opacity:.48,dashArray:'12 8'}).addTo(map):null,posMarker:null};
   if(selected&&selected.coords&&selected.coords.length>1)try{map.fitBounds(L.latLngBounds(selected.coords).pad(.15));}catch(e){}
   if(!_trk.paused||_trk.pauseType==='auto')_tourStartWatch();if(!_trk.paused)await _tourWake(_trk);
@@ -3718,7 +3746,7 @@ async function saveTrip(){ if(!_pendTrip) return; const u=getUser(); if(!u||!u.u
     else document.getElementById('tmMsg').textContent='저장 실패';
   }catch(e){ document.getElementById('tmMsg').textContent='오류'; } }
 function openTModalRaw(){ document.getElementById('tmodal').classList.add('open'); }
-function closeTModal(){ document.getElementById('tmodal').classList.remove('open'); }
+function closeTModal(){ document.getElementById('tmodal').classList.remove('open');if(_tourPick&&_tourPick.stage==='confirm')cancelTourPick(); }
 function tabBar(active){ const tabs=[['trips','내 기록'],['feed','공유된 코스'],['board','랭킹'],['stats','내 통계']];
   return '<div class="tm-tabs">'+tabs.map(function(t){return '<button class="tm-tab'+(t[0]===active?' on':'')+'" onclick="openTModal(\''+t[0]+'\')">'+t[1]+'</button>';}).join('')+'</div>'; }
 async function openTModal(tab){ tab=tab||'trips'; openTModalRaw(); const body=document.getElementById('tmBody'); body.innerHTML=tabBar(tab)+'<div class="tm-empty">불러오는 중…</div>';
