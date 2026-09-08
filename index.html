@@ -557,7 +557,17 @@ const WORKER_URL = "https://mycanoe-map.kohoon0140.workers.dev/";  // 카카오 
 const GA_ID = "G-W75JHWTDYS";        // GA4 측정 ID(비면 추적 off)
 const TOUR_MODE = false;
 const TOUR_URL = "https://tour.crowdbase.kr/";
-{const launch=document.getElementById('tourLaunch'),requested=new URL(location.href).searchParams.get('course');if(TOUR_MODE){document.title='마이카누 투어';if(launch)launch.style.display='none';}else if(launch&&requested)launch.href=TOUR_URL+'?course='+encodeURIComponent(requested);}
+function syncTourLaunch(){
+  const launch=document.getElementById('tourLaunch');if(!launch)return;
+  if(TOUR_MODE){document.title='마이카누 투어';launch.style.display='none';return;}
+  const dest=new URL(TOUR_URL),requested=new URL(location.href).searchParams.get('course'),u=getUser();
+  if(requested)dest.searchParams.set('course',requested);
+  // canoe/tour는 서로 다른 origin이라 localStorage가 공유되지 않는다. 이미 로그인한 사용자는
+  // 서명 토큰을 서버로 전송되지 않는 fragment로 한 번 전달하고, 투어 페이지가 저장 후 즉시 지운다.
+  if(u&&u.uid&&u.tok)dest.hash=new URLSearchParams({login:u.uid,nick:u.nick||u.kakaoNick||'',tok:u.tok}).toString();
+  launch.href=dest.toString();
+}
+syncTourLaunch();
 // 관리자 백도어(키 인증). 키는 공개 코드에 없음 — 서버(Cloudflare Secret)가 검증
 let _adminOk=false;
 function adminKey(){ try{ return localStorage.getItem('mc_admin')||''; }catch(e){ return ''; } }
@@ -680,6 +690,7 @@ function showMyPageTour(profile){
     if(window.gtag) gtag('set',{user_id:uid});
     gaEvent('login',{method:'kakao'});
   } else { const u=getUser(); if(u&&u.uid){ if(window.gtag) gtag('set',{user_id:u.uid}); } }
+  syncTourLaunch();
 })();
 // 로그인 관문: 미로그인 시 지도 차단(로그인 화면 표시)
 function showGate(){ const g=document.getElementById('gate'); if(g) g.style.display='flex'; }
@@ -693,6 +704,7 @@ let _notices=[];   // 공지 목록(로드 시 채움)
 function renderAuth(){
   const d=document.getElementById('authbox'); if(!d) return;
   const u=getUser();
+  syncTourLaunch();
   if(u&&u.uid){
     d.innerHTML='<span class="who"><span class="dot"></span><a id="mypageA" title="마이페이지">'+pmEsc(u.nick||'회원')+'</a> <a id="logoutA">로그아웃</a></span>';
     const my=document.getElementById('mypageA'); if(my) L.DomEvent.on(my,'click',function(e){ L.DomEvent.stop(e); const tour=document.getElementById('mypageTour'); if(tour&&tour.classList.contains('open')) document.getElementById('tourOpen').click(); else openMyPage(); });
@@ -2429,6 +2441,7 @@ const _layerControl=L.control.layers({'일반지도':baseOSM, '위성지도':bas
 // 관리자 전용 전국 하천 중심선(OSM named river/stream, 기본 OFF, 최초 토글 시 지연 로드)
 const _riverAdminGroup=L.layerGroup();
 const _riverSearchFocus=L.layerGroup().addTo(map);
+const _riverSearchPane=map.createPane('riverSearchPane');_riverSearchPane.style.zIndex='480';_riverSearchPane.style.pointerEvents='none';
 let _riverMain=null,_riverStream=null,_riverLoading=null,_riverControlAdded=false,_riverFeatures=[],_riverPopup=null,_riverPopupSeq=0,_riverFocusCtl=null;
 function _showRiverFocusBar(name){
   if(!_riverFocusCtl){
@@ -2459,7 +2472,23 @@ function _riverSearch(q){
   const nq=String(q||'').replace(/\s/g,'').toLowerCase(), groups={};
   _riverFeatures.forEach(function(f){const p=f.properties||{},n=String(p.name||'');if(!n||n.replace(/\s/g,'').toLowerCase().indexOf(nq)<0)return;(groups[n]||(groups[n]=[])).push(f);});
   const names=Object.keys(groups).sort(function(a,b){const ae=a.replace(/\s/g,'').toLowerCase()===nq,be=b.replace(/\s/g,'').toLowerCase()===nq;return ae===be?a.localeCompare(b,'ko'):(ae?-1:1);}),out=[];
-  names.forEach(function(n){groups[n].forEach(function(f){if(out.length>=10)return;const cs=f.geometry.coordinates,m=cs[Math.floor(cs.length/2)],region=_riverRegionLabel(m[1],m[0]);out.push({kind:'river',label:'🌊 '+n,sub:region+' · '+((f.properties||{}).kind==='river'?'강·하천':'지류 하천')+' · 전체 물줄기',lat:m[1],lng:m[0],name:n,features:[f]});});});return out;
+  names.forEach(function(n){_riverComponents(groups[n],n).forEach(function(fs){if(out.length>=10)return;const f=fs[0],cs=f.geometry.coordinates,m=cs[Math.floor(cs.length/2)],region=_riverRegionLabel(m[1],m[0]);out.push({kind:'river',label:'🌊 '+n,sub:region+' · '+((f.properties||{}).kind==='river'?'강·하천':'지류 하천')+' · 전체 물줄기',lat:m[1],lng:m[0],name:n,features:fs});});});return out;
+}
+function _riverFeatureBox(f){const cs=(f&&f.geometry&&f.geometry.coordinates)||[];let s=90,w=180,n=-90,e=-180;cs.forEach(function(c){if(!c||!isFinite(c[0])||!isFinite(c[1]))return;w=Math.min(w,+c[0]);e=Math.max(e,+c[0]);s=Math.min(s,+c[1]);n=Math.max(n,+c[1]);});return {s:s,w:w,n:n,e:e};}
+function _riverBoxGapKm(a,b){const dy=Math.max(0,a.s-b.n,b.s-a.n)*110.54,lat=(Math.max(a.s,b.s)+Math.min(a.n,b.n))/2,dx=Math.max(0,a.w-b.e,b.w-a.e)*111.32*Math.cos(lat*Math.PI/180);return Math.sqrt(dx*dx+dy*dy);}
+function _riverFeaturesNear(a,b,limitKm){
+  if(_riverBoxGapKm(_riverFeatureBox(a),_riverFeatureBox(b))>limitKm)return false;
+  const ac=(a.geometry||{}).coordinates||[],bc=(b.geometry||{}).coordinates||[],as=Math.max(1,Math.floor(ac.length/120)),bs=Math.max(1,Math.floor(bc.length/120));
+  for(let i=0;i<ac.length;i+=as)for(let j=0;j<bc.length;j+=bs)if(_haversineKm([ac[i][1],ac[i][0]],[bc[j][1],bc[j][0]])<=limitKm)return true;
+  const ae=ac[ac.length-1],be=bc[bc.length-1];return !!(ae&&be&&([ac[0],ae].some(function(x){return [bc[0],be].some(function(y){return _haversineKm([x[1],x[0]],[y[1],y[0]])<=limitKm;});})));
+}
+function _riverComponents(features,name){
+  const fs=(features||[]).slice(),parent=fs.map(function(_,i){return i;}),limit=/강$/.test(String(name||''))?12:2;
+  function root(i){while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;}
+  function join(a,b){a=root(a);b=root(b);if(a!==b)parent[b]=a;}
+  for(let i=0;i<fs.length;i++)for(let j=i+1;j<fs.length;j++)if(_riverFeaturesNear(fs[i],fs[j],limit))join(i,j);
+  const out={};fs.forEach(function(f,i){const k=root(i);(out[k]||(out[k]=[])).push(f);});
+  return Object.keys(out).map(function(k){return out[k].sort(function(a,b){return b.geometry.coordinates.length-a.geometry.coordinates.length;});}).sort(function(a,b){return b.reduce(function(s,f){return s+f.geometry.coordinates.length;},0)-a.reduce(function(s,f){return s+f.geometry.coordinates.length;},0);});
 }
 const _riverRegionCache={};
 function _riverAdminName(addr){
@@ -2492,12 +2521,12 @@ function shareRiver(name,lat,lng){const u=riverShareUrl(name,lat,lng);gaEvent('r
 function shareRiverEncoded(name,lat,lng){try{shareRiver(decodeURIComponent(name),lat,lng);}catch(e){}}
 function focusRiverSearch(x,keepUrl){
   clearRiverSearch(!!keepUrl);_showRiverFocusBar(x.name);const seq=++_riverPopupSeq,bounds=L.latLngBounds([]);let anchor=null;
-  (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;if(!anchor)anchor=ll[Math.floor(ll.length/2)];L.polyline(ll,{color:'#001a33',weight:8,opacity:.68,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{color:'#003b73',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
+  (x.features||[]).forEach(function(f){const ll=f.geometry.coordinates.map(function(c){return [c[1],c[0]];});if(ll.length<2)return;if(!anchor)anchor=ll[Math.floor(ll.length/2)];L.polyline(ll,{pane:'riverSearchPane',color:'#001a33',weight:8,opacity:.68,interactive:false}).addTo(_riverSearchFocus);L.polyline(ll,{pane:'riverSearchPane',color:'#003b73',weight:4.5,opacity:1,interactive:false}).addTo(_riverSearchFocus);bounds.extend(ll);});
   if(bounds.isValid()&&anchor){map.fitBounds(bounds.pad(.06),{maxZoom:13,animate:false});const c=L.latLng(anchor),enc=encodeURIComponent(x.name);_riverPopup=L.popup({minWidth:190,autoPan:true,closeButton:true}).setLatLng(c).setContent('<b>🌊 '+pmEsc(x.name)+'</b><br><small>'+pmEsc(_riverRegionLabel(c.lat,c.lng))+' · 전체 물줄기 강조 표시</small><br><button class="addplace-btn" onclick="shareRiverEncoded(\''+enc+'\','+c.lat+','+c.lng+')">공유</button> <button class="addplace-btn" onclick="clearRiverSearch()">강조 해제</button>');setTimeout(function(){if(seq===_riverPopupSeq&&_riverPopup)_riverPopup.openOn(map);},80);}gaEvent('river_search',{name:x.name});
 }
 function focusRiverFromUrl(){
   const u=new URL(location.href),name=u.searchParams.get('river'),at=(u.searchParams.get('riverAt')||'').split(',').map(Number);if(!name)return;
-  _loadAdminRivers().then(function(){let fs=_riverFeatures.filter(function(f){return String((f.properties||{}).name||'')===name;});if(!fs.length)return;if(isFinite(at[0])&&isFinite(at[1]))fs.sort(function(a,b){function d(f){const c=f.geometry.coordinates[Math.floor(f.geometry.coordinates.length/2)];return (c[1]-at[0])*(c[1]-at[0])+(c[0]-at[1])*(c[0]-at[1]);}return d(a)-d(b);}),fs=fs.slice(0,1);focusRiverSearch({name:name,features:fs},true);});
+  _loadAdminRivers().then(function(){const fs=_riverFeatures.filter(function(f){return String((f.properties||{}).name||'')===name;});if(!fs.length)return;let parts=_riverComponents(fs,name),chosen=parts[0];if(isFinite(at[0])&&isFinite(at[1])){function d(part){let best=Infinity;part.forEach(function(f){const cs=f.geometry.coordinates,step=Math.max(1,Math.floor(cs.length/150));for(let i=0;i<cs.length;i+=step)best=Math.min(best,_haversineKm(at,[cs[i][1],cs[i][0]]));});return best;}parts.sort(function(a,b){return d(a)-d(b);});chosen=parts[0];}focusRiverSearch({name:name,features:chosen},true);});
 }
 setTimeout(focusRiverFromUrl,900);
 // ---- 관리자 전용 도로 노선(OSM, 검색/레이어 최초 사용 시 지연 로드) ----
