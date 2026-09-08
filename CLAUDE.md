@@ -19,6 +19,7 @@ python tools/build_map.py        # index.html / map.html + tour/index.html(투�
 python tools/build_map.py test   # test.html(투어 테스트)
 # → Playwright headless 검증: JS 에러 0 + 핵심 함수/엔드포인트
 git add … && git commit && git push   # GitHub Pages 자동 반영, Worker 1~2분 자동 재배포
+tools/deploy_tour.sh             # Cloudflare Pages mycanoe-tour 정적 자원 배포
 ```
 - 빌드 후 **항상** headless 검증. 검증 없이 커밋 금지.
 - 커밋 메시지 끝: `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` (기존 히스토리 관례).
