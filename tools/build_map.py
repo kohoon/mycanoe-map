@@ -405,6 +405,7 @@ __GTAG__
   .my-info-row,.my-list-row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid #e2e8eb;min-width:0}
   .my-info-row span:first-child{width:88px;color:#718087;font-size:12px}.my-info-row b{font-size:13px}
   .my-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #dce4e7;border-bottom:1px solid #dce4e7;background:#fff}
+  .my-stats.compact{grid-template-columns:repeat(2,minmax(0,1fr))}
   .my-stat{padding:15px 8px;text-align:center;border-right:1px solid #e3e9eb}.my-stat:last-child{border-right:0}
   .my-stat b{display:block;font-size:19px;color:#0d6478}.my-stat span{font-size:11px;color:#718087}
   .my-tools{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
@@ -414,7 +415,7 @@ __GTAG__
   .my-kind{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e8f2f4;flex:none;font-size:15px}
   .my-actions{display:flex;gap:4px;flex:none}.my-icon-btn{border:1px solid #ccd8dd;background:#fff;color:#52656e;border-radius:6px;min-width:32px;height:32px;padding:0 8px;cursor:pointer;font-size:12px}.my-icon-btn.del{color:#c62828;border-color:#ecc5c5}
   .my-empty{text-align:center;color:#829097;font-size:13px;padding:44px 12px}.my-empty b{display:block;color:#4c6068;margin-bottom:5px;font-size:14px}
-  @media(max-width:620px){#myModal .pmodal{width:100%;height:94vh;max-height:94vh;border-radius:14px 14px 0 0}#myBody{height:94vh}.my-head{padding:17px 16px 12px}.my-tabs{padding:0 7px}.my-tab{padding:12px 11px 10px}.my-pane{padding:14px 15px 24px}.my-stats{grid-template-columns:repeat(2,1fr)}.my-stat:nth-child(2){border-right:0}.my-stat:nth-child(-n+2){border-bottom:1px solid #e3e9eb}.my-tools{align-items:stretch}.my-toggle{width:100%;margin-left:0}.my-actions .label{display:none}}
+  @media(max-width:620px){#myModal .pmodal{width:100%;height:94vh;max-height:94vh;border-radius:14px 14px 0 0}#myBody{height:94vh}.my-head{padding:17px 16px 12px}.my-tabs{padding:0 7px}.my-tab{padding:12px 11px 10px}.my-pane{padding:14px 15px 24px}.my-stats{grid-template-columns:repeat(2,1fr)}.my-stat:nth-child(2){border-right:0}.my-stat:nth-child(-n+2){border-bottom:1px solid #e3e9eb}.my-stats.compact .my-stat{border-bottom:0}.my-tools{align-items:stretch}.my-toggle{width:100%;margin-left:0}.my-actions .label{display:none}}
   #pmLinks{font-size:13px;margin-bottom:10px}
   .pm-memo{color:#556;font-size:13px;margin-top:6px}
   .pm-note{font-size:12.5px;font-weight:700;line-height:1.45;border-radius:8px;padding:7px 9px;margin:0 0 8px}
@@ -2145,6 +2146,7 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
     }catch(e){ return []; }
   }
   async function loadMyTrips(){
+    if(!TOUR_MODE) return [];
     try{ const r=await fetch(fapi('/trips?uid='+encodeURIComponent(u.uid)+'&tok='+encodeURIComponent(u.tok||''))); return r.ok?await r.json():[]; }
     catch(e){ return []; }
   }
@@ -2160,7 +2162,7 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
   function dateText(t){ if(!t) return '기록 없음'; const d=new Date(t),p=function(v){return String(v).padStart(2,'0');}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
   function durText(sec){ sec=Math.max(0,+sec||0); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60); return h?h+'시간 '+m+'분':m+'분'; }
   function shell(content){
-    const tabs=[['info','내 정보'],['favs','즐겨찾기'],['courses','내 코스'],['activity','활동 기록']];
+    const tabs=[['info','내 정보'],['favs','즐겨찾기'],['courses','내 코스']].concat(TOUR_MODE?[['activity','활동 기록']]:[]);
     body.innerHTML='<div class="my-head"><h3>'+pmEsc(u.nick||'회원')+'님의 마이페이지</h3><p>내 정보와 저장한 콘텐츠를 관리합니다</p></div>'
       +'<div class="my-tabs">'+tabs.map(function(x){return '<button class="my-tab'+(state.tab===x[0]?' on':'')+'" data-tab="'+x[0]+'">'+x[1]+'</button>';}).join('')+'</div>'
       +'<div class="my-pane">'+content+'</div>';
@@ -2170,8 +2172,9 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
     const p=_appProfile||{}, km=state.trips.reduce(function(s,x){return s+(+x.distKm||0);},0), sec=state.trips.reduce(function(s,x){return s+(+x.durSec||0);},0);
     shell('<div class="my-profile"><div class="my-avatar">'+pmEsc((u.nick||'회').charAt(0))+'</div><div><b>'+pmEsc(u.nick||'회원')+'</b><span>카카오 계정 연결됨 · '+(isAdmin()?'관리자':'일반회원')+'</span></div></div>'
       +'<div class="my-section-title">기본정보</div><div class="my-info-row"><span>가입일</span><b>'+dateText(p.t)+'</b></div><div class="my-info-row"><span>닉네임</span><b>'+pmEsc(u.nick||'회원')+'</b></div>'
-      +'<div class="my-section-title">활동통계</div><div class="my-stats"><div class="my-stat"><b>'+_favList.length+'</b><span>즐겨찾기</span></div><div class="my-stat"><b>'+state.mine.length+'</b><span>내 코스</span></div><div class="my-stat"><b>'+state.trips.length+'</b><span>패들링</span></div><div class="my-stat"><b>'+km.toFixed(1)+'</b><span>누적 km</span></div></div>'
-      +(state.trips.length?'<div class="my-info-row"><span>누적 시간</span><b>'+durText(sec)+'</b></div>':''));
+      +'<div class="my-section-title">'+(TOUR_MODE?'활동통계':'저장 현황')+'</div><div class="my-stats'+(TOUR_MODE?'':' compact')+'"><div class="my-stat"><b>'+_favList.length+'</b><span>즐겨찾기</span></div><div class="my-stat"><b>'+state.mine.length+'</b><span>내 코스</span></div>'
+      +(TOUR_MODE?'<div class="my-stat"><b>'+state.trips.length+'</b><span>패들링</span></div><div class="my-stat"><b>'+km.toFixed(1)+'</b><span>누적 km</span></div>':'')+'</div>'
+      +(TOUR_MODE&&state.trips.length?'<div class="my-info-row"><span>누적 시간</span><b>'+durText(sec)+'</b></div>':''));
   }
   function renderFavs(){
     const q=state.q.toLowerCase(), list=_favList.map(function(x,i){return {x:x,i:i};}).filter(function(z){return (state.favKind==='all'||z.x.k===state.favKind)&&(!q||String(z.x.n||z.x.t).toLowerCase().indexOf(q)>=0);});
@@ -2195,7 +2198,7 @@ function openMyPage(){ const u=getUser(); if(!u||!u.uid) return;
   function renderActivity(){
     const list=state.trips||[]; let h=list.length?list.map(function(x){return '<div class="my-list-row"><span class="my-kind">🛶</span><div class="my-list-main"><b>'+pmEsc(x.title||'카누잉')+'</b><small>'+dateText(x.start)+' · '+(+x.distKm||0).toFixed(1)+'km · '+durText(x.durSec)+'</small></div></div>';}).join(''):'<div class="my-empty"><b>아직 활동 기록이 없습니다</b>GPS 패들링 기록 기능의 운영 적용 후 이곳에서 관리할 수 있습니다.</div>'; shell(h);
   }
-  function render(){if(state.tab==='favs')renderFavs();else if(state.tab==='courses')renderCourses();else if(state.tab==='activity')renderActivity();else renderInfo();}
+  function render(){if(state.tab==='favs')renderFavs();else if(state.tab==='courses')renderCourses();else if(TOUR_MODE&&state.tab==='activity')renderActivity();else renderInfo();}
   body.innerHTML='<div class="pm-empty">불러오는 중…</div>';
   Promise.all([loadFavs(),loadMyCourses(),loadMyTrips()]).then(function(res){state.mine=res[1]||[];state.trips=res[2]||[];render();});
 }
