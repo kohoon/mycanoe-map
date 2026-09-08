@@ -7,6 +7,7 @@ compatibility_date = "2024-09-01"
 # (Client Secret 은 쓰지 않음 — 쓰려면 대시보드 Secret 으로 KAKAO_CLIENT_SECRET 추가)
 [vars]
 SITE_URL = "https://canoe.crowdbase.kr/"
+TOUR_URL = "https://tour.crowdbase.kr/"
 KAKAO_REST_KEY = "75762a42634f319b1187427cc00e2b37"
 # 관리자 키(ADMIN_KEY)는 공개 레포에 두지 않음 — Cloudflare 대시보드 Secret 으로 추가
 

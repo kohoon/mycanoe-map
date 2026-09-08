@@ -20,7 +20,7 @@ function _hav(a, b) {
   const h = Math.sin(dla / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dlo / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
-function _trackKm(t) { let d = 0; for (let i = 1; i < t.length; i++) d += _hav(t[i - 1], t[i]); return d / 1000; }
+function _trackKm(t, breaks) { const skip = new Set(Array.isArray(breaks) ? breaks.map(Number) : []); let d = 0; for (let i = 1; i < t.length; i++) if (!skip.has(i)) d += _hav(t[i - 1], t[i]); return d / 1000; }
 
 // ---- 신원 서명 토큰(HMAC) — 클라이언트 자기신고 uid 스푸핑 방지 ----
 // 로그인 콜백에서 발급(#login=...&tok=...) → 쓰기 API가 검증. 비밀키는 ADMIN_KEY 재사용(서버 전용).
@@ -46,8 +46,8 @@ async function _uidHash(env, uid) {    // 공개 응답용 가명(원 uid 비노
 function _allowedOrigin(req, env) {
   const o = req.headers.get("Origin") || "";
   if (!o) return true;   // 동일 출처/비-CORS(이미지 src 등) 허용
-  const site = (env.SITE_URL || "https://canoe.crowdbase.kr/").replace(/\/$/, "");
-  try { const oh = new URL(o).host; return oh === new URL(site).host || oh === "localhost" || oh.startsWith("localhost:") || oh === "127.0.0.1"; }
+  const site = (env.SITE_URL || "https://canoe.crowdbase.kr/").replace(/\/$/, ""), tour = (env.TOUR_URL || "https://tour.crowdbase.kr/").replace(/\/$/, "");
+  try { const oh = new URL(o).host; return oh === new URL(site).host || oh === new URL(tour).host || oh === "localhost" || oh.startsWith("localhost:") || oh === "127.0.0.1"; }
   catch (e) { return false; }
 }
 // 단순 속도 제한(Worker isolate 메모리, 분 단위) — KV 쓰기 한도를 소모하지 않는다.
@@ -121,10 +121,10 @@ export default {
       if (!raw) return "";
       try {
         const u = new URL(raw, env.SITE_URL || "https://canoe.crowdbase.kr/");
-        const site = new URL(env.SITE_URL || "https://canoe.crowdbase.kr/");
+        const site = new URL(env.SITE_URL || "https://canoe.crowdbase.kr/"), tour = new URL(env.TOUR_URL || "https://tour.crowdbase.kr/");
         const isLocal = (u.protocol === "http:" || u.protocol === "https:") && (u.hostname === "localhost" || u.hostname === "127.0.0.1");
         if (isLocal) return u.origin + u.pathname + u.search;
-        if (u.origin !== site.origin) return "";
+        if (u.origin !== site.origin && u.origin !== tour.origin) return "";
         return u.origin + u.pathname + u.search;
       } catch (e) {
         return "";
@@ -1070,7 +1070,9 @@ export default {
         }
         if (tp.endsWith("/feed")) {             // 공유 트립 목록(uid 비노출)
           let feed = []; try { feed = JSON.parse((KV ? await KV.get("feed") : null) || "[]"); } catch (e) {}
-          return J(JSON.stringify(feed.map((x) => ({ id: x.id, nick: x.nick, title: x.title, distKm: x.distKm, start: x.start }))));
+          return J(JSON.stringify(feed.map((x) => ({ id: x.id, nick: x.nick, title: x.title, distKm: x.distKm,
+            durSec: x.durSec, start: x.start, estimated: !!x.estimated, courseName: x.courseName || "",
+            courseProgress: Math.max(0, Math.min(100, Number(x.courseProgress) || 0)) }))));
         }
         if (tp.endsWith("/board")) {            // 랭킹(uid → 가명 해시, 본인 행은 me 표시)
           let obj = {};
@@ -1108,17 +1110,22 @@ export default {
           if (action === "save") {
             let track = Array.isArray(b.track) ? b.track.slice(0, 5000) : [];
             if (track.length < 2) return TXT("bad", 400);
-            const distKm = Math.round(_trackKm(track) * 100) / 100;
+            const breaks = Array.isArray(b.breaks) ? b.breaks.slice(0, 200).map(Number).filter((x) => Number.isInteger(x) && x > 0 && x < track.length) : [];
+            const distKm = Math.round(_trackKm(track, breaks) * 100) / 100;
             const id = String(b.id) + "_" + Date.now();
             const trip = {
               id, uid: String(b.id), nick: String(b.nick || "").slice(0, 20),
               title: String(b.title || "카누잉").slice(0, 40),
               start: Number(b.start) || 0, end: Number(b.end) || 0, durSec: Number(b.durSec) || 0,
-              distKm, track, launch: b.launch || null, landing: b.landing || null,
+              distKm, track, breaks, launch: b.launch || null, landing: b.landing || null,
+              gpsTrack: Array.isArray(b.gpsTrack) ? b.gpsTrack.slice(0, 5000) : null,
+              estimated: !!b.estimated, courseId: String(b.courseId || "").slice(0, 30),
+              courseName: String(b.courseName || "").slice(0, 80), courseProgress: Math.max(0, Math.min(100, Number(b.courseProgress) || 0)),
               shared: !!b.shared, ct: Date.now(),
             };
             await KV.put("trip:" + id, JSON.stringify(trip));
-            const sum = { id, title: trip.title, start: trip.start, distKm, durSec: trip.durSec, shared: trip.shared };
+            const sum = { id, title: trip.title, start: trip.start, distKm, durSec: trip.durSec, shared: trip.shared,
+              estimated: trip.estimated, courseName: trip.courseName, courseProgress: trip.courseProgress };
             let ut = []; try { ut = JSON.parse((await KV.get("utrips:" + trip.uid)) || "[]"); } catch (e) {}
             ut.unshift(sum); if (ut.length > 500) ut = ut.slice(0, 500);
             await KV.put("utrips:" + trip.uid, JSON.stringify(ut));
@@ -1128,7 +1135,8 @@ export default {
             bd[trip.uid] = en; await KV.put("board", JSON.stringify(bd));
             if (trip.shared) {
               let feed = []; try { feed = JSON.parse((await KV.get("feed")) || "[]"); } catch (e) {}
-              feed.unshift({ id, uid: trip.uid, nick: trip.nick, title: trip.title, distKm, start: trip.start });
+              feed.unshift({ id, uid: trip.uid, nick: trip.nick, title: trip.title, distKm, durSec: trip.durSec, start: trip.start,
+                estimated: trip.estimated, courseName: trip.courseName, courseProgress: trip.courseProgress });
               if (feed.length > 500) feed = feed.slice(0, 500);
               await KV.put("feed", JSON.stringify(feed));
             }
@@ -1145,7 +1153,9 @@ export default {
             await KV.put("utrips:" + trip.uid, JSON.stringify(ut));
             let feed = []; try { feed = JSON.parse((await KV.get("feed")) || "[]"); } catch (e) {}
             feed = feed.filter((x) => x.id !== id);
-            if (trip.shared) feed.unshift({ id, uid: trip.uid, nick: trip.nick, title: trip.title, distKm: trip.distKm, start: trip.start });
+            if (trip.shared) feed.unshift({ id, uid: trip.uid, nick: trip.nick, title: trip.title, distKm: trip.distKm,
+              durSec: trip.durSec, start: trip.start, estimated: trip.estimated,
+              courseName: trip.courseName, courseProgress: trip.courseProgress });
             if (feed.length > 500) feed = feed.slice(0, 500);
             await KV.put("feed", JSON.stringify(feed));
             return J(JSON.stringify({ ok: true, shared: trip.shared }));

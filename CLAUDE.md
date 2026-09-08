@@ -15,8 +15,8 @@
 
 ## 빌드 & 배포 (반드시 이 순서)
 ```
-python tools/build_map.py        # index.html / map.html (운영)
-python tools/build_map.py test   # test.html (카누잉 기록 포함)
+python tools/build_map.py        # index.html / map.html + tour/index.html(투어 운영)
+python tools/build_map.py test   # test.html(투어 테스트)
 # → Playwright headless 검증: JS 에러 0 + 핵심 함수/엔드포인트
 git add … && git commit && git push   # GitHub Pages 자동 반영, Worker 1~2분 자동 재배포
 ```
