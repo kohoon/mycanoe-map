@@ -549,6 +549,10 @@ __GTAG__
   .tm-start-course{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccd;border-radius:9px;background:#fff;font-size:14px;margin:8px 0}
   .tm-note{font-size:12.5px;line-height:1.5;color:#60747c;background:#eef6f8;border-radius:9px;padding:9px 10px;margin:8px 0}
   .tm-choice{width:100%;border:0;border-radius:10px;padding:13px 12px;font:800 14px sans-serif;cursor:pointer}.tm-choice.pick{background:#1565c0;color:#fff}.tm-choice.free{margin-top:8px;background:#edf2f4;color:#43545c}
+  html.tour-mode .search,html.tour-mode .leaflet-control-zoom,html.tour-mode .leaflet-control-layers,
+  html.tour-mode .cafe-actions,html.tour-mode .noticebtn,html.tour-mode #measBtnBox,
+  html.tour-mode #measModeBtn,html.tour-mode #obsBtnBox,html.tour-mode #mypageTour,
+  html.tour-mode .admin-badge{display:none!important}
   /* /TRIPCSS */
   .authbox{font:600 13px sans-serif}
   .authbox button{background:#FEE500;color:#191600;border:0;border-radius:6px;padding:8px 12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
@@ -641,6 +645,7 @@ __GTAG__
       <path d="M9.5 20C9.5 15.7 19.5 13.8 32 13.8C44.5 13.8 54.5 15.7 54.5 20C54.5 24.3 44.5 26.2 32 26.2C19.5 26.2 9.5 24.3 9.5 20Z" fill="#dfeefb"/>
       <path d="M23 15.2V24.8M41 15.2V24.8" stroke="#bcd6ea" stroke-width="1.5" stroke-linecap="round"/>
     </svg></div>
+    <!-- GATEBODY -->
     <h1>마이카누 지도<span class="beta-tag">BETA</span></h1>
     <p class="gate-sub">전국 카누 명소를 한눈에</p>
     <ul class="gate-feats">
@@ -652,6 +657,7 @@ __GTAG__
     <div class="gate-warn"><span>⚠️</span><span>베타 서비스입니다. 접속·속도가 불안정할 수 있고, 남긴 코멘트가 사라질 수 있어요.</span></div>
     <button id="gateLogin" class="kakao-btn"><svg class="kakao-ico" viewBox="0 0 24 24"><path d="M12 3.4C6.7 3.4 2.4 6.9 2.4 11.1c0 2.7 1.8 5.1 4.5 6.5-.2.7-.7 2.5-.8 2.9-.1.5.2.5.4.4.2-.1 2.5-1.7 3.5-2.4.5.1 1 .2 1.5.2 5.3 0 9.6-3.4 9.6-7.6S17.3 3.4 12 3.4z"/></svg>카카오로 시작하기</button>
     <small>로그인 후 바로 이용할 수 있어요</small>
+    <!-- /GATEBODY -->
   </div>
 </div>
 <div id="pmodal" class="pmodal-wrap">
@@ -760,6 +766,7 @@ const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직�
 const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
 const GA_ID = "__GA_ID__";        // GA4 측정 ID(비면 추적 off)
 const TOUR_MODE = __TOUR_MODE__;
+if(TOUR_MODE)document.documentElement.classList.add('tour-mode');
 function syncAppViewport(){
   const vv=window.visualViewport,h=Math.round(vv&&vv.height?vv.height:window.innerHeight);
   if(!h)return;document.documentElement.style.setProperty('--app-height',h+'px');
@@ -866,6 +873,7 @@ function openNicknameModal(u){ return new Promise(function(resolve){
   ok.onclick=submit; inp.onkeydown=function(e){if(e.key==='Enter') submit();}; setTimeout(function(){inp.focus();inp.select();},80);
 }); }
 function showMyPageTour(profile){
+  if(TOUR_MODE) return;
   if(!profile||profile.mypageTourSeen) return;
   const el=document.getElementById('mypageTour'), auth=document.getElementById('authbox'); if(!el) return;
   el.classList.add('open'); if(auth) auth.classList.add('tour-focus');
@@ -898,14 +906,14 @@ let _notices=[];   // 공지 목록(로드 시 채움)
 (function(){
   const gb=document.getElementById('gateLogin');
   if(gb) gb.onclick=function(){ gaEvent('login_start'); location.href=loginWorkerUrl(); };
-  const u=getUser(); if(u&&u.uid){ hideGate(); ensureAppProfile().then(function(ok){ if(ok) fetchNotices().then(updateNoticeBadge); }); } else showGate();
+  const u=getUser(); if(u&&u.uid){ hideGate(); ensureAppProfile().then(function(ok){ if(ok&&!TOUR_MODE) fetchNotices().then(updateNoticeBadge); }); } else showGate();
 })();
 function renderAuth(){
   const d=document.getElementById('authbox'); if(!d) return;
-  const u=getUser();
+  const u=getUser(), myTitle=TOUR_MODE?'투어 기록':'마이페이지';
   if(u&&u.uid){
-    d.innerHTML='<span class="who"><span class="dot"></span><a id="mypageA" title="마이페이지">'+pmEsc(u.nick||'회원')+'</a> <a id="logoutA">로그아웃</a></span>';
-    const my=document.getElementById('mypageA'); if(my) L.DomEvent.on(my,'click',function(e){ L.DomEvent.stop(e); const tour=document.getElementById('mypageTour'); if(tour&&tour.classList.contains('open')) document.getElementById('tourOpen').click(); else openMyPage(); });
+    d.innerHTML='<span class="who"><span class="dot"></span><a id="mypageA" title="'+myTitle+'">'+pmEsc(u.nick||'회원')+'</a> <a id="logoutA">로그아웃</a></span>';
+    const my=document.getElementById('mypageA'); if(my) L.DomEvent.on(my,'click',function(e){ L.DomEvent.stop(e); if(TOUR_MODE){openTModal('trips');return;} const tour=document.getElementById('mypageTour'); if(tour&&tour.classList.contains('open')) document.getElementById('tourOpen').click(); else openMyPage(); });
     const lo=document.getElementById('logoutA'); if(lo) L.DomEvent.on(lo,'click',function(e){ L.DomEvent.stop(e); setUser(null); _profilePromise=null; _appProfile=null; const tour=document.getElementById('mypageTour'); if(tour) tour.classList.remove('open'); gaEvent('logout'); renderAuth(); showGate(); });
   } else {
     d.innerHTML='<button id="loginA">카카오 로그인</button>';
@@ -1810,8 +1818,7 @@ function loadObstacles(){ fetch(WORKER_URL.replace(/\/+$/,'')+'/obstacles').then
   .then(function(list){ (list||[]).forEach(function(o){ if(o&&!o.del) renderObstacle(o); }); }).catch(function(){}); }
 obstacleLayer.addTo(map);   // 기본 ON — 별도 토글(통합 패널), 줌<12에서는 pane 게이팅으로 숨김
 _zoomPaneGate();
-WEIRS.forEach(renderStaticWeir);
-loadObstacles();
+if(!TOUR_MODE){WEIRS.forEach(renderStaticWeir);loadObstacles();}
 // 지형지물 추가(관리자 전용 버튼 — 거리측정 버튼 옆)
 let obsPlaceMode=false;
 const ObstacleCtl=L.Control.extend({ options:{position:'topleft'},
@@ -2206,7 +2213,7 @@ function gotoFav(x){ if(!x) return; closeMyPage();
     else { const kid=x.t.slice(8); const c=_kvCourses[kid]; if(c) _fitAndPop(c.coords, c.name, c.km); }
   } else if(x.lat!=null){ map.setView([x.lat,x.lng],15); }
 }
-loadFavs();
+if(!TOUR_MODE)loadFavs();else _favLoaded=true;
 // 로드뷰 있는 장소 표식 레이어(기본 OFF, 토글) — 장소와 함께 범위 조회
 const roadviewLayer = L.layerGroup();
 const _roadviewPlaceIds={};
@@ -2259,10 +2266,12 @@ function _upsertSecurePlace(x){
   _addRoadviewFeature(f);
 }
 async function _loadSharedPlace(){
+  if(TOUR_MODE) return;
   const id=new URL(location.href).searchParams.get('place'); if(!id||_placeMarkerById[id]) return;
   try{(await _fetchLaunchSites({id:id})).forEach(_upsertSecurePlace);focusPlaceFromUrl();}catch(e){}
 }
 async function _loadSecureBounds(force){
+  if(TOUR_MODE) return;
   const u=getUser(); if(!u||!u.uid||!u.tok) return;
   const b=map.getBounds(), q=[Math.max(123,b.getWest()),Math.max(32,b.getSouth()),Math.min(132,b.getEast()),Math.min(40,b.getNorth())].map(function(v){return (+v).toFixed(3);}).join(',');
   const key=(isAdmin()?'a:':'u:')+q; if(!force&&_secureBboxSeen[key]) return; _secureBboxSeen[key]=1;
@@ -3855,7 +3864,12 @@ async function deleteReply(nid, rt){ if(!isAdmin()) return; if(!confirm('이 답
     if(r.ok){ gaEvent('notice_reply_del'); openNotices(); } else alert('실패(권한 확인)'); }catch(e){ alert('오류'); } }
 
 // ---- 범례는 레이어 패널에 통합됨(위 _layerControl) ----
-map.addControl(new CafeCtl());   // 카페·접속기록: 마이페이지 아래 우상단 스택
+if(TOUR_MODE){
+  _protectWanted=false;_wlzWanted=false;_waterplayWanted=false;
+  [famousLayer,canoeLayer,obstacleLayer,roadviewLayer,waterLevelLayer,damLevelLayer,cctvLayer,
+   _protectPH,_wlzPH,_waterplayPH].forEach(function(l){if(l&&map.hasLayer(l))map.removeLayer(l);});
+  if(!_courseFocusId&&map.hasLayer(allCoursesGroup))map.removeLayer(allCoursesGroup);
+}else map.addControl(new CafeCtl());   // 카페·접속기록: 마이페이지 아래 우상단 스택
 </script>
 </body>
 </html>
@@ -3888,15 +3902,33 @@ def _strip_trip(h):
     h = _re.sub(r"/\* TRIPJS \*/.*?/\* /TRIPJS \*/", "", h, flags=_re.S)
     return h
 
+_TOUR_GATE_BODY = r"""
+    <h1>마이카누 투어<span class="beta-tag">BETA</span></h1>
+    <p class="gate-sub">카누 활동을 실시간으로 기록하세요</p>
+    <ul class="gate-feats">
+      <li><span>🧭</span><span>GPS 이동 경로·거리·속도</span></li>
+      <li><span>🗺️</span><span>지정 코스 진행률 확인</span></li>
+      <li><span>⏸️</span><span>휴식 제외 활동 시간과 기록 저장</span></li>
+    </ul>
+    <div class="gate-warn"><span>⚠️</span><span>화면이 꺼지면 GPS가 누락될 수 있어요. 복귀 시 물길 기준으로 추정합니다.</span></div>
+    <button id="gateLogin" class="kakao-btn"><svg class="kakao-ico" viewBox="0 0 24 24"><path d="M12 3.4C6.7 3.4 2.4 6.9 2.4 11.1c0 2.7 1.8 5.1 4.5 6.5-.2.7-.7 2.5-.8 2.9-.1.5.2.5.4.4.2-.1 2.5-1.7 3.5-2.4.5.1 1 .2 1.5.2 5.3 0 9.6-3.4 9.6-7.6S17.3 3.4 12 3.4z"/></svg>카카오로 투어 시작</button>
+    <small>로그인 후 바로 기록할 수 있어요</small>
+"""
+
+def _gate_mode(h, tour=False):
+    if tour:
+        h = _re.sub(r"[ \t]*<!-- GATEBODY -->.*?[ \t]*<!-- /GATEBODY -->", _TOUR_GATE_BODY.strip("\n"), h, flags=_re.S)
+    return h.replace("    <!-- GATEBODY -->", "").replace("    <!-- /GATEBODY -->", "")
+
 if _TEST:
     out = BASE / "test.html"               # 테스트 페이지: 트립 포함
-    out.write_text(html.replace("__TOUR_MODE__", "true"), encoding="utf-8")
+    out.write_text(_gate_mode(html.replace("__TOUR_MODE__", "true"), tour=True), encoding="utf-8")
     print(f"생성: test.html ({out.stat().st_size/1024:.0f} KB) — 카누잉 기록 포함(테스트)")
 else:
-    prod = _strip_trip(html.replace("__TOUR_MODE__", "false"))  # 기존 지도: 투어 UI 없음
+    prod = _strip_trip(_gate_mode(html.replace("__TOUR_MODE__", "false")))  # 기존 지도: 투어 UI 없음
     (BASE / "map.html").write_text(prod, encoding="utf-8")
     (BASE / "index.html").write_text(prod, encoding="utf-8")
-    tour = html.replace("__TOUR_MODE__", "true")
+    tour = _gate_mode(html.replace("__TOUR_MODE__", "true"), tour=True)
     tour = tour.replace("<title>마이카누 지도 — 카누 명소·코스·물길 거리측정</title>", "<title>마이카누 투어 — 실시간 GPS 카누잉 기록</title>")
     tour = tour.replace('<meta property="og:url" content="https://canoe.crowdbase.kr/">', '<meta property="og:url" content="https://tour.crowdbase.kr/">')
     tour = tour.replace('<meta property="og:title" content="마이카누 지도">', '<meta property="og:title" content="마이카누 투어">')
