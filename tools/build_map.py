@@ -174,7 +174,6 @@ __GTAG__
   #map{position:fixed;inset:0;width:100%;height:var(--app-height)}
   .leaflet-top{top:env(safe-area-inset-top,0px)}.leaflet-bottom{bottom:env(safe-area-inset-bottom,0px)}
   .leaflet-left{left:env(safe-area-inset-left,0px)}.leaflet-right{right:env(safe-area-inset-right,0px)}
-  #tourLaunch{position:fixed;left:50%;bottom:18px;bottom:max(18px,calc(env(safe-area-inset-bottom,0px) + 12px));transform:translateX(-50%);z-index:1200;display:inline-flex;align-items:center;justify-content:center;background:#ff3d00;color:#fff;border:0;border-radius:24px;padding:13px 20px;font:800 15px sans-serif;box-shadow:0 4px 14px rgba(255,61,0,.45);cursor:pointer;white-space:nowrap;text-decoration:none}
   .legend{background:#fff;padding:8px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);font:13px/1.5 sans-serif}
   .legend b{display:block;margin-bottom:4px}
   .sw{display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:5px;border-radius:2px}
@@ -730,7 +729,6 @@ __GTAG__
     <div id="rvMsg">근처에 로드뷰가 없습니다.</div>
   </div>
 </div>
-<a id="tourLaunch" href="https://tour.crowdbase.kr/">▶ 투어 시작</a>
 <!-- TRIPHTML -->
 <div id="tripbar">
   <div id="tourPickGuide" class="trip-pick-guide"><span id="tourPickText">📍 출발지를 지도에서 찍으세요</span><button type="button" onclick="cancelTourPick()">취소</button></div>
@@ -762,7 +760,6 @@ const VKEY = "__VKEY__";   // V-World 키(도메인잠금). 브라우저가 직�
 const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
 const GA_ID = "__GA_ID__";        // GA4 측정 ID(비면 추적 off)
 const TOUR_MODE = __TOUR_MODE__;
-const TOUR_URL = "https://tour.crowdbase.kr/";
 function syncAppViewport(){
   const vv=window.visualViewport,h=Math.round(vv&&vv.height?vv.height:window.innerHeight);
   if(!h)return;document.documentElement.style.setProperty('--app-height',h+'px');
@@ -771,17 +768,6 @@ function syncAppViewport(){
 syncAppViewport();
 window.addEventListener('resize',syncAppViewport);window.addEventListener('pageshow',syncAppViewport);
 if(window.visualViewport)window.visualViewport.addEventListener('resize',syncAppViewport);
-function syncTourLaunch(){
-  const launch=document.getElementById('tourLaunch');if(!launch)return;
-  if(TOUR_MODE){document.title='마이카누 투어';launch.style.display='none';return;}
-  const dest=new URL(TOUR_URL),requested=new URL(location.href).searchParams.get('course'),u=getUser();
-  if(requested)dest.searchParams.set('course',requested);
-  // canoe/tour는 서로 다른 origin이라 localStorage가 공유되지 않는다. 이미 로그인한 사용자는
-  // 서명 토큰을 서버로 전송되지 않는 fragment로 한 번 전달하고, 투어 페이지가 저장 후 즉시 지운다.
-  if(u&&u.uid&&u.tok)dest.hash=new URLSearchParams({login:u.uid,nick:u.nick||u.kakaoNick||'',tok:u.tok}).toString();
-  launch.href=dest.toString();
-}
-syncTourLaunch();
 // 관리자 백도어(키 인증). 키는 공개 코드에 없음 — 서버(Cloudflare Secret)가 검증
 let _adminOk=false;
 function adminKey(){ try{ return localStorage.getItem('mc_admin')||''; }catch(e){ return ''; } }
@@ -904,7 +890,6 @@ function showMyPageTour(profile){
     if(window.gtag) gtag('set',{user_id:uid});
     gaEvent('login',{method:'kakao'});
   } else { const u=getUser(); if(u&&u.uid){ if(window.gtag) gtag('set',{user_id:u.uid}); } }
-  syncTourLaunch();
 })();
 // 로그인 관문: 미로그인 시 지도 차단(로그인 화면 표시)
 function showGate(){ const g=document.getElementById('gate'); if(g) g.style.display='flex'; }
@@ -918,7 +903,6 @@ let _notices=[];   // 공지 목록(로드 시 채움)
 function renderAuth(){
   const d=document.getElementById('authbox'); if(!d) return;
   const u=getUser();
-  syncTourLaunch();
   if(u&&u.uid){
     d.innerHTML='<span class="who"><span class="dot"></span><a id="mypageA" title="마이페이지">'+pmEsc(u.nick||'회원')+'</a> <a id="logoutA">로그아웃</a></span>';
     const my=document.getElementById('mypageA'); if(my) L.DomEvent.on(my,'click',function(e){ L.DomEvent.stop(e); const tour=document.getElementById('mypageTour'); if(tour&&tour.classList.contains('open')) document.getElementById('tourOpen').click(); else openMyPage(); });
@@ -3894,7 +3878,7 @@ html = (HTML
         .replace("__WORKER__", WORKER_URL)
         .replace("__GA_ID__", GA_ID))
 
-# 카누잉 기록(트립)은 tour/index.html 전용. 기존 지도에는 전용 사이트 진입 버튼만 표시한다.
+# 카누잉 투어 UI·기록은 tour/index.html 전용이며 기존 지도에는 노출하지 않는다.
 import re as _re, sys as _sys
 _TEST = len(_sys.argv) > 1 and _sys.argv[1] == "test"
 
@@ -3909,7 +3893,7 @@ if _TEST:
     out.write_text(html.replace("__TOUR_MODE__", "true"), encoding="utf-8")
     print(f"생성: test.html ({out.stat().st_size/1024:.0f} KB) — 카누잉 기록 포함(테스트)")
 else:
-    prod = _strip_trip(html.replace("__TOUR_MODE__", "false"))  # 기존 지도: 투어 진입 버튼만
+    prod = _strip_trip(html.replace("__TOUR_MODE__", "false"))  # 기존 지도: 투어 UI 없음
     (BASE / "map.html").write_text(prod, encoding="utf-8")
     (BASE / "index.html").write_text(prod, encoding="utf-8")
     tour = html.replace("__TOUR_MODE__", "true")
