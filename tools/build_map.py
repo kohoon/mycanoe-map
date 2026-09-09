@@ -153,7 +153,7 @@ HTML = r"""<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>마이카누 지도 — 카누 명소·코스·물길 거리측정</title>
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://canoe.crowdbase.kr/">
@@ -169,8 +169,12 @@ HTML = r"""<!DOCTYPE html>
 __GTAG__
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  html,body,#map{height:100%;margin:0}
-  #tourLaunch{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:1200;display:inline-flex;align-items:center;justify-content:center;background:#ff3d00;color:#fff;border:0;border-radius:24px;padding:13px 20px;font:800 15px sans-serif;box-shadow:0 4px 14px rgba(255,61,0,.45);cursor:pointer;white-space:nowrap;text-decoration:none}
+  :root{--app-height:100vh}@supports(height:100dvh){:root{--app-height:100dvh}}
+  html,body{width:100%;height:var(--app-height);margin:0;padding:0;overflow:hidden;background:#dce7eb}
+  #map{position:fixed;inset:0;width:100%;height:var(--app-height)}
+  .leaflet-top{top:env(safe-area-inset-top,0px)}.leaflet-bottom{bottom:env(safe-area-inset-bottom,0px)}
+  .leaflet-left{left:env(safe-area-inset-left,0px)}.leaflet-right{right:env(safe-area-inset-right,0px)}
+  #tourLaunch{position:fixed;left:50%;bottom:18px;bottom:max(18px,calc(env(safe-area-inset-bottom,0px) + 12px));transform:translateX(-50%);z-index:1200;display:inline-flex;align-items:center;justify-content:center;background:#ff3d00;color:#fff;border:0;border-radius:24px;padding:13px 20px;font:800 15px sans-serif;box-shadow:0 4px 14px rgba(255,61,0,.45);cursor:pointer;white-space:nowrap;text-decoration:none}
   .legend{background:#fff;padding:8px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.3);font:13px/1.5 sans-serif}
   .legend b{display:block;margin-bottom:4px}
   .sw{display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:5px;border-radius:2px}
@@ -506,7 +510,7 @@ __GTAG__
   .nt-wbtns .sg-submit{flex:1;margin-top:0}
   .nt-cancel{flex:none;background:#eef1f3;color:#456;border:0;border-radius:11px;padding:0 18px;font:700 14px sans-serif;cursor:pointer}
   /* TRIPCSS */
-  #tripbar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;z-index:1200;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(440px,calc(100vw - 24px))}
+  #tripbar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;bottom:max(18px,calc(env(safe-area-inset-bottom,0px) + 12px));z-index:1200;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(440px,calc(100vw - 24px))}
   .trip-live{display:none;width:100%;box-sizing:border-box;background:rgba(20,32,38,.92);color:#fff;border-radius:14px;padding:10px 12px;grid-template-columns:repeat(4,1fr);gap:6px;box-shadow:0 4px 16px rgba(0,0,0,.32);backdrop-filter:blur(5px)}
   #tripbar.rec .trip-live{display:grid}
   .trip-pick-guide{display:none;align-items:center;gap:9px;max-width:calc(100vw - 24px);box-sizing:border-box;background:rgba(12,48,67,.95);color:#fff;border-radius:24px;padding:9px 10px 9px 15px;box-shadow:0 4px 16px rgba(0,0,0,.32);font:700 13px/1.3 sans-serif;backdrop-filter:blur(5px)}
@@ -622,7 +626,7 @@ __GTAG__
     .leaflet-control-layers:not(.lc-collapsed)::-webkit-scrollbar-thumb{background:#b8c5cb;border-radius:5px}
     .leaflet-control-layers.lc-collapsed{overflow:hidden}
     .pmodal{padding:16px 14px 20px}
-    #tripbar{bottom:12px}.trip-live{padding:9px 7px;gap:3px}.trip-live b{font-size:13px}.trip-live small{font-size:9.5px}.tb-start{padding:12px 15px;font-size:14px}.tb-pause,.tb-refresh{padding:11px 10px;font-size:12px}
+    #tripbar{bottom:12px;bottom:max(12px,calc(env(safe-area-inset-bottom,0px) + 8px))}.trip-live{padding:9px 7px;gap:3px}.trip-live b{font-size:13px}.trip-live small{font-size:9.5px}.tb-start{padding:12px 15px;font-size:14px}.tb-pause,.tb-refresh{padding:11px 10px;font-size:12px}
     #rvModal .rv-pmodal{width:100%;max-width:none;max-height:92vh}
     #rvView{height:68vh;max-height:none;min-height:320px}
   }
@@ -759,6 +763,14 @@ const WORKER_URL = "__WORKER__";  // 카카오 로그인 OAuth Worker
 const GA_ID = "__GA_ID__";        // GA4 측정 ID(비면 추적 off)
 const TOUR_MODE = __TOUR_MODE__;
 const TOUR_URL = "https://tour.crowdbase.kr/";
+function syncAppViewport(){
+  const vv=window.visualViewport,h=Math.round(vv&&vv.height?vv.height:window.innerHeight);
+  if(!h)return;document.documentElement.style.setProperty('--app-height',h+'px');
+  if(window.map&&window.map.invalidateSize)setTimeout(function(){window.map.invalidateSize({pan:false});},0);
+}
+syncAppViewport();
+window.addEventListener('resize',syncAppViewport);window.addEventListener('pageshow',syncAppViewport);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',syncAppViewport);
 function syncTourLaunch(){
   const launch=document.getElementById('tourLaunch');if(!launch)return;
   if(TOUR_MODE){document.title='마이카누 투어';launch.style.display='none';return;}
