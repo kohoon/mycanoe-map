@@ -1601,7 +1601,8 @@ function _obHasKakao(ty){ return ty==='식당/카페'; }
 function _obKakaoUrl(v){
   const raw=String(v||'').trim(); if(!raw) return '';
   try{ const u=new URL(raw), h=u.hostname.toLowerCase();
-    return u.protocol==='https:'&&(h==='map.kakao.com'||h==='place.map.kakao.com'||h==='kko.to')?u.href.slice(0,500):'';
+    if((u.protocol==='https:'||u.protocol==='http:')&&(h==='map.kakao.com'||h==='place.map.kakao.com'||h==='kko.to')){u.protocol='https:';return u.href.slice(0,500);}
+    return '';
   }catch(e){ return ''; }
 }
 function _obKakaoLink(o){
@@ -1615,7 +1616,8 @@ function staticWeirId(w){ return 'weir:'+encodeURIComponent(String(w.nm||'보'))
 function obsIcon(type,name){ const t=OBS_TYPES[type]||OBS_TYPES['보']; const disp=(name&&String(name).trim())?pmEsc(String(name).trim()):t.label; return L.divIcon({className:'obs-div',html:'<span class="obs-ic '+t.c+'">'+t.e+' '+disp+'</span>',iconSize:null}); }
 function obsPopup(o){ const t=OBS_TYPES[o.type]||OBS_TYPES['보']; const nm=(o.name&&String(o.name).trim())?pmEsc(String(o.name).trim()):'';
   const kakao=o.type==='식당/카페'?'<div style="margin:8px 0 4px"><a href="'+_obKakaoLink(o)+'" target="_blank" rel="noopener" style="color:#1565c0;font-weight:700">🟡 카카오맵 장소 상세</a></div>':'';
-  return '<span class="obs-ic '+t.c+'">'+t.e+' '+(nm||t.label)+'</span>'+(nm?'<small style="color:#99a;margin-left:6px">'+t.label+'</small>':'')+(o.note?'<div style="margin:7px 0 4px;color:#445;font-size:13px">'+linkify(o.note)+'</div>':'<br>')+kakao
+  const matched=o.kakaoPlaceName?'<div style="margin:6px 0 0;color:#60747c;font-size:11.5px">카카오맵 자동 연결: '+pmEsc(o.kakaoPlaceName)+(isFinite(Number(o.kakaoMatchDistance))?' · '+Math.round(Number(o.kakaoMatchDistance))+'m':'')+'</div>':'';
+  return '<span class="obs-ic '+t.c+'">'+t.e+' '+(nm||t.label)+'</span>'+(nm?'<small style="color:#99a;margin-left:6px">'+t.label+'</small>':'')+matched+(o.note?'<div style="margin:7px 0 4px;color:#445;font-size:13px">'+linkify(o.note)+'</div>':'<br>')+kakao
     +(isAdmin()?'<a onclick="editObstacle(\''+o.id+'\')" style="color:#1565c0;cursor:pointer;margin-right:10px">✏️ 수정</a><a onclick="moveObstacle(\''+o.id+'\')" style="color:#2e9e5b;cursor:pointer;margin-right:10px">📍 이동</a><a onclick="deleteObstacle(\''+o.id+'\')" style="color:#c62828;cursor:pointer">삭제</a>':''); }
 function renderObstacle(o){ if(!o||o.lat==null||o.del) return; _obstacles[o.id]=o;
   const m=L.marker([o.lat,o.lng],{icon:obsIcon(o.type,o.name),pane:'obsPane'});
@@ -1646,13 +1648,16 @@ map.on('click', function(e){ if(!obsPlaceMode) return; toggleObsPlace(); openObs
 // 지형지물 모달
 let _obMode='add', _obCur=null, _obLL=null;
 function closeObsModal(){ document.getElementById('obsModal').classList.remove('open'); }
+function _obToast(m){ const h=document.getElementById('hint'); if(!h) return; h.textContent=m; h.style.opacity='1'; clearTimeout(window._obHid); window._obHid=setTimeout(function(){h.style.opacity='0';},3800); }
 function _obType(){ const e=document.querySelector('#obBody .seg-b.on'); return e?e.getAttribute('data-ty'):'보'; }
 function obPick(el){ const bs=document.querySelectorAll('#obBody .seg-b'); for(let i=0;i<bs.length;i++) bs[i].classList.remove('on'); el.classList.add('on');
   const ty=el.getAttribute('data-ty'), row=document.getElementById('obNameRow'), kr=document.getElementById('obKakaoRow');
   if(row) row.style.display=_obHasName(ty)?'block':'none'; if(kr) kr.style.display=_obHasKakao(ty)?'block':'none'; }
 function openObsModal(mode,data){ if(!isAdmin()) return;
-  _obMode=mode; let ty='보', note='', name='', kakaoUrl='';
-  if(mode==='edit'){ _obCur=data; _obLL={lat:data.lat,lng:data.lng}; ty=data.type; note=data.note||''; name=data.name||''; kakaoUrl=data.kakaoUrl||''; }
+  _obMode=mode; let ty='보', note='', name='', kakaoUrl='', kakaoAuto='';
+  if(mode==='edit'){ _obCur=data; _obLL={lat:data.lat,lng:data.lng}; ty=data.type; note=data.note||''; name=data.name||'';
+    if(data.kakaoPlaceId) kakaoAuto='현재 자동 연결: '+pmEsc(data.kakaoPlaceName||name)+(isFinite(Number(data.kakaoMatchDistance))?' · '+Math.round(Number(data.kakaoMatchDistance))+'m':'')+' (저장 시 다시 검색)';
+    else kakaoUrl=data.kakaoUrl||''; }
   else { _obCur=null; _obLL={lat:data.lat,lng:data.lng}; }
   const tys=['보','징검다리','잠수교','용치','낮은바닥','여울','유명지','강풍지대','식당/카페'];
   let seg=''; for(let i=0;i<tys.length;i++){ const t=tys[i],info=OBS_TYPES[t]; seg+='<button class="seg-b'+(t===ty?' on':'')+'" data-ty="'+t+'" onclick="obPick(this)">'+info.e+' '+t+'</button>'; }
@@ -1661,8 +1666,9 @@ function openObsModal(mode,data){ if(!isAdmin()) return;
     +'<div class="sg-label">유형</div><div class="seg">'+seg+'</div>'
     +'<div id="obNameRow" style="display:'+(_obHasName(ty)?'block':'none')+'"><div class="sg-label">이름</div>'
     +'<input id="obName" maxlength="40" placeholder="예: 도담삼봉 / 한강 여울 / 강변카페" value="'+pmEsc(name)+'"></div>'
-    +'<div id="obKakaoRow" style="display:'+(_obHasKakao(ty)?'block':'none')+'"><div class="sg-label">카카오맵 장소 URL (선택)</div>'
-    +'<input id="obKakaoUrl" maxlength="500" placeholder="카카오맵에서 공유한 장소 링크" value="'+pmEsc(kakaoUrl)+'"></div>'
+    +'<div id="obKakaoRow" style="display:'+(_obHasKakao(ty)?'block':'none')+'"><div class="sg-label">카카오맵 장소 URL (직접 지정할 때만)</div>'
+    +'<input id="obKakaoUrl" maxlength="500" placeholder="비워두면 이름과 좌표로 자동 연결" value="'+pmEsc(kakaoUrl)+'">'
+    +(kakaoAuto?'<div style="margin:-5px 0 10px;color:#60747c;font-size:11.5px">'+kakaoAuto+'</div>':'')+'</div>'
     +'<div class="sg-label">메모 (선택)</div>'
     +'<textarea id="obNote" rows="2" placeholder="예: 우안 하선 후 30m 우회. 수위 높을 때 위험" maxlength="200">'+pmEsc(note)+'</textarea>'
     +'<button class="sg-submit" id="obSave">'+(mode==='edit'?'수정 완료':'추가')+'</button><div id="obMsg"></div>';
@@ -1681,9 +1687,11 @@ async function doSaveObs(){ if(!isAdmin()||!_obLL) return;
     else { body={action:'add',adminKey:adminKey(),lat:_obLL.lat,lng:_obLL.lng,type:type,note:note,name:name,kakaoUrl:kakaoUrl}; }
     const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(r.ok){ const d=await r.json().catch(function(){return {};}); gaEvent('obstacle_'+_obMode); closeObsModal();
-      if(_obMode==='edit'&&_obCur){ if(_obCur._m) obstacleLayer.removeLayer(_obCur._m); renderObstacle(Object.assign({},_obCur,{type:type,note:note,name:name,kakaoUrl:kakaoUrl,_m:null})); }
-      else { renderObstacle((d&&d.obstacle)||{id:Date.now(),lat:_obLL.lat,lng:_obLL.lng,type:type,note:note,name:name,kakaoUrl:kakaoUrl}); }
+      const saved=(d&&d.obstacle)||{id:Date.now(),lat:_obLL.lat,lng:_obLL.lng,type:type,note:note,name:name,kakaoUrl:kakaoUrl};
+      if(_obMode==='edit'&&_obCur){ if(_obCur._m) obstacleLayer.removeLayer(_obCur._m); renderObstacle(Object.assign({},_obCur,saved,{_m:null})); }
+      else renderObstacle(saved);
       map.closePopup();
+      if(type==='식당/카페'&&!kuRaw) _obToast(saved.kakaoUrl?'카카오맵 '+(saved.kakaoPlaceName||name)+' 자동 연결 완료':'일치 장소가 없어 좌표 링크로 연결했어요');
     } else { msg.style.color='#c0392b'; msg.textContent=(r.status===403?'관리자 권한 확인 필요':'저장 실패'); }
   }catch(e){ msg.style.color='#c0392b'; msg.textContent='오류'; } }
 function editObstacle(id){ const o=_obstacles[id]; if(o) openObsModal('edit',o); }

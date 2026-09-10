@@ -111,6 +111,55 @@ async function _launchAll(KV, includeCandidates) {
   return out;
 }
 
+// 카카오 로컬 키워드 검색 결과에서 등록 이름·좌표와 충분히 가까운 식당/카페만 자동 연결한다.
+function _kakaoPlaceName(v) {
+  return String(v || "").normalize("NFKC").toLowerCase().replace(/\([^)]*\)/g, "").replace(/[^0-9a-z가-힣]/g, "");
+}
+function _kakaoNameDice(a, b) {
+  if (a === b) return 1;
+  if (a.length < 2 || b.length < 2) return 0;
+  const counts = new Map();
+  for (let i = 0; i < a.length - 1; i++) { const g = a.slice(i, i + 2); counts.set(g, (counts.get(g) || 0) + 1); }
+  let hit = 0;
+  for (let i = 0; i < b.length - 1; i++) { const g = b.slice(i, i + 2), n = counts.get(g) || 0; if (n) { hit++; counts.set(g, n - 1); } }
+  return 2 * hit / (a.length + b.length - 2);
+}
+async function _matchKakaoPlace(env, name, lat, lng) {
+  const wanted = _kakaoPlaceName(name), y = Number(lat), x = Number(lng);
+  if (!env.KAKAO_REST_KEY || wanted.length < 3 || !isFinite(y) || !isFinite(x)) return null;
+  const qs = new URLSearchParams({ query: String(name).slice(0, 40), x: String(x), y: String(y), radius: "3000", size: "10", sort: "distance" });
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 4500);
+  try {
+    const r = await fetch("https://dapi.kakao.com/v2/local/search/keyword.json?" + qs, {
+      headers: { Authorization: "KakaoAK " + env.KAKAO_REST_KEY }, signal: ctl.signal,
+    });
+    if (!r.ok) return null;
+    const data = await r.json(), docs = Array.isArray(data.documents) ? data.documents : [];
+    let best = null;
+    for (const d of docs) {
+      const got = _kakaoPlaceName(d.place_name), distance = Number(d.distance);
+      const food = d.category_group_code === "FD6" || d.category_group_code === "CE7" || String(d.category_name || "").includes("음식점");
+      if (!got || !food || !isFinite(distance) || distance > 3000) continue;
+      const shorter = Math.min(wanted.length, got.length), longer = Math.max(wanted.length, got.length);
+      const contains = shorter >= 3 && (wanted.includes(got) || got.includes(wanted));
+      const dice = _kakaoNameDice(wanted, got);
+      let nameScore = wanted === got ? 100 : (contains ? 82 + 10 * shorter / longer : dice * 80);
+      if (nameScore < 66 || (wanted !== got && distance > 1500)) continue;
+      const score = nameScore - Math.min(distance / 200, 12);
+      if (!best || score > best.score) best = { score, d, distance };
+    }
+    if (!best) return null;
+    const detailUrl = String(best.d.place_url || "").replace(/^http:/, "https:");
+    if (!/^https:\/\/place\.map\.kakao\.com\/[0-9]+(?:[/?#].*)?$/.test(detailUrl)) return null;
+    return {
+      kakaoUrl: detailUrl.slice(0, 500), kakaoPlaceId: String(best.d.id || "").slice(0, 30),
+      kakaoPlaceName: String(best.d.place_name || "").slice(0, 100), kakaoMatchDistance: best.distance,
+      kakaoMatchedAt: Date.now(),
+    };
+  } catch (e) { return null; }
+  finally { clearTimeout(timer); }
+}
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
@@ -946,9 +995,11 @@ export default {
           const raw = String(value || "").trim(); if (!raw) return "";
           try {
             const u = new URL(raw), h = u.hostname.toLowerCase();
-            return u.protocol === "https:" && (h === "map.kakao.com" || h === "place.map.kakao.com" || h === "kko.to") ? u.href.slice(0, 500) : "";
+            if ((u.protocol === "https:" || u.protocol === "http:") && (h === "map.kakao.com" || h === "place.map.kakao.com" || h === "kko.to")) { u.protocol = "https:"; return u.href.slice(0, 500); }
+            return "";
           } catch (e) { return ""; }
         };
+        const hasKakaoUrlInput = b.kakaoUrl != null;
         const rawKakaoUrl = String(b.kakaoUrl || "").trim(), kakaoUrl = cleanKakaoUrl(rawKakaoUrl);
         if (rawKakaoUrl && !kakaoUrl) return new Response("bad-kakao-url", { status: 400, headers: cors });
         if ((b.action === "add" || b.action === "edit") && b.type === "식당/카페" && !String(b.name || "").trim()) {
@@ -956,7 +1007,18 @@ export default {
         }
         let arr = []; try { arr = JSON.parse((await KV.get("obstacles")) || "[]"); } catch (e) {}
         let created = null;
-        const seedAdd = b.action === "add" && String(b.obsId || "").startsWith("weir:");
+        const clearKakaoMatch = (it) => {
+          delete it.kakaoPlaceId; delete it.kakaoPlaceName; delete it.kakaoMatchDistance; delete it.kakaoMatchedAt;
+        };
+        const syncKakaoPlace = async (it, previousUrl) => {
+          if (it.type !== "식당/카페") { it.kakaoUrl = ""; clearKakaoMatch(it); return; }
+          const prior = cleanKakaoUrl(previousUrl), chosen = hasKakaoUrlInput ? kakaoUrl : prior;
+          if (chosen) { it.kakaoUrl = chosen; if (hasKakaoUrlInput && chosen !== prior) clearKakaoMatch(it); return; }
+          it.kakaoUrl = ""; clearKakaoMatch(it);
+          const matched = await _matchKakaoPlace(env, it.name, it.lat, it.lng);
+          if (matched) Object.assign(it, matched);
+        };
+        const seedAdd = b.action === "add" && String(b.obsId || "").startsWith("weir:") && (!b.type || b.type === "보");
         if (!seedAdd && (!env.ADMIN_KEY || String(b.adminKey) !== String(env.ADMIN_KEY))) return new Response("forbidden", { status: 403, headers: cors });
         if (b.action === "delete") {
           const it = arr.find((x) => String(x.id) === String(b.obsId));
@@ -973,12 +1035,15 @@ export default {
             arr.unshift(it);
           }
           if (!it) return new Response("notfound", { status: 404, headers: cors });
+          const previousKakaoUrl = it.kakaoUrl;
           if (it.del) delete it.del;
           if (b.type && TYPES.indexOf(b.type) >= 0) it.type = b.type;
           if (b.note != null) it.note = String(b.note).slice(0, 200);
           if (b.name != null) it.name = String(b.name).slice(0, 40);
-          if (b.kakaoUrl != null) it.kakaoUrl = kakaoUrl;
           if (b.lat != null && b.lng != null) { it.lat = Number(b.lat); it.lng = Number(b.lng); }
+          if (it.type === "식당/카페" && !String(it.name || "").trim()) return new Response("name-required", { status: 400, headers: cors });
+          await syncKakaoPlace(it, previousKakaoUrl);
+          created = it;
         } else if (b.action === "add" && String(b.obsId || "").trim()) {
           const lat = Number(b.lat), lng = Number(b.lng);
           if (!isFinite(lat) || !isFinite(lng)) return new Response("bad", { status: 400, headers: cors });
@@ -989,18 +1054,21 @@ export default {
             if (b.type && TYPES.indexOf(b.type) >= 0) it.type = b.type;
             it.note = String(b.note || "").slice(0, 200);
             it.name = String(b.name || "").slice(0, 40);
-            it.kakaoUrl = kakaoUrl;
             it.lat = lat; it.lng = lng;
+            if (it.type === "식당/카페" && !it.name.trim()) return new Response("name-required", { status: 400, headers: cors });
+            await syncKakaoPlace(it, "");
             created = it;
           } else {
-            created = { id: id, lat: lat, lng: lng, type: TYPES.indexOf(b.type) >= 0 ? b.type : "보", note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), kakaoUrl: kakaoUrl, t: Date.now() };
+            created = { id: id, lat: lat, lng: lng, type: TYPES.indexOf(b.type) >= 0 ? b.type : "보", note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), kakaoUrl: "", t: Date.now() };
+            await syncKakaoPlace(created, "");
             arr.unshift(created);
           }
         } else {
           const lat = Number(b.lat), lng = Number(b.lng);
           if (!isFinite(lat) || !isFinite(lng)) return new Response("bad", { status: 400, headers: cors });
           const type = TYPES.indexOf(b.type) >= 0 ? b.type : "보";
-          created = { id: String(b.obsId || Date.now()), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), kakaoUrl: kakaoUrl, t: Date.now() };
+          created = { id: String(b.obsId || Date.now()), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), kakaoUrl: "", t: Date.now() };
+          await syncKakaoPlace(created, "");
           arr.unshift(created);
           if (arr.length > 500) arr = arr.slice(0, 500);
         }
