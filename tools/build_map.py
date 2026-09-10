@@ -1382,8 +1382,15 @@ function _lazyLoadProtect(){
 }
 
 // ---- 수상레저 금지구역(해수면+내수면, 외부 .geojson, 줌인 시 지연 로드) ----
-// 금지대상에 따라: 카누(무동력) 포함 금지 = 주황 / 동력 기구만 금지(카누 가능) = 회청
-function wlzBansCanoe(t){ t=t||''; return t.indexOf('모든 수상')>=0 || t.indexOf('모든 기구')>=0 || t.indexOf('무동력')>=0; }
+// 금지대상에 따라: 카누(무동력) 포함 금지 = 주황 / 동력만 = 회청 / 대상 미기재 = 황갈 점선
+function wlzCanoeStatus(t){
+  t=(t||'').trim();
+  if(!t || t.indexOf('미기재')>=0 || t.indexOf('확인 필요')>=0) return 0;
+  if(t.indexOf('모든 수상')>=0 || t.indexOf('모든 기구')>=0 || t.indexOf('무동력')>=0) return 1;
+  if(t.indexOf('동력')>=0) return -1;
+  return 0;
+}
+function wlzBansCanoe(t){ return wlzCanoeStatus(t)===1; }
 function _lazyLoadWlz(){
   if(wlzLayer) return Promise.resolve(wlzLayer);
   if(_wlzLoading) return _wlzLoading;
@@ -1391,13 +1398,17 @@ function _lazyLoadWlz(){
     .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
     .then(function(fc){
       wlzLayer = L.geoJSON(fc, {
-        style:function(f){ const ban=wlzBansCanoe((f.properties||{}).target);
-          return ban? {color:'#e65100', weight:1.2, fillColor:'#ff9800', fillOpacity:0.35}
-                    : {color:'#546e7a', weight:1.2, dashArray:'4 3', fillColor:'#90a4ae', fillOpacity:0.22}; },
+        style:function(f){ const status=wlzCanoeStatus((f.properties||{}).target);
+          return status===1? {color:'#e65100', weight:1.2, fillColor:'#ff9800', fillOpacity:0.35}
+               : status===-1? {color:'#546e7a', weight:1.2, dashArray:'4 3', fillColor:'#90a4ae', fillOpacity:0.22}
+                            : {color:'#8d6e00', weight:1.2, dashArray:'6 3', fillColor:'#ffd54f', fillOpacity:0.28}; },
         onEachFeature:function(f,l){ const p=f.properties||{};
-          const ban=wlzBansCanoe(p.target);
+          const status=wlzCanoeStatus(p.target);
+          const canoe=status===1?' <span style="color:#e65100;font-weight:700">(카누 포함)</span>'
+            :(status===-1?' <span style="color:#546e7a">(동력만, 카누 가능)</span>'
+                         :' <span style="color:#8d6e00;font-weight:700">(카누 적용 여부 확인 필요)</span>');
           l.bindPopup('<b>⛔ 수상레저 금지구역</b><br><b>'+pmEsc(p.name||'')+'</b>'
-            +'<br>금지대상: '+pmEsc(p.target||'')+(ban?' <span style="color:#e65100;font-weight:700">(카누 포함)</span>':' <span style="color:#546e7a">(동력만, 카누 가능)</span>')
+            +'<br>금지대상: '+pmEsc(p.target||'공식 현황표 미기재')+canoe
             +(p.period?'<br>기간: '+pmEsc(p.period):'')
             +(p.note?'<br><small>'+pmEsc(p.note)+'</small>':'')
             +(p.office?'<br><small>'+pmEsc(p.office)+'</small>':'')); }
