@@ -11,6 +11,9 @@ BASE = Path(__file__).resolve().parent.parent
 DATA = BASE / "data"
 CREDS = BASE / "safemap_credentials.txt"
 API = "https://www.safemap.go.kr/openapi2/IF_0044"
+SOURCE_YEAR = 2025
+SOURCE_UPDATED = "2025-07-25"
+LATEST_VERIFIED_AT = "2026-09-10"
 
 
 def service_key():
@@ -51,6 +54,34 @@ def clean(value):
     return None if value in ("", "-") else value
 
 
+def validate_inputs(rows, coord_overrides):
+    ids = [str(item["objt_id"]) for item in rows]
+    rows_by_id = {str(item["objt_id"]): item for item in rows}
+    if len(ids) != len(set(ids)):
+        raise RuntimeError("물놀이 관리지역 objt_id 중복")
+    unused = sorted(set(coord_overrides) - set(ids), key=int)
+    if unused:
+        raise RuntimeError(f"원본에 없는 좌표 보정 ID: {', '.join(unused)}")
+    for oid, override in coord_overrides.items():
+        missing = [key for key in ("name", "lat", "lng", "reason", "source", "verifiedAt") if not override.get(key)]
+        if missing:
+            raise RuntimeError(f"좌표 보정 {oid} 필수 필드 누락: {', '.join(missing)}")
+        if clean(rows_by_id[oid].get("plc_nm")) != override["name"]:
+            raise RuntimeError(
+                f"좌표 보정 {oid} 이름 불일치: {override['name']} / {clean(rows_by_id[oid].get('plc_nm'))}"
+            )
+        if not (33 <= float(override["lat"]) <= 39.5 and 124 <= float(override["lng"]) <= 132):
+            raise RuntimeError(f"좌표 보정 {oid}가 대한민국 범위를 벗어남")
+
+
+def validate_features(features):
+    for feature in features:
+        oid = feature["properties"]["id"]
+        lng, lat = feature["geometry"]["coordinates"]
+        if not (33 <= lat <= 39.5 and 124 <= lng <= 132):
+            raise RuntimeError(f"물놀이 관리지역 {oid} 좌표가 대한민국 범위를 벗어남: {lng}, {lat}")
+
+
 def main():
     key = service_key()
     rows, total, page = [], None, 1
@@ -71,6 +102,7 @@ def main():
             staff.setdefault(str(oid), rule.get("staff"))
     coord_path = DATA / "waterplay_coord_overrides.json"
     coord_overrides = json.loads(coord_path.read_text(encoding="utf-8")) if coord_path.exists() else {}
+    validate_inputs(rows, coord_overrides)
     features = []
     for item in rows:
         oid = str(item["objt_id"])
@@ -105,12 +137,21 @@ def main():
             },
             "staff": staff.get(oid),
             "coordinateCorrected": oid in coord_overrides,
-            "sourceYear": 2025
+            "sourceYear": SOURCE_YEAR
         }
         features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lng, lat]}, "properties": props})
 
+    validate_features(features)
+
     output = {"type": "FeatureCollection", "features": features,
-              "meta": {"source": "행정안전부 생활안전지도 IF_0044", "sourceYear": 2025, "count": len(features)}}
+              "meta": {
+                  "source": "행정안전부 생활안전지도 IF_0044",
+                  "sourceYear": SOURCE_YEAR,
+                  "sourceUpdated": SOURCE_UPDATED,
+                  "latestVerifiedAt": LATEST_VERIFIED_AT,
+                  "count": len(features),
+                  "coordinateCorrections": len(coord_overrides),
+              }}
     out = BASE / "waterplay.geojson"
     out.write_text(json.dumps(output, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"물놀이 관리지역 {len(features)}곳 -> {out.name} (안전요원 보강 {sum(1 for f in features if f['properties']['staff'])}곳)")
