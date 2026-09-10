@@ -927,7 +927,7 @@ export default {
       return new Response(JSON.stringify(out), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // 0-3e) 지형지물(보/징검다리/잠수교/용치/낮은바닥/여울/유명지/강풍지대) — 관리자. KV "obstacles". 여울·유명지는 name 보유
+    // 0-3e) 지형지물(보/징검다리/잠수교/용치/낮은바닥/여울/유명지/강풍지대/식당·카페) — 관리자. KV "obstacles"
     if (url.pathname.endsWith("/obstacles") || url.pathname.endsWith("/obstacle")) {
       const origin = req.headers.get("Origin") || "*";
       const cors = { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
@@ -941,7 +941,19 @@ export default {
       if (req.method === "POST") {
         let b = {}; try { b = await req.json(); } catch (e) {}
         if (!KV) return new Response("no-store", { status: 500, headers: cors });
-        const TYPES = ["보", "징검다리", "잠수교", "용치", "낮은바닥", "여울", "유명지", "강풍지대"];
+        const TYPES = ["보", "징검다리", "잠수교", "용치", "낮은바닥", "여울", "유명지", "강풍지대", "식당/카페"];
+        const cleanKakaoUrl = (value) => {
+          const raw = String(value || "").trim(); if (!raw) return "";
+          try {
+            const u = new URL(raw), h = u.hostname.toLowerCase();
+            return u.protocol === "https:" && (h === "map.kakao.com" || h === "place.map.kakao.com" || h === "kko.to") ? u.href.slice(0, 500) : "";
+          } catch (e) { return ""; }
+        };
+        const rawKakaoUrl = String(b.kakaoUrl || "").trim(), kakaoUrl = cleanKakaoUrl(rawKakaoUrl);
+        if (rawKakaoUrl && !kakaoUrl) return new Response("bad-kakao-url", { status: 400, headers: cors });
+        if ((b.action === "add" || b.action === "edit") && b.type === "식당/카페" && !String(b.name || "").trim()) {
+          return new Response("name-required", { status: 400, headers: cors });
+        }
         let arr = []; try { arr = JSON.parse((await KV.get("obstacles")) || "[]"); } catch (e) {}
         let created = null;
         const seedAdd = b.action === "add" && String(b.obsId || "").startsWith("weir:");
@@ -965,6 +977,7 @@ export default {
           if (b.type && TYPES.indexOf(b.type) >= 0) it.type = b.type;
           if (b.note != null) it.note = String(b.note).slice(0, 200);
           if (b.name != null) it.name = String(b.name).slice(0, 40);
+          if (b.kakaoUrl != null) it.kakaoUrl = kakaoUrl;
           if (b.lat != null && b.lng != null) { it.lat = Number(b.lat); it.lng = Number(b.lng); }
         } else if (b.action === "add" && String(b.obsId || "").trim()) {
           const lat = Number(b.lat), lng = Number(b.lng);
@@ -976,17 +989,18 @@ export default {
             if (b.type && TYPES.indexOf(b.type) >= 0) it.type = b.type;
             it.note = String(b.note || "").slice(0, 200);
             it.name = String(b.name || "").slice(0, 40);
+            it.kakaoUrl = kakaoUrl;
             it.lat = lat; it.lng = lng;
             created = it;
           } else {
-            created = { id: id, lat: lat, lng: lng, type: TYPES.indexOf(b.type) >= 0 ? b.type : "보", note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), t: Date.now() };
+            created = { id: id, lat: lat, lng: lng, type: TYPES.indexOf(b.type) >= 0 ? b.type : "보", note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), kakaoUrl: kakaoUrl, t: Date.now() };
             arr.unshift(created);
           }
         } else {
           const lat = Number(b.lat), lng = Number(b.lng);
           if (!isFinite(lat) || !isFinite(lng)) return new Response("bad", { status: 400, headers: cors });
           const type = TYPES.indexOf(b.type) >= 0 ? b.type : "보";
-          created = { id: String(b.obsId || Date.now()), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), t: Date.now() };
+          created = { id: String(b.obsId || Date.now()), lat: lat, lng: lng, type: type, note: String(b.note || "").slice(0, 200), name: String(b.name || "").slice(0, 40), kakaoUrl: kakaoUrl, t: Date.now() };
           arr.unshift(created);
           if (arr.length > 500) arr = arr.slice(0, 500);
         }
