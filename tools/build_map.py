@@ -340,9 +340,11 @@ __GTAG__
   .rv-compare{margin-top:9px;padding:9px 10px;border:1px solid #dde7ed;border-radius:10px;background:#f7fafc}
   .rv-compare-title{display:block;margin-bottom:6px;color:#40545f;font:800 12px sans-serif}
   .rv-compare-links{display:flex;flex-wrap:wrap;gap:6px}
-  .rv-provider{border:1px solid #cbd8df;background:#fff;color:#274a5c;border-radius:999px;padding:7px 10px;font:700 11.5px sans-serif;cursor:pointer}
+  .rv-provider{display:inline-flex;align-items:center;gap:6px;border:1px solid #cbd8df;background:#fff;color:#274a5c;border-radius:999px;padding:7px 10px;font:700 11.5px sans-serif;cursor:pointer}
   .rv-provider.naver{color:#067a3a;border-color:#8dd8ae}.rv-provider.google{color:#174ea6;border-color:#a9c4f5}
-  .rv-provider.mapillary{color:#187f65;border-color:#9ad9c7}.rv-provider.karta{color:#6950a1;border-color:#c8b9e8}
+  .rv-provider-status{padding:1px 5px;border-radius:999px;background:#e8eef2;color:#667780;font:800 9.5px sans-serif;white-space:nowrap}
+  .rv-provider[data-state="available"] .rv-provider-status{background:#dcf6e7;color:#13743e}
+  .rv-provider:disabled{cursor:not-allowed;opacity:.62;background:#f0f3f5;border-color:#d8dfe3;color:#6f7c82}
   .rv-compare-note{display:block;margin-top:6px;color:#75858d;font:10.5px/1.4 sans-serif}
   .lg-sub{font-weight:700;font-size:11.5px;color:#2a3b34;margin:6px 0 2px;padding-top:5px;border-top:1px solid #eee}
   .lg-note{font-weight:400;color:#8a948e;font-size:10px}
@@ -749,13 +751,11 @@ __GTAG__
     <div class="rv-compare">
       <span class="rv-compare-title">같은 위치의 거리·항공 영상 비교</span>
       <div class="rv-compare-links">
-        <button type="button" class="rv-provider naver" onclick="openRoadviewProvider('naver')">N 네이버 거리뷰·항공뷰 ↗</button>
-        <button type="button" class="rv-provider google" onclick="openRoadviewProvider('google')">G Google Street View ↗</button>
-        <button type="button" class="rv-provider google" onclick="openRoadviewProvider('googleAerial')">G Google 항공사진 ↗</button>
-        <button type="button" class="rv-provider mapillary" onclick="openRoadviewProvider('mapillary')">M Mapillary ↗</button>
-        <button type="button" class="rv-provider karta" onclick="openRoadviewProvider('karta')">K KartaView ↗</button>
+        <button type="button" class="rv-provider naver" data-rv-provider="naver" disabled onclick="openRoadviewProvider('naver')"><span>N 네이버 거리뷰·항공뷰</span><small class="rv-provider-status">확인 키 필요</small></button>
+        <button type="button" class="rv-provider google" data-rv-provider="google" disabled onclick="openRoadviewProvider('google')"><span>G Google Street View</span><small class="rv-provider-status">확인 키 필요</small></button>
+        <button type="button" class="rv-provider google" data-rv-provider="googleAerial" onclick="openRoadviewProvider('googleAerial')"><span>G Google 항공사진 ↗</span><small class="rv-provider-status">기본지도</small></button>
       </div>
-      <small class="rv-compare-note">새 탭에서 같은 좌표를 엽니다. 네이버는 거리뷰를 누른 뒤 항공뷰 촬영 지점도 고를 수 있습니다. Google 항공사진은 360° 파노라마가 아니며, 다른 거리 영상은 촬영 구간이 있을 때만 표시됩니다.</small>
+      <small class="rv-compare-note">촬영물 존재가 확인된 서비스만 선택할 수 있습니다. 확인 키가 없는 서비스는 추측해 열지 않습니다. Google 항공사진은 360° 로드뷰가 아닌 지도 배경입니다.</small>
     </div>
   </div>
 </div>
@@ -1182,6 +1182,17 @@ function shareRoadview(){
   else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){alert('로드뷰 URL이 복사됐어요!\n'+u);}).catch(function(){prompt('아래 URL 복사',u);});}
   else prompt('아래 URL 복사',u);
 }
+function _setRvProviderState(kind,state,label,title){
+  const b=document.querySelector('.rv-provider[data-rv-provider="'+kind+'"]');if(!b)return;
+  b.dataset.state=state;b.disabled=state!=='available';b.setAttribute('aria-disabled',b.disabled?'true':'false');
+  const s=b.querySelector('.rv-provider-status');if(s)s.textContent=label||'';
+  if(title)b.title=title;else b.removeAttribute('title');
+}
+function _resetRoadviewAvailability(){
+  _setRvProviderState('naver','unverified','확인 키 필요','네이버 파노라마 존재 확인에는 Naver Maps API 키와 등록 도메인이 필요합니다.');
+  _setRvProviderState('google','unverified','확인 키 필요','Google Street View 존재 확인에는 인증된 Street View metadata API가 필요합니다.');
+  _setRvProviderState('googleAerial','available','기본지도','Google 위성·항공 기본지도를 같은 좌표에서 엽니다. 360도 파노라마가 아닙니다.');
+}
 function _rvProviderUrl(kind){
   const s=_rvCurrentState();if(!_validRvCoord(s.lat,s.lng))return '';
   const lat=(+s.lat).toFixed(6),lng=(+s.lng).toFixed(6);
@@ -1194,11 +1205,9 @@ function _rvProviderUrl(kind){
     return u;
   }
   if(kind==='googleAerial')return 'https://www.google.com/maps/@?api=1&map_action=map&center='+encodeURIComponent(lat+','+lng)+'&zoom=18&basemap=satellite';
-  if(kind==='mapillary')return 'https://www.mapillary.com/app/?lat='+lat+'&lng='+lng+'&z=17';
-  if(kind==='karta')return 'https://kartaview.org/map/@'+lat+','+lng+',17z';
   return '';
 }
-function openRoadviewProvider(kind){const u=_rvProviderUrl(kind);if(u){gaEvent('roadview_compare',{provider:kind});window.open(u,'_blank','noopener');}}
+function openRoadviewProvider(kind){const b=document.querySelector('.rv-provider[data-rv-provider="'+kind+'"]');if(!b||b.disabled)return;const u=_rvProviderUrl(kind);if(u){gaEvent('roadview_compare',{provider:kind});window.open(u,'_blank','noopener');}}
 function _rvShotDate(lat,lng){   // 촬영시기(카카오 로드뷰 검색 API — SDK가 쓰는 것과 동일)
   const el=document.getElementById('rvDate'); if(el) el.textContent='';
   fetch('https://rv.map.kakao.com/roadview-search/v2/nodes?PX='+lng+'&PY='+lat+'&RAD=150&INPUT=wgs&PAGE_SIZE=1&SERVICE=mapjsapiv3')
@@ -1221,15 +1230,13 @@ function openRoadview(lat,lng,name,placeId,state){
   view.style.display='none'; date.style.display='none'; date.textContent='';
   msg.textContent='로드뷰 확인 중…'; msg.style.display='block';
   document.getElementById('rvModal').classList.add('open');
+  _resetRoadviewAvailability(lat,lng,seq);
   const pos=new kakao.maps.LatLng(lat,lng), rv=_ensureRv();
   if(!rv){ msg.textContent='근처에 로드뷰가 없습니다.'; return; }
   setTimeout(function(){
-    if(state&&isFinite(state.panoId)&&state.panoId>0){
-      if(seq!==_rvSeq)return;view.style.display='block';date.style.display='block';msg.style.display='none';rv.relayout();_applyRvViewpoint(seq,state);rv.setPanoId(Math.round(state.panoId),pos);_rvShotDate(lat,lng);setTimeout(function(){if(seq===_rvSeq)rv.relayout();},250);return;
-    }
     _rvClient.getNearestPanoId(pos,120,function(panoId){
       if(seq!==_rvSeq)return;
-      if(panoId!=null){ view.style.display='block'; date.style.display='block'; msg.style.display='none';rv.relayout();_applyRvViewpoint(seq,state);rv.setPanoId(panoId,pos);_rvShotDate(lat,lng);setTimeout(function(){if(seq===_rvSeq)rv.relayout();},250); }
+      if(panoId!=null){ view.style.display='block'; date.style.display='block'; msg.style.display='none';rv.relayout();_applyRvViewpoint(seq,state);rv.setPanoId(state&&isFinite(state.panoId)&&state.panoId>0?Math.round(state.panoId):panoId,pos);_rvShotDate(lat,lng);setTimeout(function(){if(seq===_rvSeq)rv.relayout();},250); }
       else { view.style.display='none';date.style.display='none';date.textContent='';msg.textContent='근처에 로드뷰가 없습니다.';msg.style.display='block'; }
     });
   }, 90);
@@ -1242,7 +1249,7 @@ function _roadviewStateFromUrl(){
 }
 function restoreRoadviewFromUrl(){
   const s=_roadviewStateFromUrl();if(!s||!_validRvCoord(s.lat,s.lng)||_rvUrlOpened)return false;_rvUrlOpened=true;_rvOpenedFromUrl=true;
-  let tries=0;(function waitSdk(){if(_kakaoReady&&_rvClient){map.setView([s.lat,s.lng],16);openRoadview(s.lat,s.lng,s.name,s.placeId,s);return;}if(tries++<50)setTimeout(waitSdk,120);else{_rvShareState=s;document.getElementById('rvTitle').textContent='🛣️ '+s.name;document.getElementById('rvView').style.display='none';document.getElementById('rvMsg').textContent='카카오 로드뷰를 불러오지 못했습니다. 아래 서비스에서 같은 위치를 확인하세요.';document.getElementById('rvMsg').style.display='block';document.getElementById('rvModal').classList.add('open');}})();return true;
+  let tries=0;(function waitSdk(){if(_kakaoReady&&_rvClient){map.setView([s.lat,s.lng],16);openRoadview(s.lat,s.lng,s.name,s.placeId,s);return;}if(tries++<50)setTimeout(waitSdk,120);else{const seq=++_rvSeq;_rvShareState=s;document.getElementById('rvTitle').textContent='🛣️ '+s.name;document.getElementById('rvView').style.display='none';document.getElementById('rvMsg').textContent='카카오 로드뷰를 불러오지 못했습니다. 확인 가능한 다른 서비스를 점검합니다.';document.getElementById('rvMsg').style.display='block';document.getElementById('rvModal').classList.add('open');_resetRoadviewAvailability(s.lat,s.lng,seq);}})();return true;
 }
 setTimeout(restoreRoadviewFromUrl,0);
 
