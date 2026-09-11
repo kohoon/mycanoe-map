@@ -331,9 +331,19 @@ __GTAG__
   .wxd-w{font-size:10.5px}
   .wxd-p{font-size:10px;color:#1565c0;min-height:13px}
   #rvModal .rv-pmodal{box-sizing:border-box;width:min(900px,calc(100% - 32px));max-width:900px;max-height:90vh}
+  .rv-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-right:34px}
+  .rv-head h3{margin-right:0}
+  .rv-share{flex:none;border:1px solid #90caf9;background:#eaf5ff;color:#0d579b;border-radius:999px;padding:7px 11px;font:700 12px sans-serif;cursor:pointer}
   #rvView{width:100%;height:70vh;max-height:640px;min-height:300px;border-radius:10px;overflow:hidden;background:#000;margin-top:4px}
   #rvDate{font-size:12px;color:#778;margin-top:7px;min-height:15px;text-align:right}
   #rvMsg{display:none;text-align:center;color:#667;padding:26px 10px;font-size:14px}
+  .rv-compare{margin-top:9px;padding:9px 10px;border:1px solid #dde7ed;border-radius:10px;background:#f7fafc}
+  .rv-compare-title{display:block;margin-bottom:6px;color:#40545f;font:800 12px sans-serif}
+  .rv-compare-links{display:flex;flex-wrap:wrap;gap:6px}
+  .rv-provider{border:1px solid #cbd8df;background:#fff;color:#274a5c;border-radius:999px;padding:7px 10px;font:700 11.5px sans-serif;cursor:pointer}
+  .rv-provider.naver{color:#067a3a;border-color:#8dd8ae}.rv-provider.google{color:#174ea6;border-color:#a9c4f5}
+  .rv-provider.mapillary{color:#187f65;border-color:#9ad9c7}.rv-provider.karta{color:#6950a1;border-color:#c8b9e8}
+  .rv-compare-note{display:block;margin-top:6px;color:#75858d;font:10.5px/1.4 sans-serif}
   .lg-sub{font-weight:700;font-size:11.5px;color:#2a3b34;margin:6px 0 2px;padding-top:5px;border-top:1px solid #eee}
   .lg-note{font-weight:400;color:#8a948e;font-size:10px}
   .lg-row{display:flex;align-items:center;margin:2px 0;line-height:1.4}
@@ -732,10 +742,21 @@ __GTAG__
 <div id="rvModal" class="pmodal-wrap">
   <div class="pmodal-bg" onclick="closeRvModal()"></div>
   <div class="pmodal rv-pmodal"><button class="pmodal-x" onclick="closeRvModal()">✕</button>
-    <h3 id="rvTitle">🛣️ 로드뷰</h3>
+    <div class="rv-head"><h3 id="rvTitle">🛣️ 로드뷰</h3><button type="button" class="rv-share" onclick="shareRoadview()">↗ URL 공유</button></div>
     <div id="rvView"></div>
     <div id="rvDate"></div>
     <div id="rvMsg">근처에 로드뷰가 없습니다.</div>
+    <div class="rv-compare">
+      <span class="rv-compare-title">같은 위치의 거리·항공 영상 비교</span>
+      <div class="rv-compare-links">
+        <button type="button" class="rv-provider naver" onclick="openRoadviewProvider('naver')">N 네이버 거리뷰·항공뷰 ↗</button>
+        <button type="button" class="rv-provider google" onclick="openRoadviewProvider('google')">G Google Street View ↗</button>
+        <button type="button" class="rv-provider google" onclick="openRoadviewProvider('googleAerial')">G Google 항공사진 ↗</button>
+        <button type="button" class="rv-provider mapillary" onclick="openRoadviewProvider('mapillary')">M Mapillary ↗</button>
+        <button type="button" class="rv-provider karta" onclick="openRoadviewProvider('karta')">K KartaView ↗</button>
+      </div>
+      <small class="rv-compare-note">새 탭에서 같은 좌표를 엽니다. 네이버는 거리뷰를 누른 뒤 항공뷰 촬영 지점도 고를 수 있습니다. Google 항공사진은 360° 파노라마가 아니며, 다른 거리 영상은 촬영 구간이 있을 때만 표시됩니다.</small>
+    </div>
   </div>
 </div>
 <!-- TRIPHTML -->
@@ -1095,7 +1116,7 @@ function _openWayback(cd){
 }
 
 // ---- 외부 지도 딥링크 (안드로이드 intent / iOS scheme / 데스크톱 웹) ----
-function extLinks(lat,lng,label,hasRv){   // hasRv===false 면 로드뷰 링크 숨김(없는 곳)
+function extLinks(lat,lng,label,hasRv,placeId){   // hasRv===false 면 로드뷰 링크 숨김(없는 곳)
   const nm=(label||'위치').replace(/,/g,' ').trim().slice(0,30)||'위치';
   const enc=encodeURIComponent(nm);
   let k,n,r,tgt='';
@@ -1115,14 +1136,69 @@ function extLinks(lat,lng,label,hasRv){   // hasRv===false 면 로드뷰 링크 
     tgt=' target="_blank" rel="noopener"';
   }
   const sn=nm.replace(/['"\\]/g,'');
-  const rvLink=(hasRv===false)?'':' &middot; <a onclick="openRoadview('+lat+','+lng+',\''+sn+'\')" style="color:#1565c0;cursor:pointer">🛣️로드뷰</a>';
+  const sid=placeId==null?'null':('\''+String(placeId).replace(/['"\\]/g,'')+'\'');
+  const rvLink=(hasRv===false)?'':' &middot; <a onclick="openRoadview('+lat+','+lng+',\''+sn+'\','+sid+')" style="color:#1565c0;cursor:pointer">🛣️로드뷰</a>';
   return '<br><a href="'+k+'"'+tgt+'>카카오맵</a> &middot; <a href="'+n+'"'+tgt+'>네이버맵</a>'+rvLink;
 }
 // ---- 카카오 로드뷰 인앱 임베드 ----
-let _kakaoReady=false,_rvClient=null,_rv=null,_rvSeq=0;
+let _kakaoReady=false,_rvClient=null,_rv=null,_rvSeq=0,_rvShareState=null,_rvUrlOpened=false,_rvOpenedFromUrl=false,_rvPendingView=null;
 (function(){ try{ if(window.kakao&&kakao.maps){ kakao.maps.load(function(){ _kakaoReady=true; _rvClient=new kakao.maps.RoadviewClient(); }); } }catch(e){} })();
-function _ensureRv(){ if(!_rv&&_kakaoReady){ try{ _rv=new kakao.maps.Roadview(document.getElementById('rvView')); }catch(e){} } return _rv; }
-function closeRvModal(){ document.getElementById('rvModal').classList.remove('open'); }
+function _applyPendingRvView(){
+  const p=_rvPendingView;if(!p||p.seq!==_rvSeq||!_rv)return;
+  [0,120,320].forEach(function(delay){setTimeout(function(){if(_rvPendingView!==p||p.seq!==_rvSeq)return;try{_rv.setViewpoint({pan:p.pan,tilt:p.tilt,zoom:p.zoom});}catch(e){}},delay);});
+  setTimeout(function(){if(_rvPendingView===p)_rvPendingView=null;},450);
+}
+function _ensureRv(){
+  if(!_rv&&_kakaoReady){try{_rv=new kakao.maps.Roadview(document.getElementById('rvView'));kakao.maps.event.addListener(_rv,'init',_applyPendingRvView);kakao.maps.event.addListener(_rv,'panoid_changed',_applyPendingRvView);}catch(e){}}
+  return _rv;
+}
+function _clearRoadviewUrl(){
+  if(!_rvOpenedFromUrl)return;_rvOpenedFromUrl=false;
+  const u=new URL(location.href);['view','rvAt','rvPano','rvView','rvName'].forEach(function(k){u.searchParams.delete(k);});
+  history.replaceState(null,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash);
+}
+function closeRvModal(){ document.getElementById('rvModal').classList.remove('open');_clearRoadviewUrl(); }
+function _validRvCoord(lat,lng){return isFinite(lat)&&isFinite(lng)&&lat>=32&&lat<=40&&lng>=123&&lng<=132;}
+function _rvCurrentState(){
+  const s=Object.assign({},_rvShareState||{});
+  try{const p=_rv&&_rv.getPosition&&_rv.getPosition();if(p){s.lat=+p.getLat();s.lng=+p.getLng();}}catch(e){}
+  try{const v=_rv&&_rv.getViewpointWithPanoId&&_rv.getViewpointWithPanoId();if(v){s.panoId=+v.panoId;s.pan=+v.pan;s.tilt=+v.tilt;s.zoom=+v.zoom;}}catch(e){}
+  return s;
+}
+function roadviewShareUrl(){
+  const s=_rvCurrentState();if(!_validRvCoord(s.lat,s.lng))return '';
+  const u=new URL(location.origin+location.pathname);
+  if(s.placeId!=null&&String(s.placeId))u.searchParams.set('place',String(s.placeId));
+  u.searchParams.set('view','roadview');u.searchParams.set('rvAt',(+s.lat).toFixed(6)+','+(+s.lng).toFixed(6));
+  if(isFinite(s.panoId)&&s.panoId>0)u.searchParams.set('rvPano',String(Math.round(s.panoId)));
+  if(isFinite(s.pan)&&isFinite(s.tilt)&&isFinite(s.zoom))u.searchParams.set('rvView',(+s.pan).toFixed(1)+','+(+s.tilt).toFixed(1)+','+(+s.zoom).toFixed(1));
+  if(s.name)u.searchParams.set('rvName',String(s.name).slice(0,60));
+  return u.toString();
+}
+function shareRoadview(){
+  const u=roadviewShareUrl();if(!u)return;
+  gaEvent('roadview_share',{name:(_rvShareState&&_rvShareState.name)||''});
+  if(navigator.share){navigator.share({url:u}).catch(function(){});}
+  else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){alert('로드뷰 URL이 복사됐어요!\n'+u);}).catch(function(){prompt('아래 URL 복사',u);});}
+  else prompt('아래 URL 복사',u);
+}
+function _rvProviderUrl(kind){
+  const s=_rvCurrentState();if(!_validRvCoord(s.lat,s.lng))return '';
+  const lat=(+s.lat).toFixed(6),lng=(+s.lng).toFixed(6);
+  if(kind==='naver')return 'https://map.naver.com/p/search/'+encodeURIComponent(lat+','+lng);
+  if(kind==='google'){
+    let u='https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+encodeURIComponent(lat+','+lng);
+    if(isFinite(s.pan))u+='&heading='+encodeURIComponent((+s.pan).toFixed(1));
+    if(isFinite(s.tilt))u+='&pitch='+encodeURIComponent((+s.tilt).toFixed(1));
+    if(isFinite(s.zoom))u+='&fov='+Math.round(Math.max(20,Math.min(100,90-(+s.zoom)*15)));
+    return u;
+  }
+  if(kind==='googleAerial')return 'https://www.google.com/maps/@?api=1&map_action=map&center='+encodeURIComponent(lat+','+lng)+'&zoom=18&basemap=satellite';
+  if(kind==='mapillary')return 'https://www.mapillary.com/app/?lat='+lat+'&lng='+lng+'&z=17';
+  if(kind==='karta')return 'https://kartaview.org/map/@'+lat+','+lng+',17z';
+  return '';
+}
+function openRoadviewProvider(kind){const u=_rvProviderUrl(kind);if(u){gaEvent('roadview_compare',{provider:kind});window.open(u,'_blank','noopener');}}
 function _rvShotDate(lat,lng){   // 촬영시기(카카오 로드뷰 검색 API — SDK가 쓰는 것과 동일)
   const el=document.getElementById('rvDate'); if(el) el.textContent='';
   fetch('https://rv.map.kakao.com/roadview-search/v2/nodes?PX='+lng+'&PY='+lat+'&RAD=150&INPUT=wgs&PAGE_SIZE=1&SERVICE=mapjsapiv3')
@@ -1131,9 +1207,15 @@ function _rvShotDate(lat,lng){   // 촬영시기(카카오 로드뷰 검색 API 
       if(s&&s.shot_date&&el){ const d=s.shot_date.slice(0,10).split('-'); el.textContent='📷 '+d[0]+'.'+(+d[1])+'.'+(+d[2])+' 촬영'; } })
     .catch(function(){});
 }
-function openRoadview(lat,lng,name){
+function _applyRvViewpoint(seq,state){
+  if(!state||!isFinite(state.pan)||!isFinite(state.tilt)||!isFinite(state.zoom))return;
+  _rvPendingView={seq:seq,pan:+state.pan,tilt:+state.tilt,zoom:+state.zoom};_applyPendingRvView();
+}
+function openRoadview(lat,lng,name,placeId,state){
+  lat=+lat;lng=+lng;if(!_validRvCoord(lat,lng))return;
   if(!window.kakao||!kakao.maps||!_rvClient){ window.open('https://map.kakao.com/link/roadview/'+lat+','+lng,'_blank'); return; }  // SDK 미동작 시 외부 폴백
   const seq=++_rvSeq,view=document.getElementById('rvView'),date=document.getElementById('rvDate'),msg=document.getElementById('rvMsg');
+  _rvShareState={lat:lat,lng:lng,name:String(name||'로드뷰').slice(0,60),placeId:placeId==null?null:String(placeId)};
   if(typeof gaEvent==='function') gaEvent('roadview_open');
   document.getElementById('rvTitle').textContent='🛣️ '+(name||'로드뷰');
   view.style.display='none'; date.style.display='none'; date.textContent='';
@@ -1142,13 +1224,27 @@ function openRoadview(lat,lng,name){
   const pos=new kakao.maps.LatLng(lat,lng), rv=_ensureRv();
   if(!rv){ msg.textContent='근처에 로드뷰가 없습니다.'; return; }
   setTimeout(function(){
+    if(state&&isFinite(state.panoId)&&state.panoId>0){
+      if(seq!==_rvSeq)return;view.style.display='block';date.style.display='block';msg.style.display='none';rv.relayout();_applyRvViewpoint(seq,state);rv.setPanoId(Math.round(state.panoId),pos);_rvShotDate(lat,lng);setTimeout(function(){if(seq===_rvSeq)rv.relayout();},250);return;
+    }
     _rvClient.getNearestPanoId(pos,120,function(panoId){
       if(seq!==_rvSeq)return;
-      if(panoId!=null){ view.style.display='block'; date.style.display='block'; msg.style.display='none';rv.relayout();rv.setPanoId(panoId,pos);_rvShotDate(lat,lng);setTimeout(function(){if(seq===_rvSeq)rv.relayout();},250); }
+      if(panoId!=null){ view.style.display='block'; date.style.display='block'; msg.style.display='none';rv.relayout();_applyRvViewpoint(seq,state);rv.setPanoId(panoId,pos);_rvShotDate(lat,lng);setTimeout(function(){if(seq===_rvSeq)rv.relayout();},250); }
       else { view.style.display='none';date.style.display='none';date.textContent='';msg.textContent='근처에 로드뷰가 없습니다.';msg.style.display='block'; }
     });
   }, 90);
 }
+function _roadviewStateFromUrl(){
+  const u=new URL(location.href);if(u.searchParams.get('view')!=='roadview')return null;
+  const at=(u.searchParams.get('rvAt')||'').split(',').map(Number),v=(u.searchParams.get('rvView')||'').split(',').map(Number),p=Number(u.searchParams.get('rvPano'));
+  return {lat:at[0],lng:at[1],name:(u.searchParams.get('rvName')||'로드뷰').slice(0,60),placeId:u.searchParams.get('place'),panoId:p,
+    pan:isFinite(v[0])?((v[0]%360)+360)%360:NaN,tilt:isFinite(v[1])?Math.max(-90,Math.min(90,v[1])):NaN,zoom:isFinite(v[2])?Math.max(-3,Math.min(3,v[2])):NaN};
+}
+function restoreRoadviewFromUrl(){
+  const s=_roadviewStateFromUrl();if(!s||!_validRvCoord(s.lat,s.lng)||_rvUrlOpened)return false;_rvUrlOpened=true;_rvOpenedFromUrl=true;
+  let tries=0;(function waitSdk(){if(_kakaoReady&&_rvClient){map.setView([s.lat,s.lng],16);openRoadview(s.lat,s.lng,s.name,s.placeId,s);return;}if(tries++<50)setTimeout(waitSdk,120);else{_rvShareState=s;document.getElementById('rvTitle').textContent='🛣️ '+s.name;document.getElementById('rvView').style.display='none';document.getElementById('rvMsg').textContent='카카오 로드뷰를 불러오지 못했습니다. 아래 서비스에서 같은 위치를 확인하세요.';document.getElementById('rvMsg').style.display='block';document.getElementById('rvModal').classList.add('open');}})();return true;
+}
+setTimeout(restoreRoadviewFromUrl,0);
 
 // ---- 역지오코딩: V-World 직접 호출(JSONP, 지번) → 실패시 Nominatim ----
 let _jpId=0;
@@ -1705,7 +1801,7 @@ function openPlaceModal(pl){
   const warn=(pl.cat==='런칭/랜딩 후보지')?'<div class="pm-note pm-note-warn">⚠️ 런칭/랜딩 가능한지 확인이 필요한 곳</div>':'';
   const share=(pl.cat==='런칭/랜딩'||pl.cat==='런칭/랜딩 후보지')?'<div class="course-actions"><a class="course-btn" onclick="sharePlace(_pmPlace)">🔗 공유</a></div>':'';
   document.getElementById('pmLinks').innerHTML=warn+'<div id="pmWx" class="pm-wx"></div>'
-    +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'')
+    +extLinks(pl.lat,pl.lng,pl.name||'위치',pl.rv,pl.id)+(pl.memo?'<div class="pm-memo">'+pmEsc(pl.memo)+'</div>':'')
     +share
     +((isAdmin()&&pl.id!=null)?'<div class="pm-padmin"><a onclick="editPlace()">✏️ 수정</a><a onclick="movePlace()">📍 위치 이동</a><a onclick="deletePlace()">🗑 삭제</a></div>':'');
   placeWeather(pl.lat,pl.lng);
@@ -1727,7 +1823,12 @@ let _placeUrlFocused=false;
 function focusPlaceFromUrl(){
   if(_placeUrlFocused)return;const u=new URL(location.href),id=u.searchParams.get('place'),at=(u.searchParams.get('placeAt')||'').split(',').map(Number);let e=id!=null?_placeMarkerById[id]:null;
   if(!e&&isFinite(at[0])&&isFinite(at[1])){let best=null,gap=Infinity;Object.keys(_placeMarkerById).forEach(function(k){const x=_placeMarkerById[k],ll=x&&x.m&&x.m.getLatLng();if(!ll)return;const d=(ll.lat-at[0])*(ll.lat-at[0])+(ll.lng-at[1])*(ll.lng-at[1]);if(d<gap){gap=d;best=x;}});if(gap<0.000001)e=best;}
-  if(!e||e.deleted)return;const pl=e.rec||(e.f?featPlace(e.f):null);if(!pl||!_visiblePlaceCat(pl.cat))return;_placeUrlFocused=true;map.setView([pl.lat,pl.lng],16);openPlaceModal(pl);
+  if(!e||e.deleted)return;const pl=e.rec||(e.f?featPlace(e.f):null);if(!pl||!_visiblePlaceCat(pl.cat))return;_placeUrlFocused=true;map.setView([pl.lat,pl.lng],16);
+  if(u.searchParams.get('view')==='roadview'){
+    if(!_rvUrlOpened){const s=_roadviewStateFromUrl()||{};_rvUrlOpened=true;_rvOpenedFromUrl=true;let tries=0;(function waitSdk(){if(_kakaoReady&&_rvClient)openRoadview(pl.lat,pl.lng,pl.name,pl.id,s);else if(tries++<50)setTimeout(waitSdk,120);})();}
+    return;
+  }
+  openPlaceModal(pl);
 }
 setTimeout(focusPlaceFromUrl,1200);
 // ---- 관리자: 장소 제목·내용 수정 / 삭제(숨김) — 통합 placeover ----
@@ -2270,7 +2371,7 @@ function _addRoadviewFeature(f){
     color:'#00acc1', weight:7, opacity:0.92, lineCap:'round', lineJoin:'round'
   });
   ln.bindTooltip('🛣️ '+name, {sticky:true, direction:'top', opacity:0.95});
-  ln.on('click',function(){ openRoadview(lat,lng,name); });
+  ln.on('click',function(){ openRoadview(lat,lng,name,f.properties.id); });
   roadviewLayer.addLayer(ln);
 }
 
